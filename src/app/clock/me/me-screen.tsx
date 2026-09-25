@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { InternFrame } from "@/app/clock/intern-frame";
+import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
 import { EmptyState } from "@/components/empty-state";
 import { FormField, FormMessage } from "@/components/form-field";
@@ -22,9 +22,9 @@ export function MeScreen() {
   return (
     <DeskGate role="intern">
       {(profile) => (
-        <InternFrame profile={profile} title="Me">
+        <InternShell profile={profile} title="Me">
           <MeDesk />
-        </InternFrame>
+        </InternShell>
       )}
     </DeskGate>
   );
@@ -92,7 +92,10 @@ function MeDesk() {
             {placement && (placement.status === "completed" || placement.status === "withdrawn") ? (
               <ExitFeedback />
             ) : null}
-            <SignOutButton />
+            <div className="flex flex-wrap gap-2">
+              <SignOutButton />
+              <SignOutButton everywhere />
+            </div>
           </div>
         )}
       </LoadBlock>

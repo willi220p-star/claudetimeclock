@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CalendarDays, ChartPie, CircleUserRound, Clock, Inbox, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
+import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/daymark";
 import type { Role } from "@/lib/roles";
@@ -103,17 +104,15 @@ function NavLinks({ items, orientation }: { items: readonly NavItem[]; orientati
 export function InternShell({
   profile,
   title,
-  unread = 0,
   children,
 }: {
   profile: Profile;
   title: string;
-  unread?: number;
   children: ReactNode;
 }) {
   return (
     <>
-      <AppHeader profile={profile} role="intern" title={title} unread={unread} />
+      <AppHeader profile={profile} role="intern" title={title} />
       <main className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</main>
       <nav
         aria-label="Intern"
@@ -131,19 +130,17 @@ export function StaffShell({
   profile,
   role,
   title,
-  unread = 0,
   children,
 }: {
   profile: Profile;
   role: Exclude<Role, "intern">;
   title: string;
-  unread?: number;
   children: ReactNode;
 }) {
   const items = role === "admin" ? ADMIN_NAV : SUPERVISOR_NAV;
   return (
     <>
-      <AppHeader profile={profile} role={role} title={title} unread={unread} />
+      <AppHeader profile={profile} role={role} title={title} />
       <div className="mx-auto flex w-full max-w-[1200px] gap-6 px-4 py-6">
         <nav aria-label={role === "admin" ? "Admin" : "Supervisor"} className="hidden w-52 shrink-0 lg:block">
           <NavLinks items={items} orientation="side" />
@@ -153,6 +150,9 @@ export function StaffShell({
             <NavLinks items={items} orientation="tabs" />
           </nav>
           <main className="flex flex-col gap-6">{children}</main>
+          <div className="mt-10 flex justify-end border-t border-black/5 pt-4">
+            <SignOutButton everywhere />
+          </div>
         </div>
       </div>
     </>
