@@ -20,7 +20,7 @@
 | D9 | Hosting | GitHub Pages | Kept with meta CSP; host move, CAPTCHA, Sydney region, backups, Pro plan go to the release checklist |
 | D10 | Seed data in migrations | Site and closure days in `seed.sql` | The Regus site and NT closure days 2026–2027 are real data, so they go in a migration. `seed.sql` holds only test people and history |
 | D11 | Passwords | 8–72 characters | 12–72 characters (review §4.1), matching `minimum_password_length = 12` |
-| D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Not built (Dilip, 2026-09-25). Report approval and exit feedback stay in the database |
+| D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Built (reversed by Dilip, 2026-09-25): both PDFs generate in the browser via a lazy-loaded @react-pdf/renderer; CSP adds 'wasm-unsafe-eval' and connect-src data: |
 | D14 | Check-ins and Monday summary (§11.3) | Built | Not built (Dilip). The check-ins table and the low_checkin risk stay in the database |
 | D15 | Faster finish (Dilip) | Full screens | Admin Sites/Closures/Settings/Audit screens become placeholders (database RPCs exist; use Supabase Studio); intern schedule is week view only; progress shows the forecast as text, no chart; supervisor intern detail has no Flags tab |
 | D12 | Deleting people | Admin could delete a login | Removed. Admin deactivates; deletion happens only through the retention purge |
