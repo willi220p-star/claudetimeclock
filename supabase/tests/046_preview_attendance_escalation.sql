@@ -1,5 +1,6 @@
 begin;
 select plan(17);
+select tests.without_seed();
 
 insert into public.daymark_sites (id, name, address, latitude, longitude)
 values ('00000000-0000-0000-0000-0000000e0046', 'Preview site', 'Test', -12.4785082, 130.9854825);

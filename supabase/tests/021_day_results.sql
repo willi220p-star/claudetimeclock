@@ -1,5 +1,6 @@
 begin;
 select plan(18);
+select tests.without_seed();
 
 -- R5.4 day results. Everything below happens at Fri 30 Oct 20:00, so October days are closed.
 -- d works Mon–Fri 9:00–5:00 (planned 450); e works Mon and Wed only.

@@ -1,5 +1,6 @@
 begin;
 select plan(33);
+select tests.without_seed();
 
 -- §8.11 jobs. Wed 14 Oct 2026 (fortnight 12–25 Oct). Interns work Mon–Fri 9:00–5:00 unless noted.
 select tests.at('2026-10-14 18:00+09:30');

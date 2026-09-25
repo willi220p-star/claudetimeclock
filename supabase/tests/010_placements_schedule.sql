@@ -1,5 +1,6 @@
 begin;
 select plan(30);
+select tests.without_seed();
 
 create temp table ids as
 select tests.create_person('pl.admin@test.dev', false, false, true) as admin,

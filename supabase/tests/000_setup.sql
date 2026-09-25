@@ -179,6 +179,16 @@ begin
 end;
 $$;
 
+-- Tests that count across all placements run without the local seed (removed inside the test's
+-- own transaction, so the rollback brings it back).
+create or replace function tests.without_seed()
+returns void
+language sql
+as $$
+  delete from public.daymark_placements p using public.daymark_profiles x
+  where x.id = p.intern_id and x.contact_email like '%@dgk.test';
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated;
 
 select plan(1);
