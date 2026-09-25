@@ -63,6 +63,8 @@ export function InboxPanel({
         internName={open ? internName(open) : ""}
         preview={open?.preview ?? null}
         requestedMinutes={open?.requested_minutes}
+        attachmentPath={open?.attachment_path}
+        certificateSighted={open?.certificate_sighted}
         onDone={onDone}
       />
     </>
