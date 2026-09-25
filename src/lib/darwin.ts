@@ -26,6 +26,11 @@ export function formatDay(value: Instant) {
   return format(toDarwin(value), "EEE d MMM", { in: inDarwin });
 }
 
+/** "14 Oct 2026" */
+export function formatDate(value: Instant) {
+  return format(toDarwin(value), "d MMM yyyy", { in: inDarwin });
+}
+
 /** "9:00 am" */
 export function formatTime(value: Instant) {
   return format(toDarwin(value), "h:mm aaa", { in: inDarwin });

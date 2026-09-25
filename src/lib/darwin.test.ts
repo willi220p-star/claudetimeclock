@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   darwinAt,
   darwinDateKey,
+  formatDate,
   formatDay,
   formatDayTime,
   formatTime,
@@ -13,6 +14,10 @@ describe("Darwin time", () => {
   test("a UTC evening instant is already tomorrow in Darwin", () => {
     expect(darwinDateKey("2026-10-13T14:30:00Z")).toBe("2026-10-14");
     expect(darwinDateKey("2026-10-13T14:29:59Z")).toBe("2026-10-13");
+  });
+
+  test("formats a full date with the year", () => {
+    expect(formatDate("2026-10-13T15:00:00Z")).toBe("14 Oct 2026");
   });
 
   test("formats a date key as EEE d MMM", () => {
