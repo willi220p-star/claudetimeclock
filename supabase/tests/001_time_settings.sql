@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(20);
 
 -- Test clock (§3)
 select has_function('private', 'clock_now', 'private.clock_now exists');
@@ -7,6 +7,17 @@ select tests.at('2026-10-14 09:00:00+09:30');
 select is(private.clock_now(), '2026-10-14 09:00:00+09:30'::timestamptz, 'clock_now honours daymark.test_now for postgres');
 select set_config('daymark.test_now', '', true);
 select is(private.clock_now(), now(), 'clock_now falls back to now() when unset');
+
+-- Local e2e clock: honoured for API sessions only when daymark.e2e_clock is on
+select set_config('daymark.test_now', '2026-10-14 09:00:00+09:30', true);
+select set_config('daymark.e2e_clock', 'on', true);
+select tests.as_person(gen_random_uuid());
+select is(private.clock_now(), '2026-10-14 09:00:00+09:30'::timestamptz, 'API sessions use the e2e clock when enabled');
+reset role;
+select ok(private.job_clock_guard(), 'the clock guard notices a fake clock');
+select set_config('daymark.e2e_clock', '', true);
+select set_config('daymark.test_now', '', true);
+select ok(not private.job_clock_guard(), 'no warning without a fake clock');
 
 -- Darwin calendar
 select tests.at('2026-10-13 14:29:59+00');
