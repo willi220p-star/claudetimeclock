@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { embedName, forecastText, owedText, pctText } from "@/app/supervisor/supervisor";
+import { CheckinPanel } from "@/components/supervisor/checkin-panel";
 import { PlacementActions } from "@/components/supervisor/placement-actions";
 import { DayStatusBadge } from "@/components/day-status-badge";
 import { DeskGate } from "@/components/desk-gate";
@@ -21,7 +22,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Skeleton } from "@/components/ui/skeleton";
 import { darwinDateKey, formatDay, formatTime, formatTimeOfDay } from "@/lib/darwin";
 import {
+  loadCheckins,
   loadDayResults,
+  loadFlaggedEvents,
   loadPlacement,
   loadProgressForSupervisor,
   loadPunchesForPlacement,
@@ -29,13 +32,15 @@ import {
   loadScheduledDays,
   loadWorkLogs,
 } from "@/lib/data";
-import { FLAG_LABEL, PHOTO_BUCKET, SIGNED_URL_SECONDS, type Profile } from "@/lib/daymark";
+import { FLAG_LABEL, PHOTO_BUCKET, SIGNED_URL_SECONDS, formatDistance, type Profile } from "@/lib/daymark";
 import { addDays } from "@/lib/periods";
 import { PLACEMENT_STATUS_LABEL, REQUEST_STATUS_LABEL, asRecord, dayCellStatus, requestLabel } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
 
-const TABS = ["Schedule", "Hours", "Requests", "Work logs", "Selfies"] as const;
+const TABS = ["Schedule", "Hours", "Requests", "Work logs", "Check-ins", "Flags", "Selfies"] as const;
+/** ?tab= values, so a link can open a tab (the Monday summary links to Check-ins). */
+const TAB_PARAM: Record<string, Tab> = { checkins: "Check-ins", flags: "Flags" };
 type Tab = (typeof TABS)[number];
 
 type PlacementView = {
@@ -93,13 +98,15 @@ async function loadInternDesk(id: string) {
   const from = placement.start_date || today;
   const latest = [placement.planned_end_date, placement.ended_on ?? from, today].reduce((a, b) => (a > b ? a : b));
   const to = addDays(latest, 14);
-  const [progressRows, days, results, requests, logs, punches] = await Promise.all([
+  const [progressRows, days, results, requests, logs, punches, checkins, flagged] = await Promise.all([
     loadProgressForSupervisor(),
     loadScheduledDays(id, from, to),
     loadDayResults(id, from, to),
     loadRequestsForPlacement(id),
     loadWorkLogs(id),
     loadPunchesForPlacement(placement.intern_id, `${from}T00:00:00+09:30`, `${to}T23:59:59+09:30`),
+    loadCheckins(id),
+    loadFlaggedEvents(addDays(today, -60), today),
   ]);
   const paths = punches.map((punch) => punch.photo_path).filter((path): path is string => Boolean(path));
   const urls = new Map<string, string>();
@@ -132,6 +139,8 @@ async function loadInternDesk(id: string) {
     requests,
     logs,
     thumbs,
+    checkins,
+    flagged: flagged.filter((row) => row.intern_id === placement.intern_id),
   };
 }
 
@@ -158,7 +167,9 @@ export function InternScreen() {
 }
 
 function InternDesk({ profile }: { profile: Profile }) {
-  const id = useSearchParams().get("id");
+  const params = useSearchParams();
+  const id = params.get("id");
+  const tabParam = params.get("tab");
   const load = useCallback(() => (id ? loadInternDesk(id) : Promise.resolve(null)), [id]);
   const [state, reload] = useLoad(load);
 
@@ -196,7 +207,9 @@ function InternDesk({ profile }: { profile: Profile }) {
         </div>
       }
     >
-      {(data) => <InternDetail data={data!} profile={profile} onDone={reload} />}
+      {(data) => (
+        <InternDetail data={data!} profile={profile} onDone={reload} initialTab={TAB_PARAM[tabParam ?? ""]} />
+      )}
     </LoadBlock>
   );
 }
@@ -205,13 +218,15 @@ function InternDetail({
   data,
   profile,
   onDone,
+  initialTab,
 }: {
   data: NonNullable<Awaited<ReturnType<typeof loadInternDesk>>>;
   profile: Profile;
   onDone: () => void;
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>("Schedule");
-  const { placement, progress, days, results, requests, logs, thumbs } = data;
+  const [tab, setTab] = useState<Tab>(initialTab ?? "Schedule");
+  const { placement, progress, days, results, requests, logs, thumbs, checkins, flagged } = data;
   const rates = attendanceFromResults(results);
   const attendance = progress?.attendance_pct ?? rates.attendance_pct;
   const onTime = rates.on_time_pct;
@@ -288,6 +303,17 @@ function InternDetail({
       {tab === "Hours" ? <HoursTab results={results} /> : null}
       {tab === "Requests" ? <RequestsTab requests={requests} /> : null}
       {tab === "Work logs" ? <LogsTab logs={logs} /> : null}
+      {tab === "Check-ins" ? (
+        <CheckinPanel
+          placementId={placement.id}
+          startDate={placement.start_date}
+          endDate={placement.ended_on ?? placement.planned_end_date}
+          today={today}
+          checkins={checkins}
+          onSaved={onDone}
+        />
+      ) : null}
+      {tab === "Flags" ? <FlagsTab flagged={flagged} thumbs={thumbs} /> : null}
       {tab === "Selfies" ? <SelfiesTab thumbs={thumbs} /> : null}
     </>
   );
@@ -394,6 +420,43 @@ function LogsTab({ logs }: { logs: Awaited<ReturnType<typeof loadWorkLogs>> }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function FlagsTab({
+  flagged,
+  thumbs,
+}: {
+  flagged: Awaited<ReturnType<typeof loadFlaggedEvents>>;
+  thumbs: PunchThumb[];
+}) {
+  if (flagged.length === 0) return <EmptyState>No flagged clock-ins in the last 60 days.</EmptyState>;
+  const urls = new Map(thumbs.map((thumb) => [thumb.id, thumb.url]));
+  return (
+    <StackTable
+      columns={["When", "Event", "Flags", "Distance", "Accuracy", "Selfie"]}
+      rows={flagged.map((row) => {
+        const url = urls.get(row.punch_id);
+        return [
+          `${formatDay(row.occurred_at)}, ${formatTime(row.occurred_at)}`,
+          row.event_type === "shift_in" ? "Clock in" : row.event_type === "shift_out" ? "Clock out" : row.event_type,
+          <div key={`${row.punch_id}-flags`} className="flex flex-wrap gap-1">
+            {row.flags.map((flag) => (
+              <StatusChip key={flag} tone="warn" label={FLAG_LABEL[flag] ?? flag} />
+            ))}
+          </div>,
+          row.distance_m == null ? "—" : formatDistance(row.distance_m),
+          row.accuracy_m == null ? "—" : `± ${Math.round(row.accuracy_m)} m`,
+          url ? (
+            // Signed URLs expire in 60 seconds, so next/image caching doesn't apply.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={`${row.punch_id}-photo`} src={url} alt={`Selfie, ${formatDay(row.occurred_at)}`} className="size-12 rounded-md object-cover" />
+          ) : (
+            "—"
+          ),
+        ];
+      })}
+    />
   );
 }
 

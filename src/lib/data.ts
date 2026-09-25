@@ -259,6 +259,46 @@ export async function loadExitFeedback(placementId: string) {
   return data;
 }
 
+export async function loadCheckins(placementId: string) {
+  const { data, error } = await createClient()
+    .from("daymark_checkins")
+    .select("id, week_start, reliability, quality, communication, comment, updated_at")
+    .eq("placement_id", placementId)
+    .order("week_start", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function saveCheckin(args: {
+  placement: string;
+  week_start: string;
+  reliability: number;
+  quality: number;
+  communication: number;
+  comment?: string;
+}) {
+  const { error } = await createClient().rpc("save_checkin", args);
+  if (error) throw error;
+}
+
+export async function loadCheckinsDue() {
+  const { data, error } = await createClient().rpc("checkins_due");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadMondaySummary(weekStart: string) {
+  const { data, error } = await createClient().rpc("monday_summary", { week_start: weekStart });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadFlaggedEvents(from: string, to: string) {
+  const { data, error } = await createClient().rpc("flagged_events", { from_date: from, to_date: to });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export function dataError(error: unknown) {
   return errorText(error, "That didn't load. Try again.");
 }

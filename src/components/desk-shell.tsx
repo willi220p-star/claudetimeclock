@@ -21,6 +21,7 @@ const SUPERVISOR_NAV = [
   { href: "/supervisor", label: "Today", match: (path: string) => path === "/supervisor" || path === "/supervisor/" },
   { href: "/supervisor/approvals", label: "Approvals", match: (path: string) => path.startsWith("/supervisor/approvals") },
   { href: "/supervisor/interns", label: "Interns", match: (path: string) => path.startsWith("/supervisor/intern") },
+  { href: "/supervisor/summary", label: "Summary", match: (path: string) => path.startsWith("/supervisor/summary") },
 ] as const;
 
 const ADMIN_NAV = [
@@ -145,11 +146,11 @@ export function StaffShell({
     <>
       <AppHeader profile={profile} role={role} title={title} unread={unread} />
       <div className="mx-auto flex w-full max-w-[1200px] gap-6 px-4 py-6">
-        <nav aria-label={role === "admin" ? "Admin" : "Supervisor"} className="hidden w-52 shrink-0 lg:block">
+        <nav aria-label={role === "admin" ? "Admin" : "Supervisor"} className="hidden w-52 shrink-0 lg:block print:hidden">
           <NavLinks items={items} orientation="side" />
         </nav>
         <div className="min-w-0 flex-1">
-          <nav aria-label="Sections" className="mb-4 overflow-x-auto lg:hidden">
+          <nav aria-label="Sections" className="mb-4 overflow-x-auto lg:hidden print:hidden">
             <NavLinks items={items} orientation="tabs" />
           </nav>
           <main className="flex flex-col gap-6">{children}</main>
