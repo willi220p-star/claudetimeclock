@@ -140,6 +140,30 @@ export type Database = {
           },
         ]
       }
+      daymark_cohorts: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          starts_on: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          starts_on?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          starts_on?: string | null
+        }
+        Relationships: []
+      }
       daymark_consent_records: {
         Row: {
           decision: string
@@ -218,6 +242,243 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          person_id: string
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string | null
+          person_id: string
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          person_id?: string
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_notifications_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_pattern_days: {
+        Row: {
+          end_time: string
+          id: string
+          pattern_version_id: string
+          start_time: string
+          weekday: number
+        }
+        Insert: {
+          end_time: string
+          id?: string
+          pattern_version_id: string
+          start_time: string
+          weekday: number
+        }
+        Update: {
+          end_time?: string
+          id?: string
+          pattern_version_id?: string
+          start_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_pattern_days_pattern_version_id_fkey"
+            columns: ["pattern_version_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_pattern_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_pattern_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          placement_id: string
+          request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          placement_id: string
+          request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          placement_id?: string
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_pattern_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_pattern_versions_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_pattern_versions_request_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_placements: {
+        Row: {
+          cohort_id: string | null
+          course: string
+          created_at: string
+          created_by: string | null
+          ended_on: string | null
+          id: string
+          intern_id: string
+          original_end_date: string
+          planned_end_date: string
+          report_approval_note: string | null
+          report_approved_at: string | null
+          report_approved_by: string | null
+          site_id: string
+          start_date: string
+          status: string
+          supervisor_id: string
+          target_minutes: number
+          target_reached_at: string | null
+          uni_coordinator_email: string | null
+          uni_coordinator_name: string | null
+          university: string
+        }
+        Insert: {
+          cohort_id?: string | null
+          course: string
+          created_at?: string
+          created_by?: string | null
+          ended_on?: string | null
+          id?: string
+          intern_id: string
+          original_end_date: string
+          planned_end_date: string
+          report_approval_note?: string | null
+          report_approved_at?: string | null
+          report_approved_by?: string | null
+          site_id: string
+          start_date: string
+          status?: string
+          supervisor_id: string
+          target_minutes: number
+          target_reached_at?: string | null
+          uni_coordinator_email?: string | null
+          uni_coordinator_name?: string | null
+          university: string
+        }
+        Update: {
+          cohort_id?: string | null
+          course?: string
+          created_at?: string
+          created_by?: string | null
+          ended_on?: string | null
+          id?: string
+          intern_id?: string
+          original_end_date?: string
+          planned_end_date?: string
+          report_approval_note?: string | null
+          report_approved_at?: string | null
+          report_approved_by?: string | null
+          site_id?: string
+          start_date?: string
+          status?: string
+          supervisor_id?: string
+          target_minutes?: number
+          target_reached_at?: string | null
+          uni_coordinator_email?: string | null
+          uni_coordinator_name?: string | null
+          university?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_placements_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_intern_id_fkey"
+            columns: ["intern_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_report_approved_by_fkey"
+            columns: ["report_approved_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_profiles: {
         Row: {
           active: boolean
@@ -262,6 +523,8 @@ export type Database = {
           accuracy_m: number | null
           challenge_id: string | null
           client_reported_at: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           created_at: string
           distance_m: number | null
           event_type: string
@@ -272,6 +535,7 @@ export type Database = {
           occurred_at: string
           photo_path: string | null
           place_name: string | null
+          placement_id: string | null
           replaces_punch_id: string | null
           source: string
           user_agent: string | null
@@ -282,6 +546,8 @@ export type Database = {
           accuracy_m?: number | null
           challenge_id?: string | null
           client_reported_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           distance_m?: number | null
           event_type: string
@@ -292,6 +558,7 @@ export type Database = {
           occurred_at?: string
           photo_path?: string | null
           place_name?: string | null
+          placement_id?: string | null
           replaces_punch_id?: string | null
           source?: string
           user_agent?: string | null
@@ -302,6 +569,8 @@ export type Database = {
           accuracy_m?: number | null
           challenge_id?: string | null
           client_reported_at?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           created_at?: string
           distance_m?: number | null
           event_type?: string
@@ -312,6 +581,7 @@ export type Database = {
           occurred_at?: string
           photo_path?: string | null
           place_name?: string | null
+          placement_id?: string | null
           replaces_punch_id?: string | null
           source?: string
           user_agent?: string | null
@@ -327,6 +597,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "daymark_punches_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_punches_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "daymark_punches_replaces_punch_id_fkey"
             columns: ["replaces_punch_id"]
             isOneToOne: false
@@ -338,6 +622,238 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_requests: {
+        Row: {
+          admin_decided_at: string | null
+          admin_decision: string | null
+          admin_id: string | null
+          admin_note: string | null
+          approved_minutes: number | null
+          attachment_path: string | null
+          certificate_sighted: boolean
+          created_at: string
+          dates: string[]
+          escalated_at: string | null
+          id: string
+          intern_id: string
+          needs_extra_spot: boolean
+          payload: Json
+          placement_id: string
+          reason: string | null
+          requested_minutes: number | null
+          status: string
+          supervisor_decided_at: string | null
+          supervisor_decision: string | null
+          supervisor_id: string | null
+          supervisor_note: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          admin_decided_at?: string | null
+          admin_decision?: string | null
+          admin_id?: string | null
+          admin_note?: string | null
+          approved_minutes?: number | null
+          attachment_path?: string | null
+          certificate_sighted?: boolean
+          created_at?: string
+          dates?: string[]
+          escalated_at?: string | null
+          id?: string
+          intern_id: string
+          needs_extra_spot?: boolean
+          payload?: Json
+          placement_id: string
+          reason?: string | null
+          requested_minutes?: number | null
+          status?: string
+          supervisor_decided_at?: string | null
+          supervisor_decision?: string | null
+          supervisor_id?: string | null
+          supervisor_note?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          admin_decided_at?: string | null
+          admin_decision?: string | null
+          admin_id?: string | null
+          admin_note?: string | null
+          approved_minutes?: number | null
+          attachment_path?: string | null
+          certificate_sighted?: boolean
+          created_at?: string
+          dates?: string[]
+          escalated_at?: string | null
+          id?: string
+          intern_id?: string
+          needs_extra_spot?: boolean
+          payload?: Json
+          placement_id?: string
+          reason?: string | null
+          requested_minutes?: number | null
+          status?: string
+          supervisor_decided_at?: string | null
+          supervisor_decision?: string | null
+          supervisor_id?: string | null
+          supervisor_note?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_requests_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_requests_intern_id_fkey"
+            columns: ["intern_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_requests_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_requests_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_schedule_history: {
+        Row: {
+          after: Json | null
+          before: Json | null
+          changed_at: string
+          changed_by: string | null
+          id: string
+          request_id: string | null
+          scheduled_day_id: string
+        }
+        Insert: {
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          request_id?: string | null
+          scheduled_day_id: string
+        }
+        Update: {
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          request_id?: string | null
+          scheduled_day_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_schedule_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_schedule_history_request_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_schedule_history_scheduled_day_id_fkey"
+            columns: ["scheduled_day_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_scheduled_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_scheduled_days: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          leave_kind: string | null
+          origin_request_id: string | null
+          placement_id: string
+          planned_minutes: number | null
+          site_id: string
+          source: string
+          start_time: string
+          status: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          leave_kind?: string | null
+          origin_request_id?: string | null
+          placement_id: string
+          planned_minutes?: number | null
+          site_id: string
+          source?: string
+          start_time: string
+          status?: string
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          leave_kind?: string | null
+          origin_request_id?: string | null
+          placement_id?: string
+          planned_minutes?: number | null
+          site_id?: string
+          source?: string
+          start_time?: string
+          status?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_scheduled_days_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_scheduled_days_request_fkey"
+            columns: ["origin_request_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_scheduled_days_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_sites"
             referencedColumns: ["id"]
           },
         ]
@@ -455,6 +971,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      capacity_preview: {
+        Args: {
+          days: Json
+          end_date: string
+          exclude_placement?: string
+          site: string
+          start_date: string
+        }
+        Returns: {
+          closure: string
+          headcount: number
+          status: string
+          with_new: number
+          work_date: string
+        }[]
+      }
       clock_punch: {
         Args: {
           accuracy_m: number
@@ -476,10 +1008,28 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
       my_consent: { Args: never; Returns: Json }
       record_consent: {
         Args: { decision: string; purpose: string; related_id?: string }
         Returns: Json
+      }
+      save_cohort: {
+        Args: { id: string; name: string; notes?: string; starts_on?: string }
+        Returns: string
+      }
+      save_placement: {
+        Args: { allow_extra?: boolean; p: Json }
+        Returns: string
+      }
+      set_pattern: {
+        Args: {
+          allow_extra?: boolean
+          days: Json
+          effective_from: string
+          placement: string
+        }
+        Returns: string[]
       }
       set_person_access: {
         Args: {

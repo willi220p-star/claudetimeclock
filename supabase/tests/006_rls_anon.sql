@@ -36,7 +36,7 @@ drop table public.zz_probe_table;
 
 -- Cross-person reads
 create temp table ids as
-select tests.create_person('ra@test.dev') as a, tests.create_person('rb@test.dev') as b;
+select tests.create_intern('ra@test.dev') as a, tests.create_intern('rb@test.dev') as b;
 grant select on ids to authenticated;
 select tests.consent_all(a) from ids;
 select tests.clock((select a from ids), 'shift_in', '2026-10-14 09:00+09:30');

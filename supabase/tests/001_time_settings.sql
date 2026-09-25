@@ -29,7 +29,7 @@ select throws_ok($$insert into public.daymark_settings (id) values (2)$$, '23514
 -- Site and closure days
 select results_eq(
   $$select radius_m, standard_capacity, hard_capacity, window_start, window_end, latitude, longitude
-    from public.daymark_sites where active$$,
+    from public.daymark_sites where name = 'Regus Palmerston'$$,
   $$values (200, 3, 4, '07:00'::time, '19:00'::time, -12.4785082::double precision, 130.9854825::double precision)$$,
   'the Regus site row'
 );
@@ -46,7 +46,7 @@ select throws_ok($$select count(*) from public.daymark_closure_days$$, '42501', 
 reset role;
 
 select tests.as_person(gen_random_uuid());
-select is((select count(*)::int from public.daymark_sites), 1, 'signed-in people read the site');
+select is((select count(*)::int from public.daymark_sites where name = 'Regus Palmerston'), 1, 'signed-in people read the site');
 select throws_ok($$update public.daymark_settings set grace_minutes = 0$$, '42501', null, 'signed-in people cannot change settings');
 reset role;
 

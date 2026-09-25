@@ -123,6 +123,62 @@ as $$
   select -12.4785082 + p_metres / (6371000 * pi() / 180);
 $$;
 
+-- A supervisor shared by test placements.
+create or replace function tests.supervisor()
+returns uuid
+language plpgsql
+as $$
+declare
+  sid uuid;
+begin
+  select p.id into sid from public.daymark_profiles p where p.contact_email = 'test.supervisor@test.dev';
+  if sid is null then
+    sid := tests.create_person('test.supervisor@test.dev', false, true, false, 'Test Supervisor');
+  end if;
+  return sid;
+end;
+$$;
+
+-- An intern with a live placement and a weekly pattern (weekdays as ISO numbers).
+-- Each call gets its own copy of the Regus site unless p_site is given, so capacity
+-- only matters in tests that share a site on purpose.
+create or replace function tests.create_intern(
+  p_email text,
+  p_site uuid default null,
+  p_weekdays int[] default '{1,2,3,4,5}',
+  p_start date default '2026-09-28',
+  p_end date default '2026-12-18',
+  p_from time default '09:00',
+  p_to time default '17:00',
+  p_target integer default 24000
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  iid uuid := tests.create_person(p_email);
+  site uuid := p_site;
+  pl uuid;
+  ver uuid;
+begin
+  if site is null then
+    insert into public.daymark_sites (name, address, latitude, longitude)
+    values ('Test site ' || p_email, 'Test address', -12.4785082, 130.9854825)
+    returning id into site;
+  end if;
+  insert into public.daymark_placements (intern_id, supervisor_id, site_id, university, course,
+    start_date, planned_end_date, original_end_date, target_minutes)
+  values (iid, tests.supervisor(), site, 'Charles Darwin University', 'Bachelor of Business',
+    p_start, p_end, p_end, p_target)
+  returning id into pl;
+  insert into public.daymark_pattern_versions (placement_id, effective_from) values (pl, p_start) returning id into ver;
+  insert into public.daymark_pattern_days (pattern_version_id, weekday, start_time, end_time)
+  select ver, w, p_from, p_to from unnest(p_weekdays) w;
+  perform private.regenerate(pl, p_start, false);
+  return iid;
+end;
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated;
 
 select plan(1);

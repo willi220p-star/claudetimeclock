@@ -2,11 +2,11 @@ begin;
 select plan(33);
 
 create temp table ids as
-select tests.create_person('pa@test.dev') as a,
-       tests.create_person('pb@test.dev') as b,
-       tests.create_person('pc@test.dev') as c,
-       tests.create_person('pd@test.dev') as d,
-       tests.create_person('pe@test.dev') as e,
+select tests.create_intern('pa@test.dev') as a,
+       tests.create_intern('pb@test.dev') as b,
+       tests.create_intern('pc@test.dev') as c,
+       tests.create_intern('pd@test.dev') as d,
+       tests.create_intern('pe@test.dev') as e,
        tests.create_person('ps@test.dev', false, true, false) as sup;
 grant select on ids to authenticated;
 select tests.consent_all(a) from ids;
@@ -36,7 +36,7 @@ select is((select occurred_at from public.daymark_punches where user_id = (selec
   '2026-10-14 09:00+09:30'::timestamptz, 'occurred_at is the server clock');
 select is((select client_reported_at from public.daymark_punches where user_id = (select a from ids)),
   '2020-01-01 00:00+00'::timestamptz, 'the client time is kept only for forensics');
-select is((select place_name from public.daymark_punches where user_id = (select a from ids)), 'Regus Palmerston',
+select is((select place_name from public.daymark_punches where user_id = (select a from ids)), 'Test site pa@test.dev',
   'place name comes from the site, not a geocoder');
 select is((select round(distance_m::numeric, 1) from public.daymark_punches where user_id = (select a from ids)), 199.9,
   'distance is stored');
