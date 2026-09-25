@@ -66,6 +66,63 @@ as $$
   select set_config('daymark.test_now', p_ts, true);
 $$;
 
+
+-- Give every clocking consent as the person.
+create or replace function tests.consent_all(p_person uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform tests.as_person(p_person);
+  perform public.record_consent('collection_notice', 'acknowledged');
+  perform public.record_consent('location', 'granted');
+  perform public.record_consent('selfie', 'granted');
+  perform set_config('role', 'postgres', true);
+end;
+$$;
+
+-- The whole device clocking flow at a frozen time: challenge, selfie upload, punch.
+create or replace function tests.clock(
+  p_person uuid,
+  p_event text,
+  p_at text,
+  p_lat double precision default -12.4785082,
+  p_lng double precision default 130.9854825,
+  p_acc double precision default 10,
+  p_photo boolean default true
+)
+returns jsonb
+language plpgsql
+as $$
+declare
+  challenge jsonb;
+  result jsonb;
+begin
+  perform tests.at(p_at);
+  perform tests.as_person(p_person);
+  challenge := public.start_clock(p_event);
+  perform set_config('role', 'postgres', true);
+  if p_photo then
+    insert into storage.objects (bucket_id, name, owner, owner_id, created_at)
+    values ('daymark-photos', p_person || '/' || (challenge ->> 'challenge_id') || '.jpg',
+            p_person, p_person::text, p_at::timestamptz);
+  end if;
+  perform tests.as_person(p_person);
+  result := public.clock_punch((challenge ->> 'challenge_id')::uuid, p_lat, p_lng, p_acc, '2020-01-01 00:00+00');
+  perform set_config('role', 'postgres', true);
+  return result;
+end;
+$$;
+
+-- Metres north of the office as a latitude (haversine along a meridian is exact).
+create or replace function tests.north(p_metres double precision)
+returns double precision
+language sql
+immutable
+as $$
+  select -12.4785082 + p_metres / (6371000 * pi() / 180);
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated;
 
 select plan(1);
