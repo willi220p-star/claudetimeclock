@@ -11,7 +11,7 @@ import {
   type TodayBoard,
 } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
-import type { Json, Tables } from "@/lib/database.types";
+import type { Database, Json, Tables } from "@/lib/database.types";
 
 export function unwrap<T>(result: { data: T; error: { message: string } | null }, fallback: string): T {
   if (result.error) throw result.error;
@@ -243,10 +243,55 @@ export async function markNotificationsRead(ids?: string[]) {
 export async function loadSites() {
   const { data, error } = await createClient()
     .from("daymark_sites")
-    .select("id, name, standard_capacity, hard_capacity, active")
+    .select(
+      "id, name, address, latitude, longitude, radius_m, standard_capacity, hard_capacity, window_start, window_end, active",
+    )
     .order("name");
   if (error) throw error;
   return data ?? [];
+}
+
+/** Every closure day, oldest first, with its site's name (null site = every site). */
+export async function loadClosureDays() {
+  const { data, error } = await createClient()
+    .from("daymark_closure_days")
+    .select("id, day, name, kind, site_id, site:daymark_sites(name)")
+    .order("day");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** The settings singleton and the collection notice it points at. */
+export async function loadSettings() {
+  const client = createClient();
+  const settings = unwrap(
+    await client.from("daymark_settings").select("*").eq("id", 1).maybeSingle(),
+    "Settings didn't load.",
+  );
+  const { data: notice, error } = await client
+    .from("daymark_notices")
+    .select("version, title, published_at")
+    .eq("version", settings.notice_version)
+    .maybeSingle();
+  if (error) throw error;
+  return { settings, notice };
+}
+
+export type AuditEntry = {
+  id: number;
+  at: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  table_name: string;
+  row_id: string | null;
+  before: Json | null;
+  after: Json | null;
+};
+
+export async function searchAudit(args: Database["public"]["Functions"]["audit_search"]["Args"]) {
+  const data = unwrap(await createClient().rpc("audit_search", args), "The audit log didn't load.");
+  return data as { rows: AuditEntry[]; next_before_id: number | null };
 }
 
 export async function loadExitFeedback(placementId: string) {
