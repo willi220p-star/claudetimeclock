@@ -184,3 +184,41 @@ grant execute on all functions in schema tests to anon, authenticated;
 select plan(1);
 select has_function('tests', 'create_person', 'test helpers are installed');
 select * from finish();
+
+-- Phase 3 helpers ------------------------------------------------------------------------
+
+-- A shift from Darwin wall-clock times ('2026-10-14 09:00'). Trusted system punches
+-- (punch_fix by default) skip the device flow, so hours tests can use any time.
+create or replace function tests.shift(p_person uuid, p_in text, p_out text default null, p_source text default 'punch_fix')
+returns void
+language plpgsql
+as $$
+begin
+  insert into public.daymark_punches (user_id, event_type, source, occurred_at)
+  values (p_person, 'shift_in', p_source, (p_in || '+09:30')::timestamptz);
+  if p_out is not null then
+    insert into public.daymark_punches (user_id, event_type, source, occurred_at)
+    values (p_person, 'shift_out', p_source, (p_out || '+09:30')::timestamptz);
+  end if;
+end;
+$$;
+
+create or replace function tests.placement(p_person uuid)
+returns uuid
+language sql
+stable
+as $$
+  select private.current_placement(p_person);
+$$;
+
+-- The stored day result for a person's placement on a date.
+create or replace function tests.day(p_person uuid, p_date date)
+returns public.daymark_day_results
+language sql
+stable
+as $$
+  select r.* from public.daymark_day_results r
+  where r.placement_id = tests.placement(p_person) and r.work_date = p_date;
+$$;
+
+grant execute on all functions in schema tests to anon, authenticated;
