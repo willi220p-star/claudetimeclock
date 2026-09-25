@@ -212,7 +212,8 @@ begin
     return 'The clock-out has to be after the clock-in.';
   end if;
 
-  -- Which existing shift the fix changes, if any.
+  -- Which existing shift the fix changes, if any (none: a whole new shift).
+  select null::uuid as in_id, null::timestamptz as in_at, null::uuid as out_id, null::timestamptz as out_at into s;
   if rin is not null then
     select * into s from private.punch_fix_shifts(req.intern_id, d) x where x.in_id = rin;
     if not found then
