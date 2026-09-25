@@ -208,7 +208,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
 
       {status?.placement?.read_only ? (
         <p role="status" className="rounded-lg bg-muted px-4 py-3">
-          Your placement has ended. You can view and download until{" "}
+          Your placement has ended. You can still view your records until{" "}
           {status.placement.delete_on ? formatDay(status.placement.delete_on) : "the retention date"}.
         </p>
       ) : null}
