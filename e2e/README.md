@@ -44,11 +44,11 @@ reach only new sessions, so each call also makes PostgREST drop its pooled conne
 | File | Covers | Status |
 |---|---|---|
 | `smoke.spec.ts` | Sign-in page (logo, Email, no console errors); fake camera; stubbed GPS and `moveTo` | Runs |
-| `clock.spec.ts` | 1. Intern clocks in and out | `test.fixme` until Phase 4 |
-| `swap.spec.ts` | 2. Swap → supervisor approves → schedule updates | `test.fixme` until Phase 5 |
-| `extra-spot.spec.ts` | 3. Extra spot through the admin | `test.fixme` until Phase 5 |
-| `catch-up.spec.ts` | 4. Catch-up option B submitted | `test.fixme` until Phase 5 |
-| `uni-report.spec.ts` | 5. Supervisor approves the uni report (no PDF, D13) | `test.fixme` until Phase 8 |
+| `clock.spec.ts` | 1. Intern clocks in and out | Runs (mobile) |
+| `swap.spec.ts` | 2. Swap → supervisor approves → schedule updates | Runs (mobile) |
+| `extra-spot.spec.ts` | 3. Extra spot through the admin | Runs (mobile) |
+| `catch-up.spec.ts` | 4. Catch-up option B submitted | Runs (mobile) |
+| `uni-report.spec.ts` | 5. Supervisor approves the uni report (no PDF, D13) | Runs (mobile) |
 
 Each stub lists its steps as comments. Golden paths change the seed, so give the `mobile` and
 `desktop` runs different seed accounts (or reset between them).

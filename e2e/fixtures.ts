@@ -50,6 +50,33 @@ export async function signIn(page: Page, email: string, password: string = SEED.
   await page.waitForURL((url) => url.pathname !== "/");
 }
 
+/** Signs out from the header (or the Me page) and waits for the sign-in form. */
+export async function signOut(page: Page) {
+  await page.getByRole("button", { name: /sign out/i }).first().click();
+  await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
+}
+
+/** Next calendar date with JS UTC weekday `weekday` (0 = Sunday … 6 = Saturday). Always in the future. */
+export function nextUtcWeekday(weekday: number, from = new Date()) {
+  const day = from.getUTCDay();
+  const add = ((weekday - day + 7) % 7) || 7;
+  return addUtcDays(
+    `${from.getUTCFullYear()}-${String(from.getUTCMonth() + 1).padStart(2, "0")}-${String(from.getUTCDate()).padStart(2, "0")}`,
+    add,
+  );
+}
+
+/** Monday–Sunday date key arithmetic on UTC calendar dates (the same basis as Darwin date keys). */
+export function addUtcDays(iso: string, days: number) {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/** Upcoming Monday; Aisha works this weekday in the seed. */
+export function nextMonday(from = new Date()) {
+  return nextUtcWeekday(1, from);
+}
+
 /** Moves the stubbed device `metresNorth` from the office (negative is south). 0 puts it back. */
 export async function moveTo(page: Page, metresNorth: number) {
   await page.context().setGeolocation({

@@ -4,7 +4,7 @@ import { AdminScreen } from "@/app/admin/admin-screen";
 import { Opening } from "@/components/desk-gate";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: "Overview",
 };
 
 export default function AdminPage() {

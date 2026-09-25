@@ -1,15 +1,75 @@
-import { test } from "./fixtures";
+import { formatDay, formatTimeOfDay } from "../src/lib/darwin";
+import {
+  addUtcDays,
+  clearOfficeClock,
+  expect,
+  nextMonday,
+  SEED,
+  setOfficeClock,
+  signIn,
+  signOut,
+  test,
+} from "./fixtures";
 
-// Golden path 3 (§16): extra-spot flow through the admin. Phase 5.
-test.fixme("a 4th spot needs the supervisor and then the admin", async () => {
-  // 1. setOfficeClock("<a seeded weekday>T09:00"); the seed has a date ≥ 24 h ahead already at 3/3.
-  // 2. signIn(page, <intern not on that date>) → /clock/schedule → the full date shows
-  //    "Full — request an extra spot (needs admin approval)".
-  // 3. Request an extra day on that date with a reason → the preview flags the extra spot → Submit.
-  //    The timeline shows submitted → supervisor → admin → outcome.
-  // 4. signIn(page, <supervisor>) → /supervisor/approvals → Approve → status moves to pending admin.
-  // 5. signIn(page, SEED.admin) → /admin/requests → the request shows the extra-spot marker → Approve.
-  // 6. The intern's schedule shows the new day; the supervisor's board for that date reads
-  //    "3/3 today (+1 extra spot)".
-  // 7. Optional edge: a 5th request on the same date is rejected with the friendly capacity message.
+const FULL = "Full — request an extra spot (needs admin approval)";
+
+// Golden path 3 (§16): extra-spot flow through the admin. Use the week after next Monday so
+// golden path 2 can move Aisha off that week's Wednesday without emptying this date.
+test.afterEach(() => clearOfficeClock());
+
+test("a 4th spot needs the supervisor and then the admin", async ({ page }) => {
+  const monday = nextMonday();
+  const wednesday = addUtcDays(monday, 2);
+
+  setOfficeClock(`${monday}T09:00`);
+  await signIn(page, "intern2@dgk.test");
+  await page.getByRole("link", { name: "Schedule" }).click();
+  await expect(page).toHaveURL(/\/clock\/schedule/);
+
+  const fullDay = page.getByRole("button", { name: new RegExp(formatDay(wednesday)) });
+  await expect(fullDay).toContainText(FULL);
+  await fullDay.click();
+  await page.getByRole("dialog").getByRole("button", { name: FULL }).click();
+
+  await page.getByLabel("Reason").fill("I need the extra Wednesday to catch up before exams.");
+  const preview = page.getByRole("region", { name: "Preview" });
+  await expect(preview).toContainText(/extra spot|Full/i, { timeout: 15_000 });
+  await expect(page.getByRole("button", { name: /^Submit$/ })).toBeEnabled();
+  await page.getByRole("button", { name: /^Submit$/ }).click();
+  await expect(page.getByText(/Extra day sent/i)).toBeVisible();
+
+  await page.getByRole("link", { name: "Requests" }).click();
+  const pending = page.getByRole("listitem").filter({ hasText: "Extra day" }).first();
+  await expect(pending).toBeVisible();
+  await expect(pending.getByText("supervisor", { exact: true })).toBeVisible();
+  await expect(pending.getByText("admin", { exact: true })).toBeVisible();
+
+  await signOut(page);
+  await signIn(page, "sup1@dgk.test");
+  await page.goto("/supervisor/approvals");
+  await page.getByRole("button", { name: /Extra day/ }).filter({ hasText: "Ben" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
+  await expect(page.getByText(/Extra day approved/i)).toBeVisible();
+
+  await signOut(page);
+  await signIn(page, SEED.admin);
+  await page.goto("/admin/requests");
+  const adminRow = page.locator("li").filter({ hasText: "Ben" }).filter({ hasText: /extra spot/i });
+  await expect(adminRow).toBeVisible();
+  await adminRow.getByRole("button", { name: /^Approve$/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
+  await expect(page.getByText(/Extra day approved/i)).toBeVisible();
+
+  await signOut(page);
+  await signIn(page, "intern2@dgk.test");
+  await page.getByRole("link", { name: "Schedule" }).click();
+  const scheduled = page.getByRole("button", { name: new RegExp(formatDay(wednesday)) });
+  await expect(scheduled).toContainText(new RegExp(`${formatTimeOfDay("09:00")}.*${formatTimeOfDay("17:00")}`));
+  await expect(scheduled).toContainText(/Scheduled/i);
+
+  setOfficeClock(`${wednesday}T09:00`);
+  await signOut(page);
+  await signIn(page, "sup1@dgk.test");
+  await page.goto("/supervisor");
+  await expect(page.getByRole("heading", { name: /extra spot/i })).toBeVisible();
 });

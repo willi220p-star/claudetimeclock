@@ -8,11 +8,48 @@ const push = vi.fn();
 const loadPunches = vi.fn();
 let consent: Consent;
 
+function extraRpc(name: string, fallback: { data: unknown; error: unknown }) {
+  if (name === "clock_status") {
+    return Promise.resolve({
+      data: { next_event: "shift_in", blocked: null, block_code: null, scheduled: null, placement: { id: intern.id, read_only: false } },
+      error: null,
+    });
+  }
+  if (name === "kpi_intern") {
+    return Promise.resolve({
+      data: {
+        placement_id: intern.id,
+        days_late: 0,
+        week_no: 1,
+        total_weeks: 13,
+        owed: 0,
+        this_week: { counted: 0, scheduled: 450 },
+      },
+      error: null,
+    });
+  }
+  if (name === "today_board") {
+    return Promise.resolve({ data: { label: "1/3", people: [] }, error: null });
+  }
+  return Promise.resolve(fallback);
+}
+
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ rpc, storage: { from: () => ({ upload }) } }),
 }));
 vi.mock("@/lib/punches", () => ({ loadPunches: (...args: unknown[]) => loadPunches(...args), selfieUrl: vi.fn() }));
+vi.mock("@/lib/data", () => ({
+  loadClockStatus: vi.fn().mockResolvedValue(null),
+  loadInternKpi: vi.fn().mockResolvedValue(null),
+  loadTodayBoard: vi.fn().mockResolvedValue(null),
+  loadNotifications: vi.fn().mockResolvedValue([]),
+  loadCatchUp: vi.fn().mockResolvedValue({
+    owed_minutes: 0,
+    a: { requests: [], covers_minutes: 0, fully_covers: true },
+    b: { requests: [], covers_minutes: 0, fully_covers: true },
+  }),
+}));
 vi.mock("@/lib/browser-session", () => ({
   // A settled thenable, so React's use() reads it without suspending.
   sessionConsent: () => Object.assign(Promise.resolve(consent), { status: "fulfilled", value: consent }),
@@ -48,6 +85,7 @@ const getUserMedia = vi.fn();
 beforeEach(() => {
   consent = { notice_version: "1.0", notice_acknowledged: true, location: "granted", selfie: "granted" };
   loadPunches.mockResolvedValue([]);
+  rpc.mockImplementation((name: string) => extraRpc(name, { data: null, error: null }));
   upload.mockResolvedValue({ error: null });
   getCurrentPosition.mockImplementation((success: PositionCallback) =>
     success({ coords: { latitude: -12.4785, longitude: 130.9855, accuracy: 12 } } as GeolocationPosition),
@@ -72,13 +110,11 @@ afterEach(() => {
 
 describe("ClockDesk", () => {
   test("clock in: challenge, live selfie with the gesture, one location read, upload, punch", async () => {
-    rpc.mockImplementation((name: string) =>
-      Promise.resolve(
-        name === "start_clock"
-          ? { data: challenge, error: null }
-          : { data: { occurred_at: "2026-10-13T23:30:00Z" }, error: null },
-      ),
-    );
+    rpc.mockImplementation((name: string) => {
+      if (name === "start_clock") return Promise.resolve({ data: challenge, error: null });
+      if (name === "clock_punch") return Promise.resolve({ data: { occurred_at: "2026-10-13T23:30:00Z" }, error: null });
+      return extraRpc(name, { data: { occurred_at: "2026-10-13T23:30:00Z" }, error: null });
+    });
     render(<ClockDesk profile={intern} />);
 
     expect(await screen.findByText("We'll ask for camera and location for this clock-in only.")).toBeInTheDocument();
@@ -108,7 +144,12 @@ describe("ClockDesk", () => {
   });
 
   test("a blocked clock-in shows the database's reason", async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: "The office is closed on weekends." } });
+    rpc.mockImplementation((name: string) => {
+      if (name === "start_clock") {
+        return Promise.resolve({ data: null, error: { message: "The office is closed on weekends." } });
+      }
+      return extraRpc(name, { data: null, error: null });
+    });
     render(<ClockDesk profile={intern} />);
     fireEvent.click(await screen.findByRole("button", { name: "Clock in" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The office is closed on weekends.");
@@ -116,7 +157,12 @@ describe("ClockDesk", () => {
   });
 
   test("missing consent goes to the consent screen", async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: "Choose how you'll clock in first.", hint: "consent" } });
+    rpc.mockImplementation((name: string) => {
+      if (name === "start_clock") {
+        return Promise.resolve({ data: null, error: { message: "Choose how you'll clock in first.", hint: "consent" } });
+      }
+      return extraRpc(name, { data: null, error: null });
+    });
     render(<ClockDesk profile={intern} />);
     fireEvent.click(await screen.findByRole("button", { name: "Clock in" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/consent"));

@@ -1,11 +1,25 @@
-import { test } from "./fixtures";
+import { clearOfficeClock, expect, SEED, signIn, signOut, test } from "./fixtures";
 
-// Golden path 5 (§16, adapted by D13): the supervisor approves the uni report. There is no PDF,
-// so nothing is downloaded. Phase 8.
-test.fixme("supervisor approves the uni report", async () => {
-  // 1. The seed has an intern whose hours are final (target reached or completed).
-  // 2. signIn(page, <that intern's supervisor>) → /supervisor/intern?id=<placement> → "Approve uni report".
-  // 3. Confirm → the page shows the report as approved with the supervisor's name and the Darwin date.
-  // 4. signIn(page, <intern>) → /clock/me shows the uni report as approved (no download, D13).
-  // 5. Optional: signIn(page, SEED.supervisors[1]) (not their supervisor) cannot approve it (RLS).
+// Golden path 5 (§16, D13): supervisor approves the uni report. No PDF.
+test.afterEach(() => clearOfficeClock());
+
+test("supervisor approves the uni report", async ({ page }) => {
+  await signIn(page, SEED.supervisors[1]);
+  await page.goto("/supervisor/interns");
+  await page.getByRole("link", { name: /Fatima/ }).first().click();
+  await expect(page).toHaveURL(/\/supervisor\/intern/);
+
+  await page.getByRole("button", { name: /Approve uni report/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Confirm$/ }).click();
+  await expect(page.getByText(/Uni report/)).toContainText(/approved/i);
+  await expect(page.getByText(/Tom Walsh/)).toBeVisible();
+
+  await signOut(page);
+  await signIn(page, "intern5@dgk.test");
+  await page.getByRole("link", { name: "Me" }).click();
+  await expect(page).toHaveURL(/\/clock\/me/);
+  await expect(page.getByText(/uni report/i)).toContainText(/approved/i);
+  await expect(page.getByText(/Tom Walsh/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /download/i })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /download/i })).toHaveCount(0);
 });

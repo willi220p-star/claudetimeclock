@@ -1,19 +1,16 @@
 "use client";
 
 import { ClockDesk } from "@/app/clock/clock-desk";
-import { AppHeader } from "@/components/app-header";
+import { InternFrame } from "@/app/clock/intern-frame";
 import { DeskGate } from "@/components/desk-gate";
 
 export function ClockScreen() {
   return (
     <DeskGate role="intern">
       {(profile) => (
-        <>
-          <AppHeader profile={profile} role="intern" title="Clock" />
-          <main>
-            <ClockDesk profile={profile} />
-          </main>
-        </>
+        <InternFrame profile={profile} title="Today">
+          <ClockDesk profile={profile} />
+        </InternFrame>
       )}
     </DeskGate>
   );
