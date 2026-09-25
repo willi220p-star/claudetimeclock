@@ -91,6 +91,8 @@ function RequestsDesk() {
         internName={open?.daymark_profiles?.display_name ?? "Intern"}
         preview={preview}
         requestedMinutes={open?.requested_minutes}
+        attachmentPath={open?.attachment_path}
+        certificateSighted={open?.certificate_sighted}
         onDone={reload}
       />
     </>

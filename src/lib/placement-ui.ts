@@ -186,6 +186,8 @@ export type SupervisorKpi = {
   on_time_pct: number | null;
   overtime_approved_minutes: number;
   work_log_pct: number | null;
+  checkins_due: number;
+  last_checkin: { week_start: string | null; average: number | null };
 };
 
 export type AdminKpi = {
@@ -351,4 +353,63 @@ export function buildRequestPayload(type: string, fields: Record<string, string>
     default:
       return { ...fields };
   }
+}
+
+/** §11.3 check-in areas, stored as 1–5 each. */
+export const CHECKIN_AREAS = [
+  { key: "reliability", label: "Reliability" },
+  { key: "quality", label: "Quality of work" },
+  { key: "communication", label: "Communication" },
+] as const;
+
+export const CHECKIN_ANCHORS: Record<number, string> = { 1: "Needs a lot of help", 3: "Solid", 5: "Excellent" };
+
+export type CheckinScores = { reliability: number; quality: number; communication: number };
+
+export function checkinAverage(scores: CheckinScores) {
+  return Math.round(((scores.reliability + scores.quality + scores.communication) / 3) * 10) / 10;
+}
+
+/** §12 supervisor 8: overdue when the latest check-in is for a week before last week. */
+export function checkinOverdue(latestWeekStart: string | null, lastWeek: string) {
+  return latestWeekStart === null || latestWeekStart < lastWeek;
+}
+
+/** "This fortnight (Mon 28 Sep – Sun 11 Oct): 22h 30m counted" — the visa self-check line. */
+export function fortnightLabel(start: string, end: string, counted: number) {
+  return `This fortnight (${formatDay(start)} – ${formatDay(end)}): ${formatMinutes(counted)} counted`;
+}
+
+export type ForecastPoint = { week: number; counted: number | null; plan: number; projection: number | null };
+
+const hours = (minutes: number) => Math.round(minutes / 6) / 10;
+
+/**
+ * Progress chart rows in hours, from week 0: cumulative counted up to the current week, the
+ * straight-line plan to the target by the planned last week, and a projection from today's total
+ * to the target at the forecast finish week.
+ */
+export function forecastSeries(args: {
+  weeks: { week_no: number | null; counted: number | null }[];
+  targetMinutes: number;
+  totalWeeks: number;
+  currentWeek: number;
+  forecastWeek: number | null;
+}): ForecastPoint[] {
+  const { weeks, targetMinutes, currentWeek, forecastWeek } = args;
+  const totalWeeks = Math.max(1, args.totalWeeks);
+  const last = Math.max(totalWeeks, currentWeek, forecastWeek ?? 0);
+  const countedBy = (week: number) =>
+    weeks.reduce((sum, row) => sum + ((row.week_no ?? 0) <= week ? (row.counted ?? 0) : 0), 0);
+  const now = countedBy(currentWeek);
+  const projects = forecastWeek !== null && forecastWeek > currentWeek;
+  return Array.from({ length: last + 1 }, (_, week) => ({
+    week,
+    counted: week <= currentWeek ? hours(countedBy(week)) : null,
+    plan: hours(Math.min(targetMinutes, Math.round((targetMinutes * week) / totalWeeks))),
+    projection:
+      projects && week >= currentWeek && week <= forecastWeek
+        ? hours(Math.round(now + ((targetMinutes - now) * (week - currentWeek)) / (forecastWeek - currentWeek)))
+        : null,
+  }));
 }

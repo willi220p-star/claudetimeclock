@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { AdminPlaceholderScreen } from "@/app/admin/placeholder-screen";
+import { SitesScreen } from "@/app/admin/sites/sites-screen";
 import { Opening } from "@/components/desk-gate";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function SitesPage() {
   return (
     <Suspense fallback={<Opening label="Opening sites…" />}>
-      <AdminPlaceholderScreen title="Sites" rpc="save_site" />
+      <SitesScreen />
     </Suspense>
   );
 }

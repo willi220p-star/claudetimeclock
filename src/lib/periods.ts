@@ -44,3 +44,51 @@ export function weekNo(key: string, startDate: string) {
 export function totalWeeks(startDate: string, plannedEnd: string) {
   return weekNo(plannedEnd, startDate);
 }
+
+/** The Monday that starts last week: the week a check-in and the Monday summary cover. */
+export function lastWeekStart(today: string) {
+  return addDays(mondayOf(today), -7);
+}
+
+/**
+ * Mondays a check-in can be saved for, newest first: weeks that have started, overlap the
+ * placement and are at most `limit` weeks back (the database enforces the same range).
+ */
+export function checkinWeeks(today: string, startDate: string, endDate: string, limit = 12) {
+  const first = mondayOf(startDate);
+  let week = [mondayOf(today), mondayOf(endDate)].reduce((a, b) => (a < b ? a : b));
+  const weeks: string[] = [];
+  while (week >= first && weeks.length < limit) {
+    weeks.push(week);
+    week = addDays(week, -7);
+  }
+  return weeks;
+}
+
+/** The first day of the month holding `key`. */
+export function monthStart(key: string) {
+  return `${key.slice(0, 7)}-01`;
+}
+
+export function addMonths(key: string, months: number) {
+  const [year, month] = key.split("-").map(Number);
+  return keyOf(Date.UTC(year, month - 1 + months, 1) / DAY);
+}
+
+/**
+ * Mon–Fri rows covering the month holding `key`, for the intern month calendar.
+ * Weekdays from the neighbouring months are null; a row with none of this month's days is dropped.
+ */
+export function monthGrid(key: string): (string | null)[][] {
+  const first = monthStart(key);
+  const next = addMonths(first, 1);
+  const rows: (string | null)[][] = [];
+  for (let monday = mondayOf(first); monday < next; monday = addDays(monday, 7)) {
+    const row = [0, 1, 2, 3, 4].map((i) => {
+      const day = addDays(monday, i);
+      return day >= first && day < next ? day : null;
+    });
+    if (row.some(Boolean)) rows.push(row);
+  }
+  return rows;
+}

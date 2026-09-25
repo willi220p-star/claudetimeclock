@@ -293,3 +293,11 @@ Draft PR: https://github.com/willi220p-star/claudetimeclock/pull/1
 Checklist for Dilip: `docs/RELEASE-CHECKLIST.md`. **Do not merge. Do not deploy GitHub Pages. Do not touch hosted Supabase `lnagrfdbmwtlymhumepc`.**
 
 **STOP.**
+
+### Deferred features built (Dilip, 2026-09-25 night)
+Four agents in parallel, merged on `claude/quirky-lovelace-ktg6f8`:
+- Check-ins, Monday summary (Mon 08:00 Darwin cron), late alert at clock-in, left-early alert at day close, supervisor Flags tab and check-ins KPI — migration `20260925080000_checkins_alerts.sql`, pgTAP `080_checkins_alerts.sql` (44 tests). Applied to the preview project only.
+- Admin Sites, Closures, Settings (notice publishing, run a job) and Audit screens.
+- Intern month calendar, forecast chart (recharts), visa fortnight card, medical certificate upload (consent → upload → attach; supervisor view + sighted), live notifications (Realtime), idle sign-out, sign out all devices. Plain Sign out is now this device only.
+- Uni hours report and completion certificate PDFs (@react-pdf/renderer, lazy); CSP adds `'wasm-unsafe-eval'` and `connect-src data:`. Missing weeks (closure weeks) are listed with zeros.
+Gates: lint, typecheck, Vitest 142, pgTAP 38 files / 760, Playwright 11 passed / 5 skipped, static build, brand grep.

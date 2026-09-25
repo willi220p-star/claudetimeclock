@@ -20,9 +20,9 @@
 | D9 | Hosting | GitHub Pages | Kept with meta CSP; host move, CAPTCHA, Sydney region, backups, Pro plan go to the release checklist |
 | D10 | Seed data in migrations | Site and closure days in `seed.sql` | The Regus site and NT closure days 2026–2027 are real data, so they go in a migration. `seed.sql` holds only test people and history |
 | D11 | Passwords | 8–72 characters | 12–72 characters (review §4.1), matching `minimum_password_length = 12` |
-| D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Not built (Dilip, 2026-09-25). Report approval and exit feedback stay in the database |
-| D14 | Check-ins and Monday summary (§11.3) | Built | Not built (Dilip). The check-ins table and the low_checkin risk stay in the database |
-| D15 | Faster finish (Dilip) | Full screens | Admin Sites/Closures/Settings/Audit screens become placeholders (database RPCs exist; use Supabase Studio); intern schedule is week view only; progress shows the forecast as text, no chart; supervisor intern detail has no Flags tab |
+| D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Built (reversed by Dilip, 2026-09-25): both PDFs generate in the browser via a lazy-loaded @react-pdf/renderer; CSP adds 'wasm-unsafe-eval' and connect-src data: |
+| D14 | Check-ins and Monday summary (§11.3) | Built | Built (reversed by Dilip, 2026-09-25): `save_checkin`, `checkins_due`, `monday_summary`, Monday 08:00 job; late alert at clock-in, left-early alert at day close |
+| D15 | Faster finish (Dilip) | Full screens | Built (reversed by Dilip, 2026-09-25): admin Sites/Closures/Settings/Audit screens, intern month calendar, forecast chart, supervisor Flags tab. Only `/admin/reports` stays a placeholder |
 | D12 | Deleting people | Admin could delete a login | Removed. Admin deactivates; deletion happens only through the retention purge |
 
 ## Security overlay (review §5, mapped to daymark names)
@@ -47,19 +47,14 @@ As in build prompt §19, plus:
 - **Phase 8:** 7-day certificate purge.
 
 ## Deferred — add when Dilip asks
-These were cut to finish faster or left for later. The database parts marked "ready" already exist and are tested; adding them is screen work.
+Built on 2026-09-25 at Dilip's request: the admin Sites, Closures, Settings and Audit screens; the intern month calendar, forecast chart and fortnight card; the supervisor Flags tab; weekly check-ins and the Monday summary; the uni report and certificate PDFs; medical certificate upload; late and left-early alerts; live notifications; idle sign-out; sign out all devices.
+
+Still deferred:
 
 | Feature | Decision | Database | What adding it takes |
 |---|---|---|---|
-| Admin **Sites** screen | D15 | ready: `save_site`, `set_site_active` | CRUD table + form in `/admin/sites` |
-| Admin **Closures** screen | D15 | ready: `save_closure_day`, `remove_closure_day` (restores days, reports skipped) | list + add/remove in `/admin/closures` |
-| Admin **Settings** screen | D15 | ready: `update_settings`, `publish_notice`, `run_job` | grouped form + "Publish new notice" + "Run a job" in `/admin/settings` |
-| Admin **Audit** screen | D15 | ready: `audit_search` (filters, keyset paging) | filterable log with before/after in `/admin/audit` |
-| Intern **month calendar** (desktop) | D15 | ready: `daymark_scheduled_days`, `site_headcounts` | month grid in `/clock/schedule` |
-| Intern **forecast chart** | D15 | ready: `placement_progress`, `daymark_v_week_hours` | recharts area chart in `/clock/progress` |
-| Supervisor **Flags** tab | D15 | ready: `flagged_events` | tab on `/supervisor/intern` |
-| Weekly **check-ins** + **Monday summary** | D14 | table `daymark_checkins` exists; needs `save_checkin` + `monday_summary` RPCs and a Monday cron | two supervisor pages + 2 RPCs |
-| **Uni report / certificate PDFs** | D13 | ready: report approval, weekly hours views | `@react-pdf/renderer` documents |
+| Admin **Reports** screen | D15 | ready: KPI bundles, weekly/fortnight views | report list + exports in `/admin/reports` |
 | **MFA** (TOTP, aal2) for staff | D5 | not started | enrolment flow + restrictive RLS policies |
 | **Office code** kiosk | D4 | not started | kiosk role, HMAC code, check in `clock_punch` |
 | **CAPTCHA** on sign-in/reset | release checklist | dashboard setting | Turnstile widget + CSP entry |
+| Report ID + data hash stored (`uni_reports`) | security review | not started | a table and an insert when a PDF is generated |

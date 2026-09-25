@@ -1407,6 +1407,15 @@ export type Database = {
         }[]
       }
       catch_up_options: { Args: { placement: string }; Returns: Json }
+      checkins_due: {
+        Args: never
+        Returns: {
+          intern_id: string
+          intern_name: string
+          placement_id: string
+          week_start: string
+        }[]
+      }
       clock_punch: {
         Args: {
           accuracy_m: number
@@ -1478,6 +1487,28 @@ export type Database = {
       kpi_supervisor: { Args: never; Returns: Json }
       mark_certificate_sighted: { Args: { request_id: string }; Returns: Json }
       mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
+      monday_summary: {
+        Args: { week_start?: string }
+        Returns: {
+          checkin: Json
+          counted: number
+          days_worked: number
+          intern_id: string
+          intern_name: string
+          late_days: number
+          no_shows: number
+          overtime_approved: number
+          overtime_pending: number
+          owed: number
+          pace: string
+          pending_requests: number
+          placement_id: string
+          risk_reasons: string[]
+          scheduled: number
+          week: string
+          work_logs: number
+        }[]
+      }
       my_consent: { Args: never; Returns: Json }
       people_directory: {
         Args: never
@@ -1535,6 +1566,17 @@ export type Database = {
         }[]
       }
       run_job: { Args: { name: string }; Returns: Json }
+      save_checkin: {
+        Args: {
+          comment?: string
+          communication: number
+          placement: string
+          quality: number
+          reliability: number
+          week_start: string
+        }
+        Returns: string
+      }
       save_closure_day: {
         Args: { day: string; kind?: string; name: string; site_id: string }
         Returns: Json
