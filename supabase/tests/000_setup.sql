@@ -105,7 +105,7 @@ begin
   if p_photo then
     insert into storage.objects (bucket_id, name, owner, owner_id, created_at)
     values ('daymark-photos', p_person || '/' || (challenge ->> 'challenge_id') || '.jpg',
-            p_person, p_person::text, p_at::timestamptz);
+            p_person, p_person::text, now());
   end if;
   perform tests.as_person(p_person);
   result := public.clock_punch((challenge ->> 'challenge_id')::uuid, p_lat, p_lng, p_acc, '2020-01-01 00:00+00');

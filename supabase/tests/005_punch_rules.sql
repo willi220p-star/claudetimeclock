@@ -1,5 +1,5 @@
 begin;
-select plan(33);
+select plan(34);
 
 create temp table ids as
 select tests.create_intern('pa@test.dev') as a,
@@ -107,7 +107,13 @@ select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uui
   'P0001', 'That clock-in timed out. Tap Clock in again.', 'another person''s challenge is refused');
 reset role;
 update storage.objects set owner = (select d from ids), owner_id = (select d from ids)::text,
-  created_at = '2026-10-14 09:00:10+09:30' where name like (select d from ids) || '/%';
+  created_at = now() - interval '1 second' where name like (select d from ids) || '/%';
+select tests.at('2026-10-14 09:00:20+09:30');
+select tests.as_person((select d from ids));
+select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid from ch), -12.4785082, 130.9854825, 10, null)$$,
+  'P0001', 'We didn''t get your selfie. Take it again.', 'a photo older than the challenge is refused');
+reset role;
+update storage.objects set created_at = now() where name like (select d from ids) || '/%';
 select tests.at('2026-10-14 09:01:31+09:30');
 select tests.as_person((select d from ids));
 select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid from ch), -12.4785082, 130.9854825, 10, null)$$,
