@@ -1,221 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { isAuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
+import type { z } from "zod";
+import { FormField, FormMessage, PasswordInput } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { rememberProfile } from "@/lib/browser-session";
-import { emailForLogin, errorText } from "@/lib/daymark";
+import { clearSessionCache, sessionProfile } from "@/lib/browser-session";
+import { errorText } from "@/lib/daymark";
+import { homeFor } from "@/lib/roles";
+import { signInSchema } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
+
+type SignIn = z.infer<typeof signInSchema>;
+
+function signInMessage(error: unknown) {
+  if (isAuthRetryableFetchError(error)) return "We couldn't reach DGK Clock. Check your connection and try again.";
+  if (isAuthApiError(error) && error.status === 429) return "Too many tries. Wait a minute, then try again.";
+  if (isAuthApiError(error) && error.status === 400) {
+    // Neutral on purpose: never say whether the email has a login.
+    return "That email and password don't match. Check them and try again, or reset your password.";
+  }
+  return errorText(error, "Signing in didn't work. Try again.");
+}
 
 export function LoginForm() {
   const router = useRouter();
-  const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignIn>({ resolver: zodResolver(signInSchema), defaultValues: { email: "", password: "" } });
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    const id = loginId.trim().toLowerCase();
-    if (!id || !password) {
-      setError("Enter a login ID and password.");
-      return;
-    }
+  // Already signed in: go straight to the right desk.
+  useEffect(() => {
+    sessionProfile()
+      .then((profile) => {
+        const home = profile && homeFor(profile);
+        if (home) router.replace(home);
+      })
+      .catch(() => {});
+  }, [router]);
 
-    setPending(true);
+  async function onSubmit(values: SignIn) {
+    setFormError(null);
+    const supabase = createClient();
     try {
-      const supabase = createClient();
-      const { data: resolved, error: resolveError } = await supabase.rpc("sign_in_email", {
-        login_id: id,
-      });
-      if (resolveError) throw resolveError;
-      const mail = typeof resolved === "string" && resolved ? resolved : emailForLogin(id);
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: mail,
-        password,
-      });
-
-      if (signInError || !data.user) {
-        setError("That login ID and password do not match.");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("daymark_profiles")
-        .select("id, login_id, display_name, role, active, created_at")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (!profile || (profile.role !== "admin" && profile.role !== "staff")) {
+      const { error } = await supabase.auth.signInWithPassword(values);
+      if (error) throw error;
+      clearSessionCache();
+      const profile = await sessionProfile();
+      const home = profile && homeFor(profile);
+      if (!home) {
         await supabase.auth.signOut();
-        setError("This login is not set up in DGK Clock.");
+        clearSessionCache();
+        setFormError(
+          profile
+            ? "Your login doesn't have a role yet. Ask the DGK admin to set one up."
+            : "This login is paused or not set up in DGK Clock. Ask the DGK admin to check it.",
+        );
         return;
       }
-
-      if (!profile.active) {
-        await supabase.auth.signOut();
-        setError("This login is paused. Ask an admin to turn it back on.");
-        return;
-      }
-
-      rememberProfile(profile);
-      router.push(profile.role === "admin" ? "/admin" : "/clock");
-    } catch (caught) {
-      setError(errorText(caught, "Could not sign in. Try again."));
-    } finally {
-      setPending(false);
+      router.replace(home);
+    } catch (error) {
+      setFormError(signInMessage(error));
     }
   }
 
-  async function onReset(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    const mail = email.trim().toLowerCase();
-    if (!mail.includes("@")) {
-      setError("Enter the email saved on this login.");
-      return;
-    }
-
-    setPending(true);
-    try {
-      const supabase = createClient();
-      const { data: ready, error: readyError } = await supabase.rpc("recovery_email_ready", {
-        email: mail,
-      });
-      if (readyError) throw readyError;
-      if (!ready) {
-        setError("That email is not on a login yet. An admin adds it under People, then a reset link can be sent.");
-        return;
-      }
-
-      const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(mail, {
-        redirectTo: `${window.location.origin}${base}/reset-password/`,
-      });
-      if (resetError) throw resetError;
-      setSent(true);
-    } catch (caught) {
-      setError(errorText(caught, "Could not send the reset link."));
-    } finally {
-      setPending(false);
-    }
-  }
-
-  if (resetting) {
-    return (
-      <form method="post" action="." onSubmit={onReset} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="reset-email">Email</Label>
+  return (
+    <form method="post" noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      <FormField id="email" label="Email" error={errors.email?.message}>
+        {(field) => (
           <Input
-            id="reset-email"
-            name="email"
+            {...field}
+            {...register("email")}
             type="email"
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="name@email.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="h-11 rounded-xl bg-card px-3"
+            inputMode="email"
           />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            A link to choose a new password goes to the email saved on this login.
-          </p>
-        </div>
-        {sent ? (
-          <p className="rounded-xl bg-secondary px-3 py-2 text-sm" role="status">
-            The reset link is on its way. Open it, choose a new password, then sign in with your login ID.
-          </p>
-        ) : null}
-        {error ? (
-          <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <Button type="submit" className="h-11 rounded-xl text-base" disabled={pending || sent}>
-          {pending ? "Sending…" : "Send reset link"}
-        </Button>
-        <button
-          type="button"
-          className="text-sm text-muted-foreground"
-          onClick={() => {
-            setResetting(false);
-            setSent(false);
-            setError(null);
-          }}
-        >
-          Back to sign in
-        </button>
-      </form>
-    );
-  }
-
-  return (
-    <form method="post" action="." onSubmit={onSubmit} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="login-id">Login ID</Label>
-        <Input
-          id="login-id"
-          name="loginId"
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="alex.rivera"
-          value={loginId}
-          onChange={(event) => setLoginId(event.target.value)}
-          className="h-11 rounded-xl bg-card px-3"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="h-11 rounded-xl bg-card px-3 pr-11"
-          />
-          <button
-            type="button"
-            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-            onClick={() => setShowPassword((current) => !current)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
-      </div>
-      {error ? (
-        <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <Button type="submit" className="h-11 rounded-xl text-base" disabled={pending}>
-        {pending ? "Signing in…" : "Sign in"}
+        )}
+      </FormField>
+      <FormField id="password" label="Password" error={errors.password?.message}>
+        {(field) => <PasswordInput {...field} {...register("password")} autoComplete="current-password" />}
+      </FormField>
+      {formError ? <FormMessage>{formError}</FormMessage> : null}
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
-      <button
-        type="button"
-        className="text-sm text-primary"
-        onClick={() => {
-          setResetting(true);
-          setSent(false);
-          setError(null);
-          setPassword("");
-        }}
-      >
-        Forgot password
-      </button>
+      <Link href="/reset-password" className="inline-flex min-h-11 items-center self-center text-sm font-semibold text-primary">
+        Forgot your password?
+      </Link>
     </form>
   );
 }

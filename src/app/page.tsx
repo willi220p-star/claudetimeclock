@@ -1,10 +1,8 @@
-import { Suspense } from "react";
-import { HomeGate, Opening } from "@/components/desk-gate";
+import type { Metadata } from "next";
+import LoginPage from "@/app/login/page";
 
-export default function HomePage() {
-  return (
-    <Suspense fallback={<Opening label="Opening your desk…" />}>
-      <HomeGate />
-    </Suspense>
-  );
-}
+export const metadata: Metadata = {
+  title: "Sign in",
+};
+
+export default LoginPage;

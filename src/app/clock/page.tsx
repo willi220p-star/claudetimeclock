@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function ClockPage() {
   return (
-    <Suspense fallback={<Opening label="Opening your shift…" />}>
+    <Suspense fallback={<Opening label="Opening your clock…" />}>
       <ClockScreen />
     </Suspense>
   );
