@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FormField, FormMessage } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
+import { PdfDownloads } from "@/components/pdf-downloads";
 import { SignOutButton } from "@/components/sign-out-button";
 import { WorkLogSheet } from "@/components/work-log-sheet";
 import { Button } from "@/components/ui/button";
@@ -60,14 +61,21 @@ function MeDesk() {
               {placement?.report_approved_at ? (
                 <p>
                   Your uni report is <span className="font-semibold">approved</span>
-                  {approver ? ` by ${approver}` : ""} on {formatDay(placement.report_approved_at)}. There is no PDF
-                  download.
+                  {approver ? ` by ${approver}` : ""} on {formatDay(placement.report_approved_at)}.
                 </p>
               ) : (
                 <p className="text-muted-foreground">
-                  Your supervisor approves the uni report when your hours are final. It will show here.
+                  Your supervisor approves the uni report when your hours are final. The download will show here.
                 </p>
               )}
+              {placement ? (
+                <PdfDownloads
+                  placementId={placement.id}
+                  status={placement.status}
+                  reportApprovedAt={placement.report_approved_at}
+                  report={Boolean(placement.report_approved_at)}
+                />
+              ) : null}
             </section>
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">

@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
+import { PdfDownloads } from "@/components/pdf-downloads";
 import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { loadCohorts, loadPlacement, loadProfiles } from "@/lib/data";
@@ -184,6 +185,7 @@ function PlacementFields({
         {row.ended_on ? <StatusChip tone="neutral" label={`Ended ${formatDay(row.ended_on)}`} /> : null}
         {row.target_reached_at ? <StatusChip tone="ok" label="Target reached" /> : null}
       </div>
+      <PdfDownloads placementId={row.id} status={row.status} reportApprovedAt={row.report_approved_at} />
       <dl className="grid gap-4 rounded-xl bg-card p-6 shadow-card sm:grid-cols-2">
         <div>
           <dt className="text-sm text-muted-foreground">Supervisor</dt>

@@ -5,17 +5,20 @@
  * script-src keeps 'unsafe-inline' because Next's static export writes its bootstrap and RSC
  * payload as inline scripts, and a static page has no per-request nonce. The upgrade path is
  * hashes or a header-capable host (security review §4.2). Development also needs 'unsafe-eval'.
+ * 'wasm-unsafe-eval' lets react-pdf compile its yoga layout WebAssembly (the §13 PDFs); it allows
+ * WebAssembly compilation only, not JavaScript eval. connect-src data: lets yoga fetch its inlined
+ * base64 wasm (a data: URI never leaves the browser) instead of logging a violation and falling back.
  */
 export function contentSecurityPolicy(supabaseUrl: string, development = false) {
   const supabase = supabaseUrl.replace(/\/+$/, "");
   const realtime = supabase.replace(/^http/, "ws");
   return [
     "default-src 'self'",
-    `connect-src 'self' ${supabase} ${realtime}`,
+    `connect-src 'self' data: ${supabase} ${realtime}`,
     `img-src 'self' blob: data: ${supabase}`,
     "media-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
-    `script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${development ? " 'unsafe-eval'" : ""}`,
     "font-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

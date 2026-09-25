@@ -12,6 +12,7 @@ import {
 } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
 import type { Database, Json, Tables } from "@/lib/database.types";
+import type { ReportInput } from "@/lib/report";
 
 export function unwrap<T>(result: { data: T; error: { message: string } | null }, fallback: string): T {
   if (result.error) throw result.error;
@@ -374,6 +375,62 @@ export async function loadFlaggedEvents(from: string, to: string) {
   const { data, error } = await createClient().rpc("flagged_events", { from_date: from, to_date: to });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Everything the uni report and certificate need (§13), read under the caller's RLS. */
+export async function loadReportData(placementId: string): Promise<Omit<ReportInput, "generatedAt" | "documentId">> {
+  const client = createClient();
+  const { data: placement, error: placementError } = await client
+    .from("daymark_placements")
+    .select(
+      "id, intern_id, supervisor_id, status, start_date, planned_end_date, ended_on, target_minutes, university, course, uni_coordinator_name, report_approved_at, report_approved_by, report_approval_note",
+    )
+    .eq("id", placementId)
+    .single();
+  if (placementError) throw placementError;
+  const [weeks, days, punches, requests] = await Promise.all([
+    client
+      .from("daymark_v_week_hours")
+      .select("week_no, week_start, scheduled, counted, approved_ot, no_shows, late_days")
+      .eq("placement_id", placementId)
+      .order("week_start"),
+    client
+      .from("daymark_day_results")
+      .select("work_date, counted, worked, approved_ot")
+      .eq("placement_id", placementId)
+      .order("work_date"),
+    client
+      .from("daymark_punches")
+      .select("id, occurred_at, source, verification_method, confirmed_by, replaces_punch_id")
+      .eq("placement_id", placementId)
+      .order("occurred_at"),
+    client
+      .from("daymark_requests")
+      .select("type, status, dates, supervisor_id, admin_id, admin_decision")
+      .eq("placement_id", placementId)
+      .in("type", ["overtime", "punch_fix"])
+      .eq("status", "approved"),
+  ]);
+  for (const result of [weeks, days, punches, requests]) if (result.error) throw result.error;
+  const ids = new Set<string>([placement.intern_id, placement.supervisor_id]);
+  if (placement.report_approved_by) ids.add(placement.report_approved_by);
+  for (const punch of punches.data ?? []) if (punch.confirmed_by) ids.add(punch.confirmed_by);
+  for (const request of requests.data ?? []) {
+    if (request.supervisor_id) ids.add(request.supervisor_id);
+    if (request.admin_id) ids.add(request.admin_id);
+  }
+  const { data: people, error } = await client.from("daymark_profiles").select("id, display_name").in("id", [...ids]);
+  if (error) throw error;
+  const names: Record<string, string> = Object.fromEntries((people ?? []).map((p) => [p.id, p.display_name]));
+  return {
+    placement,
+    internName: names[placement.intern_id] ?? "Intern",
+    weeks: weeks.data ?? [],
+    days: days.data ?? [],
+    punches: punches.data ?? [],
+    requests: requests.data ?? [],
+    names,
+  };
 }
 
 export function dataError(error: unknown) {

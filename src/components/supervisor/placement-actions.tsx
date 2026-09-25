@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { FormField, FormMessage } from "@/components/form-field";
+import { PdfDownloads } from "@/components/pdf-downloads";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,8 @@ export function PlacementActions({
           </Button>
         ) : null}
       </div>
+      <PdfDownloads placementId={placementId} status={status} reportApprovedAt={reportApprovedAt} />
+
 
       <Dialog
         open={action !== null}
