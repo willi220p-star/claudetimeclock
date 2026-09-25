@@ -1406,6 +1406,7 @@ export type Database = {
           work_date: string
         }[]
       }
+      catch_up_options: { Args: { placement: string }; Returns: Json }
       clock_punch: {
         Args: {
           accuracy_m: number
@@ -1454,10 +1455,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      flagged_events: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          accuracy_m: number
+          display_name: string
+          distance_m: number
+          event_type: string
+          flags: string[]
+          intern_id: string
+          occurred_at: string
+          photo_path: string
+          punch_id: string
+        }[]
+      }
       import_placements: {
         Args: { dry_run?: boolean; rows: Json; temp_password: string }
         Returns: Json
       }
+      kpi_admin: { Args: never; Returns: Json }
+      kpi_intern: { Args: never; Returns: Json }
+      kpi_supervisor: { Args: never; Returns: Json }
       mark_certificate_sighted: { Args: { request_id: string }; Returns: Json }
       mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
       my_consent: { Args: never; Returns: Json }
@@ -1479,10 +1497,15 @@ export type Database = {
         }[]
       }
       placement_progress: { Args: { placement: string }; Returns: Json }
+      preview_request: { Args: { req: Json }; Returns: Json }
       progress_all: { Args: never; Returns: Json[] }
       progress_for_supervisor: { Args: never; Returns: Json[] }
       publish_notice: {
         Args: { body: string; title: string; version: string }
+        Returns: Json
+      }
+      purge_intern: {
+        Args: { intern: string; objects_deleted?: number }
         Returns: Json
       }
       record_consent: {
@@ -1490,6 +1513,27 @@ export type Database = {
         Returns: Json
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
+      request_supervisor_confirmation: {
+        Args: { event_type: string }
+        Returns: Json
+      }
+      retention_certificate_removed: {
+        Args: { request_id: string }
+        Returns: undefined
+      }
+      retention_certificates_due: {
+        Args: never
+        Returns: {
+          attachment_path: string
+          request_id: string
+        }[]
+      }
+      retention_due: {
+        Args: never
+        Returns: {
+          intern_id: string
+        }[]
+      }
       run_job: { Args: { name: string }; Returns: Json }
       save_closure_day: {
         Args: { day: string; kind?: string; name: string; site_id: string }
@@ -1546,6 +1590,10 @@ export type Database = {
         }[]
       }
       start_clock: { Args: { event_type: string }; Returns: Json }
+      submit_catch_up: {
+        Args: { option: string; placement: string }
+        Returns: Json
+      }
       submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }
       today_board: { Args: { site?: string }; Returns: Json }
       update_settings: { Args: { changes: Json }; Returns: Json }
