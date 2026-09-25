@@ -2,6 +2,9 @@ import { describe, expect, test } from "vitest";
 import {
   addDays,
   checkinWeeks,
+  addMonths,
+  monthGrid,
+  monthStart,
   fortnightEnd,
   fortnightIndex,
   fortnightStart,
@@ -59,5 +62,26 @@ describe("periods (R5.7)", () => {
     expect(checkinWeeks("2027-01-06", "2026-12-01", "2026-12-18")).toEqual(["2026-12-14", "2026-12-07", "2026-11-30"]);
     expect(checkinWeeks("2026-10-14", "2026-10-20", "2026-12-18")).toEqual([]);
     expect(checkinWeeks("2026-12-14", "2026-09-28", "2026-12-18", 2)).toEqual(["2026-12-14", "2026-12-07"]);
+  });
+
+  test("month start and addMonths cross years", () => {
+    expect(monthStart("2026-10-14")).toBe("2026-10-01");
+    expect(addMonths("2026-12-01", 1)).toBe("2027-01-01");
+    expect(addMonths("2026-01-01", -1)).toBe("2025-12-01");
+  });
+
+  test("month grid is Mon–Fri rows with neighbouring days blank", () => {
+    const october = monthGrid("2026-10-20");
+    expect(october).toHaveLength(5);
+    expect(october[0]).toEqual([null, null, null, "2026-10-01", "2026-10-02"]);
+    expect(october[4]).toEqual(["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]);
+  });
+
+  test("month grid drops a week that only holds a weekend of the month", () => {
+    // 1 Aug 2026 is a Saturday; 31 Aug is a Monday.
+    const august = monthGrid("2026-08-01");
+    expect(august[0][0]).toBe("2026-08-03");
+    expect(august.at(-1)).toEqual(["2026-08-31", null, null, null, null]);
+    expect(august.flat().filter(Boolean)).toHaveLength(21);
   });
 });

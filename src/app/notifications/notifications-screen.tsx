@@ -2,17 +2,17 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { InternFrame } from "@/app/clock/intern-frame";
+import { InternShell, StaffShell } from "@/components/desk-shell";
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
 import { Opening, useHydrated } from "@/components/desk-gate";
-import { StaffShell } from "@/components/desk-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { sessionProfile } from "@/lib/browser-session";
 import { loadNotifications, markNotificationsRead } from "@/lib/data";
 import { relativeOrDate } from "@/lib/darwin";
 import type { Profile } from "@/lib/daymark";
 import { ROLE_HOME, rolesOf } from "@/lib/roles";
+import { subscribeNotifications } from "@/lib/unread";
 import { useLoad } from "@/lib/use-load";
 import { useRouter } from "next/navigation";
 
@@ -35,9 +35,9 @@ function NotificationsSession() {
   const body = <NotificationsDesk profile={profile} home={role ? ROLE_HOME[role] : "/"} />;
   if (role === "intern") {
     return (
-      <InternFrame profile={profile} title="Notifications">
+      <InternShell profile={profile} title="Notifications">
         {body}
-      </InternFrame>
+      </InternShell>
     );
   }
   if (role === "supervisor" || role === "admin") {
@@ -54,6 +54,9 @@ function NotificationsDesk({ profile, home }: { profile: Profile; home: string }
   const load = useCallback(() => loadNotifications(profile.id, 40), [profile.id]);
   const [state, reload] = useLoad(load);
   const [now] = useState(() => new Date());
+
+  // New ones appear without a refresh; the effect below then marks them read.
+  useEffect(() => subscribeNotifications(profile.id, { insert: reload }), [profile.id, reload]);
 
   useEffect(() => {
     if (state.status !== "ready") return;

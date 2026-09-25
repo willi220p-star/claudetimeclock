@@ -36,6 +36,26 @@ export function sessionConsent() {
   return pending;
 }
 
+const NOTICE_KEY = "dgk-sign-out-notice";
+
+/** A line for the sign-in page after an automatic sign-out (this tab only). */
+export function leaveSignOutNotice(text: string | null) {
+  try {
+    if (text) sessionStorage.setItem(NOTICE_KEY, text);
+    else sessionStorage.removeItem(NOTICE_KEY);
+  } catch {
+    // Storage blocked: the sign-in page just shows no notice.
+  }
+}
+
+export function readSignOutNotice() {
+  try {
+    return sessionStorage.getItem(NOTICE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /** After recording a consent decision, keep the fresh state for the gates. */
 export function rememberConsent(consent: Consent) {
   consents.set(generation, Promise.resolve(consent));

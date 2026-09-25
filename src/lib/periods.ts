@@ -64,3 +64,31 @@ export function checkinWeeks(today: string, startDate: string, endDate: string, 
   }
   return weeks;
 }
+
+/** The first day of the month holding `key`. */
+export function monthStart(key: string) {
+  return `${key.slice(0, 7)}-01`;
+}
+
+export function addMonths(key: string, months: number) {
+  const [year, month] = key.split("-").map(Number);
+  return keyOf(Date.UTC(year, month - 1 + months, 1) / DAY);
+}
+
+/**
+ * Mon–Fri rows covering the month holding `key`, for the intern month calendar.
+ * Weekdays from the neighbouring months are null; a row with none of this month's days is dropped.
+ */
+export function monthGrid(key: string): (string | null)[][] {
+  const first = monthStart(key);
+  const next = addMonths(first, 1);
+  const rows: (string | null)[][] = [];
+  for (let monday = mondayOf(first); monday < next; monday = addDays(monday, 7)) {
+    const row = [0, 1, 2, 3, 4].map((i) => {
+      const day = addDays(monday, i);
+      return day >= first && day < next ? day : null;
+    });
+    if (row.some(Boolean)) rows.push(row);
+  }
+  return rows;
+}

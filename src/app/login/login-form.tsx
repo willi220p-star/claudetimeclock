@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -10,13 +10,15 @@ import type { z } from "zod";
 import { FormField, FormMessage, PasswordInput } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { clearSessionCache, sessionProfile } from "@/lib/browser-session";
+import { clearSessionCache, leaveSignOutNotice, readSignOutNotice, sessionProfile } from "@/lib/browser-session";
 import { errorText } from "@/lib/daymark";
 import { homeFor } from "@/lib/roles";
 import { signInSchema } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
 
 type SignIn = z.infer<typeof signInSchema>;
+
+const noop = () => () => {};
 
 function signInMessage(error: unknown) {
   if (isAuthRetryableFetchError(error)) return "We couldn't reach DGK Clock. Check your connection and try again.";
@@ -31,6 +33,8 @@ function signInMessage(error: unknown) {
 export function LoginForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+  // "You were signed out after 30 minutes of inactivity." left by the idle sign-out.
+  const notice = useSyncExternalStore(noop, readSignOutNotice, () => null);
   const {
     register,
     handleSubmit,
@@ -49,6 +53,7 @@ export function LoginForm() {
 
   async function onSubmit(values: SignIn) {
     setFormError(null);
+    leaveSignOutNotice(null);
     const supabase = createClient();
     try {
       const { error } = await supabase.auth.signInWithPassword(values);
@@ -57,7 +62,7 @@ export function LoginForm() {
       const profile = await sessionProfile();
       const home = profile && homeFor(profile);
       if (!home) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: "local" });
         clearSessionCache();
         setFormError(
           profile
@@ -74,6 +79,11 @@ export function LoginForm() {
 
   return (
     <form method="post" noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      {notice ? (
+        <p role="status" className="rounded-xl bg-muted p-4 text-sm">
+          {notice}
+        </p>
+      ) : null}
       <FormField id="email" label="Email" error={errors.email?.message}>
         {(field) => (
           <Input

@@ -77,6 +77,8 @@ export function ApprovalsList({
           internName={internName(open.daymark_profiles)}
           preview={preview}
           requestedMinutes={open.requested_minutes}
+          attachmentPath={open.attachment_path}
+          certificateSighted={open.certificate_sighted}
           onDone={onChanged}
         />
       ) : null}

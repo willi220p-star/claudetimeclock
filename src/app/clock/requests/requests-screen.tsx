@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { InternFrame } from "@/app/clock/intern-frame";
+import { InternShell } from "@/components/desk-shell";
+import { CertificateUpload } from "@/components/certificate-upload";
 import { DeskGate } from "@/components/desk-gate";
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
@@ -9,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { RequestForm } from "@/components/request-form";
 import { StatusChip } from "@/components/status-chip";
 import { Button } from "@/components/ui/button";
-import { loadMyPlacement, loadRequestsForPlacement } from "@/lib/data";
+import { loadCertRetentionDays, loadMyPlacement, loadRequestsForPlacement } from "@/lib/data";
 import { formatDay } from "@/lib/darwin";
 import { REQUEST_STATUS_LABEL, isPending, requestLabel, requestTimeline } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
@@ -18,9 +19,9 @@ export function RequestsScreen() {
   return (
     <DeskGate role="intern">
       {(profile) => (
-        <InternFrame profile={profile} title="Requests">
+        <InternShell profile={profile} title="Requests">
           <RequestsDesk />
-        </InternFrame>
+        </InternShell>
       )}
     </DeskGate>
   );
@@ -30,9 +31,10 @@ function RequestsDesk() {
   const [tab, setTab] = useState<"pending" | "decided">("pending");
   const [compose, setCompose] = useState(false);
   const load = useCallback(async () => {
-    const placement = await loadMyPlacement();
-    if (!placement) return [];
-    return loadRequestsForPlacement(placement.id);
+    const [placement, retention] = await Promise.all([loadMyPlacement(), loadCertRetentionDays().catch(() => undefined)]);
+    if (!placement) return null;
+    const rows = await loadRequestsForPlacement(placement.id);
+    return rows.length > 0 ? { rows, retention } : null; // null shows the empty state
   }, []);
   const [state, reload] = useLoad(load);
 
@@ -76,7 +78,9 @@ function RequestsDesk() {
           </Button>
         }
       >
-        {(rows) => {
+        {(data) => {
+          if (!data) return null;
+          const { rows, retention } = data;
           const visible = rows.filter((row) => (tab === "pending" ? isPending(row.status) : !isPending(row.status)));
           if (visible.length === 0) {
             return (
@@ -120,6 +124,15 @@ function RequestsDesk() {
                         </li>
                       ))}
                     </ol>
+                    {row.type === "leave" && (isPending(row.status) || row.attachment_path) ? (
+                      <CertificateUpload
+                        requestId={row.id}
+                        internId={row.intern_id}
+                        attached={Boolean(row.attachment_path)}
+                        retentionDays={retention}
+                        onAdded={reload}
+                      />
+                    ) : null}
                   </li>
                 );
               })}
