@@ -1,5 +1,6 @@
 import { darwinDateKey, formatDate, formatDay, formatTime } from "@/lib/darwin";
 import { formatMinutes } from "@/lib/minutes";
+import { addDays } from "@/lib/periods";
 import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
 
 /**
@@ -153,9 +154,34 @@ export function countedMinutes(weeks: ReportWeek[]) {
   return weeks.reduce((total, w) => total + (w.week_start ? num(w.counted) : 0), 0);
 }
 
+/**
+ * The weeks in order with none missing: a week with no scheduled day (a closure, say) has no row
+ * in the view, but the university expects every placement week listed, so it reads as zeros.
+ */
+export function fillWeekGaps(rows: ReportWeek[]): ReportWeek[] {
+  const weeks = rows.filter((w) => w.week_start && w.week_no !== null).sort((a, b) => num(a.week_no) - num(b.week_no));
+  const filled: ReportWeek[] = [];
+  for (const week of weeks) {
+    const previous = filled.at(-1);
+    for (let n = previous ? num(previous.week_no) + 1 : num(week.week_no); n < num(week.week_no); n++) {
+      filled.push({
+        week_no: n,
+        week_start: addDays(previous!.week_start as string, 7 * (n - num(previous!.week_no))),
+        scheduled: 0,
+        counted: 0,
+        approved_ot: 0,
+        no_shows: 0,
+        late_days: 0,
+      });
+    }
+    filled.push(week);
+  }
+  return filled;
+}
+
 export function buildReportModel(input: ReportInput): ReportModel {
   const { placement, names, requests } = input;
-  const weeks = input.weeks.filter((w) => w.week_start);
+  const weeks = fillWeekGaps(input.weeks);
   const sum = (key: keyof ReportWeek) => weeks.reduce((total, w) => total + num(w[key] as number | null), 0);
   const counted = countedMinutes(weeks);
   const approvedBy = placement.report_approved_by ? nameOf(names, placement.report_approved_by) : null;

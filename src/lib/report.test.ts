@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  fillWeekGaps,
   buildCertificateModel,
   buildReportModel,
   certificateBlocker,
@@ -151,5 +152,21 @@ describe("certificate", () => {
     expect(hoursText(480 * 60)).toBe("480 hours");
     expect(hoursText(61)).toBe("1 hour 1 minute");
     expect(hoursText(479 * 60 + 30)).toBe("479 hours 30 minutes");
+  });
+});
+
+describe("weekly table", () => {
+  test("a week with no row (a closure week) is listed with zeros", () => {
+    const row = (week_no: number, week_start: string) => ({
+      week_no, week_start, scheduled: 450, counted: 450, approved_ot: 0, no_shows: 0, late_days: 0,
+    });
+    const weeks = fillWeekGaps([row(5, "2026-08-10"), row(3, "2026-07-27"), row(1, "2026-07-13")]);
+    expect(weeks.map((w) => [w.week_no, w.week_start, w.counted])).toEqual([
+      [1, "2026-07-13", 450],
+      [2, "2026-07-20", 0],
+      [3, "2026-07-27", 450],
+      [4, "2026-08-03", 0],
+      [5, "2026-08-10", 450],
+    ]);
   });
 });
