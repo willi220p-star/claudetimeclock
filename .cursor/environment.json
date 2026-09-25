@@ -1,0 +1,17 @@
+{
+  "name": "DGK Clock",
+  "user": "ubuntu",
+  "install": "./.cursor/install.sh",
+  "start": "./.cursor/start.sh",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [
+    { "name": "Next.js dev server", "port": 41731 },
+    { "name": "Supabase API", "port": 54321 },
+    { "name": "Supabase mail catcher", "port": 54324 }
+  ]
+}
