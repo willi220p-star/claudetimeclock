@@ -1,96 +1,57 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { dayHeading, formatTimeOnly, localDateInput, type EventType } from "@/lib/daymark";
+import { toast } from "sonner";
+import { StatusChip } from "@/components/status-chip";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { formatDay, formatTime } from "@/lib/darwin";
+import { errorText, FLAG_LABEL, formatDistance, SOURCE_LABEL } from "@/lib/daymark";
+import { selfieUrl, type PunchCard } from "@/lib/punches";
+import { punchDays } from "@/lib/time";
 
-type SlotPunch = {
-  id: string;
-  event_type: EventType;
-  occurred_at: string;
-  place_name: string | null;
-  photoUrl: string | null;
-};
+/** Punches by Darwin day, one clock-in/clock-out pair per row. `detail` adds distance, accuracy and flags. */
+export function PunchDayTable({ punches, detail = false }: { punches: PunchCard[]; detail?: boolean }) {
+  const [photo, setPhoto] = useState<{ url: string; title: string } | null>(null);
+  const days = useMemo(() => punchDays(punches), [punches]);
 
-type Slot = {
-  id: string;
-  occurred_at: string;
-  place_name: string | null;
-  photoUrl: string | null;
-};
-
-type DayRow = {
-  id: string;
-  shift_in: Slot | null;
-  shift_out: Slot | null;
-  break_in: Slot | null;
-  break_out: Slot | null;
-};
-
-const COLUMNS: Array<{ key: keyof Omit<DayRow, "id">; label: string }> = [
-  { key: "shift_in", label: "Clock in" },
-  { key: "shift_out", label: "Clock out" },
-  { key: "break_in", label: "Break in" },
-  { key: "break_out", label: "Break out" },
-];
-
-export function PunchDayTable({ punches }: { punches: SlotPunch[] }) {
-  const [photo, setPhoto] = useState<{ src: string; title: string; place: string | null } | null>(null);
-  const days = useMemo(() => groupDays(punches), [punches]);
-
-  if (days.length === 0) {
-    return (
-      <p className="rounded-2xl bg-card px-4 py-8 text-sm leading-relaxed text-muted-foreground">
-        No punches yet. Clock in at the Regus office and the time, place, and photo land in this table.
-      </p>
-    );
+  async function openSelfie(punch: PunchCard, title: string) {
+    try {
+      setPhoto({ url: await selfieUrl(punch.photo_path!), title });
+    } catch (error) {
+      toast.error(errorText(error, "That selfie didn't open. Try again."));
+    }
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {days.map((day) => (
-        <section key={day.dateKey} className="flex flex-col gap-3">
-          <h2 className="font-heading text-xl tracking-tight">{day.heading}</h2>
-          <div className="overflow-x-auto rounded-2xl border bg-card">
-            <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b text-xs text-muted-foreground">
-                  {COLUMNS.map((column) => (
-                    <th key={column.key} className="px-3 py-2 font-medium">
-                      {column.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {day.rows.map((row) => (
-                  <tr key={row.id} className="border-b last:border-0 align-top">
-                    {COLUMNS.map((column) => (
-                      <td key={column.key} className="px-3 py-3">
-                        <SlotCell
-                          slot={row[column.key]}
-                          label={column.label}
-                          onPhoto={(src, title, place) => setPhoto({ src, title, place })}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <section key={day.dateKey} className="flex flex-col gap-2">
+          <h3 className="font-semibold">{formatDay(day.dateKey)}</h3>
+          <ul className="flex flex-col gap-2">
+            {day.rows.map((row) => (
+              <li key={row.id} className="grid grid-cols-1 gap-4 rounded-lg bg-card p-4 shadow-card sm:grid-cols-2">
+                <PunchCell punch={row.in} label="Clock in" detail={detail} onOpen={openSelfie} />
+                <PunchCell punch={row.out} label="Clock out" detail={detail} onOpen={openSelfie} />
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
 
-      <Dialog open={photo !== null} onOpenChange={(open) => { if (!open) setPhoto(null); }}>
+      <Dialog
+        open={photo !== null}
+        onOpenChange={(open) => {
+          if (!open) setPhoto(null);
+        }}
+      >
         <DialogContent>
           {photo ? (
             <>
               <DialogTitle>{photo.title}</DialogTitle>
-              {/* Signed photo URLs expire and are not a stable remote image host. */}
+              <DialogDescription>Selfies are private. Each view uses a link that expires after 60 seconds.</DialogDescription>
+              {/* Signed URLs expire in 60 seconds, so next/image caching doesn't apply. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.src} alt="" className="mt-3 max-h-[70vh] w-full rounded-xl object-contain" />
-              {photo.place ? <p className="mt-3 text-sm leading-relaxed">{photo.place}</p> : null}
+              <img src={photo.url} alt="" className="mt-4 max-h-[70vh] w-full rounded-lg object-contain" />
             </>
           ) : null}
         </DialogContent>
@@ -99,77 +60,63 @@ export function PunchDayTable({ punches }: { punches: SlotPunch[] }) {
   );
 }
 
-function SlotCell({
-  slot,
+function PunchCell({
+  punch,
   label,
-  onPhoto,
+  detail,
+  onOpen,
 }: {
-  slot: Slot | null;
+  punch: PunchCard | null;
   label: string;
-  onPhoto: (src: string, title: string, place: string | null) => void;
+  detail: boolean;
+  onOpen: (punch: PunchCard, title: string) => void;
 }) {
-  if (!slot) return <span className="text-muted-foreground">—</span>;
+  if (!punch) {
+    return (
+      <div>
+        <p className="caption text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground">
+          <span aria-hidden>—</span>
+          <span className="sr-only">None</span>
+        </p>
+      </div>
+    );
+  }
+
+  const time = formatTime(punch.occurred_at);
+  const flags = punch.flags.filter((flag) => FLAG_LABEL[flag]);
   return (
-    <div className="flex flex-col gap-1">
-      <p className="font-medium tabular-nums">{formatTimeOnly(slot.occurred_at)}</p>
-      <p className="text-xs leading-snug text-muted-foreground">{slot.place_name ?? "Place not recorded"}</p>
-      {slot.photoUrl ? (
+    <div className="flex min-w-0 items-start gap-3">
+      {punch.photoUrl ? (
         <button
           type="button"
-          className="mt-1 size-10 overflow-hidden rounded-lg border"
-          onClick={() => onPhoto(slot.photoUrl!, `${label} · ${formatTimeOnly(slot.occurred_at)}`, slot.place_name)}
-          aria-label={`Open the ${label.toLowerCase()} photo`}
+          className="size-11 shrink-0 overflow-hidden rounded-md border border-border"
+          onClick={() => onOpen(punch, `${label} · ${formatDay(punch.occurred_at)}, ${time}`)}
+          aria-label={`Open the ${label.toLowerCase()} selfie from ${time}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={slot.photoUrl} alt="" className="size-full object-cover" />
+          <img src={punch.photoUrl} alt="" className="size-full object-cover" />
         </button>
       ) : null}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="caption text-muted-foreground">{label}</p>
+        <p className="font-semibold">{time}</p>
+        {punch.place_name ? <p className="truncate text-sm text-muted-foreground">{punch.place_name}</p> : null}
+        {detail && punch.distance_m !== null ? (
+          <p className="text-sm text-muted-foreground">
+            {formatDistance(punch.distance_m)} from the office
+            {punch.accuracy_m !== null ? ` · ±${formatDistance(punch.accuracy_m)}` : ""}
+          </p>
+        ) : null}
+        {detail && (flags.length > 0 || SOURCE_LABEL[punch.source]) ? (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {SOURCE_LABEL[punch.source] ? <StatusChip tone="neutral" label={SOURCE_LABEL[punch.source]} /> : null}
+            {flags.map((flag) => (
+              <StatusChip key={flag} tone="warn" label={FLAG_LABEL[flag]} />
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
-}
-
-function groupDays(punches: SlotPunch[]) {
-  const byDay = new Map<string, SlotPunch[]>();
-  for (const punch of punches) {
-    const key = localDateInput(new Date(punch.occurred_at));
-    const list = byDay.get(key);
-    if (list) list.push(punch);
-    else byDay.set(key, [punch]);
-  }
-
-  return [...byDay.entries()]
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .map(([dateKey, dayPunches]) => ({
-      dateKey,
-      heading: dayHeading(dateKey),
-      rows: rowsForDay(dayPunches),
-    }));
-}
-
-function rowsForDay(punches: SlotPunch[]): DayRow[] {
-  const sorted = [...punches].sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at));
-  const rows: DayRow[] = [];
-  let current: DayRow | null = null;
-
-  for (const punch of sorted) {
-    const key = punch.event_type;
-    if (!current || current[key]) {
-      current = {
-        id: punch.id,
-        shift_in: null,
-        shift_out: null,
-        break_in: null,
-        break_out: null,
-      };
-      rows.push(current);
-    }
-    current[key] = {
-      id: punch.id,
-      occurred_at: punch.occurred_at,
-      place_name: punch.place_name,
-      photoUrl: punch.photoUrl,
-    };
-  }
-
-  return rows;
 }
