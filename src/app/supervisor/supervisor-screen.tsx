@@ -13,9 +13,10 @@ import { MinutesText } from "@/components/minutes-text";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatTime, formatTimeOfDay } from "@/lib/darwin";
+import { darwinDateKey, formatDay, formatTime, formatTimeOfDay } from "@/lib/darwin";
 import { formatMinutes } from "@/lib/minutes";
-import { BOARD_STATUS, RISK_LABEL, type TodayPerson } from "@/lib/placement-ui";
+import { lastWeekStart } from "@/lib/periods";
+import { BOARD_STATUS, RISK_LABEL, checkinOverdue, type TodayPerson } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
 export function SupervisorScreen() {
@@ -42,7 +43,8 @@ function TodayDesk() {
         reload={reload}
         skeleton={
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <Skeleton className="h-28 rounded-lg" />
               <Skeleton className="h-28 rounded-lg" />
               <Skeleton className="h-28 rounded-lg" />
               <Skeleton className="h-28 rounded-lg" />
@@ -58,7 +60,7 @@ function TodayDesk() {
           const placements = new Map(progress.map((row) => [row.intern_id, row.placement_id]));
           return (
             <>
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 <MetricCard
                   label="Approvals waiting"
                   value={String(kpi.approvals_waiting)}
@@ -81,6 +83,25 @@ function TodayDesk() {
                   sub="This fortnight"
                 />
                 <MetricCard label="Work logs" value={pctText(kpi.work_log_pct)} sub="This fortnight" />
+                <Link href="/supervisor/summary" className="rounded-xl">
+                  <MetricCard
+                    label="Check-ins due"
+                    value={String(kpi.checkins_due)}
+                    sub={
+                      kpi.last_checkin.week_start
+                        ? `Last ${formatDay(kpi.last_checkin.week_start)}${
+                            kpi.last_checkin.average != null ? ` · avg ${kpi.last_checkin.average.toFixed(1)}` : ""
+                          }`
+                        : "No check-ins yet"
+                    }
+                    tone={
+                      kpi.checkins_due > 0 || checkinOverdue(kpi.last_checkin.week_start, lastWeekStart(darwinDateKey(new Date())))
+                        ? "warn"
+                        : "ok"
+                    }
+                    className="h-full"
+                  />
+                </Link>
               </div>
 
               <section className="flex flex-col gap-3">

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
+  checkinAverage,
+  checkinOverdue,
   coversLine,
   dayCellStatus,
   overtimeSteps,
@@ -30,5 +32,19 @@ describe("placement-ui", () => {
     expect(coversLine(360, 450)).toBe("Covers 6h of 7h 30m owed");
     expect(dayCellStatus({ workDate: "2026-10-06", today: "2026-10-06", dayStatus: "scheduled" })).toBe("today");
     expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "moved" })).toBe("moved");
+  });
+});
+
+describe("check-ins", () => {
+  test("average to one decimal", () => {
+    expect(checkinAverage({ reliability: 4, quality: 5, communication: 3 })).toBe(4);
+    expect(checkinAverage({ reliability: 2, quality: 3, communication: 3 })).toBe(2.7);
+  });
+
+  test("overdue when nothing covers last week", () => {
+    expect(checkinOverdue(null, "2026-10-05")).toBe(true);
+    expect(checkinOverdue("2026-09-28", "2026-10-05")).toBe(true);
+    expect(checkinOverdue("2026-10-05", "2026-10-05")).toBe(false);
+    expect(checkinOverdue("2026-10-12", "2026-10-05")).toBe(false);
   });
 });

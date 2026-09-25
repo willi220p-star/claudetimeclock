@@ -141,7 +141,7 @@ select tests.as_person(tests.supervisor());
 select throws_ok($$select public.run_job('day_close')$$, '42501', 'Only an active admin can do that.', 'supervisors cannot run jobs');
 reset role;
 select tests.as_person((select admin from ids));
-select throws_ok($$select public.run_job('purge')$$, '22023', 'Pick a job: auto_close, day_close, reconcile, escalate, retention_reminders or clock_guard.', 'unknown jobs are refused');
+select throws_ok($$select public.run_job('purge')$$, '22023', 'Pick a job: auto_close, day_close, reconcile, escalate, retention_reminders, clock_guard or monday_summary.', 'unknown jobs are refused');
 reset role;
 
 -- A2 pg_cron schedules (UTC)

@@ -186,6 +186,8 @@ export type SupervisorKpi = {
   on_time_pct: number | null;
   overtime_approved_minutes: number;
   work_log_pct: number | null;
+  checkins_due: number;
+  last_checkin: { week_start: string | null; average: number | null };
 };
 
 export type AdminKpi = {
@@ -351,4 +353,24 @@ export function buildRequestPayload(type: string, fields: Record<string, string>
     default:
       return { ...fields };
   }
+}
+
+/** §11.3 check-in areas, stored as 1–5 each. */
+export const CHECKIN_AREAS = [
+  { key: "reliability", label: "Reliability" },
+  { key: "quality", label: "Quality of work" },
+  { key: "communication", label: "Communication" },
+] as const;
+
+export const CHECKIN_ANCHORS: Record<number, string> = { 1: "Needs a lot of help", 3: "Solid", 5: "Excellent" };
+
+export type CheckinScores = { reliability: number; quality: number; communication: number };
+
+export function checkinAverage(scores: CheckinScores) {
+  return Math.round(((scores.reliability + scores.quality + scores.communication) / 3) * 10) / 10;
+}
+
+/** §12 supervisor 8: overdue when the latest check-in is for a week before last week. */
+export function checkinOverdue(latestWeekStart: string | null, lastWeek: string) {
+  return latestWeekStart === null || latestWeekStart < lastWeek;
 }
