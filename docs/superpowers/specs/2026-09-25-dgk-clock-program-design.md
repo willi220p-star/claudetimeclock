@@ -20,6 +20,7 @@
 | D9 | Hosting | GitHub Pages | Kept with meta CSP; host move, CAPTCHA, Sydney region, backups, Pro plan go to the release checklist |
 | D10 | Seed data in migrations | Site and closure days in `seed.sql` | The Regus site and NT closure days 2026–2027 are real data, so they go in a migration. `seed.sql` holds only test people and history |
 | D11 | Passwords | 8–72 characters | 12–72 characters (review §4.1), matching `minimum_password_length = 12` |
+| D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Not built (Dilip, 2026-09-25). Report approval and exit feedback stay in the database |
 | D12 | Deleting people | Admin could delete a login | Removed. Admin deactivates; deletion happens only through the retention purge |
 
 ## Security overlay (review §5, mapped to daymark names)

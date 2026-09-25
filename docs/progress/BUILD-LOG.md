@@ -66,6 +66,7 @@ Resume here. Continue from the first unchecked item. Each entry lists the commit
 - A-D7: Clock window stays 19:00:00 inclusive (build prompt edge test).
 - A-D10: Site and NT closure days in a migration, not only in seed (real data needed in production).
 - A-D11: Passwords 12–72 characters (security review).
+- A-D13: No uni report or certificate PDFs (Dilip). e2e path 5 becomes "supervisor approves the uni report" without a download.
 - A-D12: No admin delete of people; deletion only via retention purge.
 - A-0: The spec bundle zip was not supplied; CONTEXT.md, ADRs and specs were authored from the build prompt.
 - A-1: Supabase CLI installed globally, not added to package.json (§5.5 unchanged).
