@@ -158,9 +158,8 @@ function ScheduleDesk() {
               </Button>
             ) : null}
             <Button type="button" onClick={() => setAction("extra_day")}>
-              Extra day
+              {sheet?.full ? FULL_SPOT_TEXT : "Extra day"}
             </Button>
-            {sheet?.full ? <p className="text-sm">{FULL_SPOT_TEXT}</p> : null}
           </div>
         </DialogContent>
       </Dialog>
