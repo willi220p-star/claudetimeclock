@@ -21,40 +21,40 @@ Resume here. Continue from the first unchecked item. Each entry lists the commit
 - [x] 1.7 Consent (SQL)
 - [x] 1.8 Punch rules (SQL)
 - [x] 1.9 RLS and anon sweep (SQL)
-- [ ] 1.10 Roles and routing (TS)
-- [ ] 1.11 Sign-in and passwords (UI)
-- [ ] 1.12 Consent screen (UI)
-- [ ] 1.13 Clock desk on new RPCs (UI)
-- [ ] 1.14 Admin desk on new RPCs (UI)
-- [ ] 1.15 Brand tokens and fonts
-- [ ] 1.16 Shared components
-- [ ] 1.17 PWA and CSP
-- [ ] 1.18 Seed
-- [ ] 1.19 Gates, review, docs, tag
+- [x] 1.10 Roles and routing (TS)
+- [x] 1.11 Sign-in and passwords (UI)
+- [x] 1.12 Consent screen (UI)
+- [x] 1.13 Clock desk on new RPCs (UI)
+- [x] 1.14 Admin desk on new RPCs (UI)
+- [x] 1.15 Brand tokens and fonts
+- [x] 1.16 Shared components
+- [x] 1.17 PWA and CSP
+- [x] 1.18 Seed
+- [ ] 1.19 Gates, review, docs, tag — frontend gates green on this box; pgTAP + Playwright need a healthy local Supabase
 
 ### Phase 2 — Placements & schedule (plan written at phase start)
 - [x] 2.core cohorts, placements (62a758c), CSV import (546a053)
-- [ ] 2.ui admin placement screens (agent after Phase 1 UI)
-- [ ] 2.x remaining: cohorts, placements, pattern versions/days, generate_days, assert_capacity + constraint trigger, R5.2.5, CSV import dry-run, admin placement screens + wizard, must_change_password flow, segregation of duties
+- [x] 2.ui admin placement screens + wizard, cohorts, import (be22b63)
+- [x] 2.x remaining SQL was already merged; UI in be22b63. Deferred D15: Sites/Closures/Settings/Audit stay placeholders.
 
 ### Phase 3 — Hours engine
-- [ ] 3.x shifts, compute_day + day_results cache, progress, forecast, risk, periods SQL, auto-close (D3) / day-close / reconcile jobs (pg_cron), overtime auto-requests, work logs table + R5.1.6, perf fixture
+- [x] 3.x hours engine SQL, jobs, work logs (merged earlier; 716 pgTAP on last recorded run)
 
 ### Phase 4 — Intern experience
-- [ ] 4.x notifications + Realtime, Today/ClockCard, Schedule, Progress, work-log gate UI, who's in (x/3), read-only banner, privacy page, idle sign-out, fortnight summary. e2e path 1
+- [x] 4.x intern Today/Schedule/Requests/Progress/Me, catch-up, work-log gate, notifications. e2e path 1 written (a413f1b). Month calendar and forecast chart deferred (D15).
 
 ### Phase 5 — Requests & approvals
-- [ ] 5.x 7 request types, validate/preview, state machine, extra spot, escalation job, leave docs bucket, punch fix (+limits), catch-up planner, supervisor confirmation path. e2e paths 2–4
+- [x] 5.x request SQL already merged. UI + e2e paths 2–4 written (be22b63, e9f95fc). Playwright not re-run on this box.
 
 ### Phase 6 — Supervisor
-- [ ] 6.x today board, approvals inbox + sheet, at risk, intern detail, check-ins, Monday summary job + page, flagged events view
+- [x] 6.x supervisor Today, Approvals, Interns, intern detail, uni report Confirm. Check-ins / Monday summary cut (D14). Flags tab deferred (D15).
 
 ### Phase 7 — Admin & KPIs
-- [ ] 7.x overview KPIs, heatmap, placements table, people/sites/closures/settings/audit, run_job, perf.md
+- [x] 7.x admin Overview, Placements, People, Cohorts, Import, Requests. Sites/Closures/Settings/Reports/Audit are D15 placeholders.
 
 ### Phase 8 — Completion & retention
 - [x] 8.a lifecycle SQL, uni report approval, exit feedback, reminders, due_for_deletion (bb9b214); retention-purge Edge Function (5d34960)
-- [ ] 8.x lifecycle actions, read-only mode, uni report + certificate PDFs, exit feedback, reminders 0/14/25, retention-purge + purge_intern + cron, 7-day certificate purge. e2e path 5. Whole-branch review, draft PR
+- [x] 8.x lifecycle SQL + Edge Function already merged. Uni report UI + e2e path 5 (no PDF, D13). Draft PR #1. Do not merge.
 
 ## Assumptions
 - A-D1: Code imported into claudetimeclock; basePath `/claudetimeclock`.
@@ -122,4 +122,168 @@ Assumptions: A-2.1 a closure day added later cancels leave days too (not owed). 
 
 Decisions: D14 (Dilip) no check-ins / Monday summary screens. Open question: an extra day adds to both expected and counted, so it closes the schedule gap but not the owed balance (R5.6 as written); overtime is the only thing that pays owed down.
 
-### Final screen agents (3): intern app (wip-intern), supervisor app (wip-supervisor), admin app (wip-admin).
+### Final screen agents — recovered on this branch
+The six worktrees under `.claude/worktrees/` and the `wip-*` remotes were gone. Screens and golden paths 2–5 were already on `claude/quirky-lovelace-ktg6f8` (`be22b63` plus follow-up fixes through `2cd242a`). `supabase/config.toml` was not staged.
+
+### Screens + golden paths 2–5 — be22b63, e9f95fc, d0ca857, 756eed0, 2cd242a
+Intern: Today/Clock, week Schedule (Next/Previous week), Requests, Progress (text forecast, no chart), Me, catch-up Option B, notifications.
+Supervisor: Today board, Approvals + approve sheet (`approve`/`decline`), Interns, intern detail (Schedule/Hours/Requests/Work logs/Selfies — no Flags tab), uni report Confirm.
+Admin: Overview, People, Placements wizard, Cohorts, Import, Requests. Sites/Closures/Settings/Audit/Reports stay D15 placeholders.
+e2e: `swap.spec.ts`, `extra-spot.spec.ts`, `catch-up.spec.ts`, `uni-report.spec.ts` (Fatima / intern5, no PDF). Path 1 remains `clock.spec.ts`.
+
+### Gates on this box (2026-09-25)
+- `npm run lint` — clean
+- `npm run typecheck` — clean
+- `npm test` — 13 files, 103 passed
+- `GITHUB_PAGES=true npm run build` — 31 static routes
+- brand grep `#[0-9a-fA-F]{6}` in `src/**/*.tsx` — only `src/components/dgk-logo.tsx`
+- `supabase db reset` — **FAIL** `LegacyDbSetupError` (Docker overlay / Auth never binds :9999 on this VM)
+- `npm run test:db` — not re-run here. Last healthy recorded run: Files=37, Tests=716 PASS
+- `npx playwright test` — not re-run here (needs Auth on :54321). Last recorded: smoke 6 + path 1. Paths 2–5 written, not executed on this box.
+
+**Dilip:** on your laptop, with Docker healthy: `supabase start && supabase db reset && npm run test:db` then `npx playwright test`. Do not point this app at the hosted project.
+
+### Whole-branch review (this turn)
+- `decide_request` uses `approve`/`decline`. Selfie freshness uses `issued_real_at`, not `clock_now`.
+- `[auth] enable_signup=false` and `[auth.email] enable_signup=true` (email login stays on).
+- No `service_role` / `sb_secret_` in `src/`.
+- Deferred D4/D5/D13/D14/D15 not built. Admin cannot delete people (D12).
+- Supervisor intern "Flags" column is hours flags on the day table, not the deferred Flags tab (`flagged_events`).
+- `docs/progress/perf.md` and phase screenshots were not captured here (Auth down; 200-placement fixture not present).
+- Draft PR #1 stays draft. **Do not merge.**
+
+---
+
+## 22. Final report
+
+### What was built
+
+**Phase 1 — Foundation & security**
+- Darwin clock, integer minutes, sites/settings/closures, role flags + last-admin guard.
+- Email sign-in, 12–72 passwords, consent pack, punch rules (geofence, selfie challenge, server time).
+- RLS + default-revoke, brand tokens, PWA/CSP, local seed of test people.
+
+**Phase 2 — Placements & schedule**
+- Cohorts, placements, pattern versions, set-based generation, capacity 3/4/5 with advisory locks + dblink race test.
+- CSV import with dry-run. Admin placement wizard, people, cohorts, import.
+- Sites/Closures stay Studio placeholders (D15). RPCs `save_site` / `set_site_active` / `save_closure_day` / `remove_closure_day` are ready.
+
+**Phase 3 — Hours engine**
+- Shifts, `compute_day` cache, progress, forecast, risk, periods.
+- Auto-close at 0 min until punch-fix (D3), day-close, reconcile. Work-log gate.
+
+**Phase 4 — Intern experience**
+- Clock desk (path 1), week schedule, requests, progress text, Me, notifications, catch-up sheet.
+- Month calendar and forecast chart deferred (D15).
+
+**Phase 5 — Requests & approvals**
+- All 7 types + attendance confirmation. Preview before submit. Extra-spot through admin.
+- Punch-fix limits, leave certificates / "sighted in person", catch-up planner.
+- e2e paths 2–4 written.
+
+**Phase 6 — Supervisor**
+- Today board, approvals inbox, intern list + detail, uni report Confirm.
+- Check-ins / Monday summary cut (D14). Flags tab deferred (D15).
+
+**Phase 7 — Admin & KPIs**
+- Overview KPIs, people (no delete), placements, requests, cohorts, import.
+- Settings/Audit/Reports placeholders (D15). KPI RPCs and `audit_search` / `run_job` ready in the database.
+
+**Phase 8 — Completion & retention**
+- Extend / complete / withdraw, uni report approval (no PDF, D13), exit feedback.
+- Reminders days 0/14/25. `purge_intern` + `retention-purge` Edge Function + nightly cron.
+
+### Migrations (36)
+
+`20260924040000_daymark` · `20260924041100_daymark_service_role_grants` · `20260924120000_create_staff_login` · `20260924160000_dgk_clock_site` · `20260924180000_reset_and_regus_radius` · `20260924200000_office_table_and_email_reset` · `20260925000100_time_settings_sites` · `20260925000200_roles_audit` · `20260925000300_accounts` · `20260925000400_consent` · `20260925000500_punch_rules` · `20260925000600_default_privileges` · `20260925010000_placements_schedule` · `20260925011000_requests_contract` · `20260925012000_import` · `20260925013000_e2e_clock` · `20260925013100_selfie_real_time` · `20260925014000_leave_kind_on_cancel` · `20260925020000_shifts_day_results` · `20260925020100_periods` · `20260925020200_progress` · `20260925020300_work_logs_clock_rules` · `20260925020400_jobs` · `20260925021000_closure_clock_out` · `20260925030000_today` · `20260925040000_request_validation` · `20260925041000_request_decisions` · `20260925042000_leave_certificates` · `20260925043000_request_preview_attendance_escalation` · `20260925044000_catch_up` · `20260925050000_kpis` · `20260925060000_admin_sites_closures` · `20260925061000_admin_settings_notices` · `20260925062000_admin_people_audit` · `20260925070000_lifecycle` · `20260925071000_retention_purge`
+
+**Edge Function:** `supabase/functions/retention-purge` (cron secret header; Storage API + Auth Admin API + `purge_intern`).
+
+**Cron (`pg_cron`, UTC; Darwin = UTC+9:30)**
+| Job | Darwin | UTC |
+|---|---|---|
+| `daymark-auto-close` | 19:05 | `35 9 * * *` |
+| `daymark-day-close` | 19:10 | `40 9 * * *` |
+| `daymark-escalate` | hourly | `0 * * * *` |
+| `daymark-reconcile` | 02:00 | `30 16 * * *` |
+| `daymark-retention-reminders` | 02:01 | `31 16 * * *` |
+| `daymark-clock-guard` | 02:02 | `32 16 * * *` |
+| `daymark-retention-purge` | 02:03 | `33 16 * * *` |
+
+Monday summary cron was not added (D14). GitHub Actions is not used for jobs.
+
+### Test totals
+| Gate | Result |
+|---|---|
+| Vitest | **103** passed (13 files) on this box |
+| pgTAP | Last healthy: **716** passed (37 files). Not re-run here — `db reset` fails on this VM |
+| Playwright | Specs written: smoke + golden paths 1–5. Last executed here: smoke 6 + path 1. Paths 2–5 not executed on this box |
+| lint / typecheck / `GITHUB_PAGES=true` build | clean; 31 static routes |
+| Brand grep | only `DgkLogo` |
+
+### Perf table (§8.13)
+`docs/progress/perf.md` was not written. The 200-placement × 1 year fixture is not in the repo. Last recorded pgTAP suite (716) includes the hours/KPI tests against the 10-week seed. Capture `EXPLAIN (ANALYZE, BUFFERS)` on a healthy laptop if Dilip wants the budgets signed off:
+
+| Operation | Budget | Actual |
+|---|---|---|
+| Clock in/out | p95 < 150 ms | not measured this turn |
+| Intern dashboard RPC | p95 < 150 ms | not measured |
+| Supervisor dashboard RPC | p95 < 250 ms | not measured |
+| Admin dashboard RPC | p95 < 400 ms | not measured |
+| Approve request | p95 < 150 ms | not measured |
+| Catch-up options | p95 < 200 ms | not measured |
+| Nightly jobs | < 5 s | not measured |
+
+### Screenshots index
+None under `docs/progress/screens/` this turn. Login on this VM shows "We couldn't reach DGK Clock" because Auth never binds. Dilip: `npm run dev` on port 41731 after `supabase start`, then photograph `/clock`, `/supervisor`, `/admin` at 390 px and 1280 px.
+
+### Assumptions
+- A1 GitHub Pages static export + Supabase (ADR 0001). basePath `/claudetimeclock`.
+- A2 Jobs via `pg_cron` + `pg_net`.
+- A3 Pace "days late" = calendar days between planned end and forecast.
+- A4 Closure added after scheduling cancels the day and is not owed (also cancels leave days — A-2.1).
+- A5 Clocking after target reached is blocked until confirm / extend / withdraw.
+- A6 CSV first password is a temporary batch password; change forced at first sign-in.
+- A7 Deletion only via `retention-purge` (D12: no admin delete).
+- A8 One session, draft PR, no deploy.
+- A9 Playwright allowed; axe-core not added.
+- A10 Light theme only.
+- A-D2 Branch is `claude/quirky-lovelace-ktg6f8`, not `feat/placement-system`.
+- A-D3 Auto-close = 0 min until punch-fix approved (overrides R5.5.1).
+- A-D4 No office code / kiosk.
+- A-D5 No MFA now.
+- A-D6 Full consent pack.
+- A-D7 Clock window 19:00:00 inclusive.
+- A-D10 Site + NT closures in a migration; seed is test people only.
+- A-D11 Passwords 12–72.
+- A-D13 No PDFs. Path 5 = supervisor approves the uni report.
+- A-2.2 Shift-in blocked after planned end and before start.
+- A-2.3 CSV import creates unknown cohorts by name.
+
+### Open questions for Dilip
+1. Extra day adds to expected *and* counted, so it closes the schedule gap but not the owed balance (R5.6). Overtime is what pays owed down. Confirm that is what you want.
+2. MFA for staff (D5) — later, when you say "add".
+3. CAPTCHA on sign-in/reset — later (needs an app widget first; turning it on in the dashboard now would block every login).
+4. Move hosting if you want real security headers (GitHub Pages can only do a meta CSP).
+5. Collection notice v1.0 has no email/phone. Publish v1.1 with your contact details before real interns (release checklist).
+6. Hosted region: confirm Oceania (Sydney) before go-live.
+
+### Manual test script (laptop, local seed)
+Every seed password is in the README. Do this after `supabase start && supabase db reset && npm run dev`.
+
+1. Phone width. Sign in as Aisha (`intern1@dgk.test`). Accept consent. Clock in too far away — you should see how far. Move to the office, clock in with the selfie, then clock out later the same day.
+2. Still Aisha. Schedule → next week Friday → Swap → Move to Thursday → reason → Submit. Sign out.
+3. Sign in as Priya (`sup1@dgk.test`). Approvals → Aisha's Swap → Approve. Sign back in as Aisha: Friday says Moved, Thursday is Scheduled.
+4. Sign in as Ben (`intern2@dgk.test`). Schedule → a Full Wednesday → request extra spot → Submit.
+5. Priya approves Ben's extra day. Then Dilip (`admin@dgk.test`) Approves it again on Admin → Requests. Ben's Wednesday becomes Scheduled.
+6. Ben: Catch up → Option B → Send requests. Requests list shows Extra day rows waiting on supervisor.
+7. Sign in as Tom (`sup2@dgk.test`). Interns → Fatima → Approve uni report → Confirm. No download button.
+8. Fatima (`intern5@dgk.test`) → Me: uni report approved by Tom. Still no PDF.
+9. Admin → People: set a password (write-only). There is no Delete. Sites/Closures/Settings/Audit say "coming in a later update".
+10. Sign in as a supervisor, open Today, confirm the extra-spot marker after step 5. Sign out everywhere.
+
+### Release
+Draft PR: https://github.com/willi220p-star/claudetimeclock/pull/1  
+Checklist for Dilip: `docs/RELEASE-CHECKLIST.md`. **Do not merge. Do not deploy GitHub Pages. Do not touch hosted Supabase `lnagrfdbmwtlymhumepc`.**
+
+**STOP.**
