@@ -95,3 +95,14 @@ Assumptions: A-2.1 a closure day added later cancels leave days too (not owed). 
 
 ### Phase 8 lifecycle SQL — bb9b214; Edge Function — 5d34960
 `supabase test db` → Files=12, Tests=204, PASS. Day-0 reminder is sent at completion/withdrawal (the 02:00 job would miss day 0).
+
+### Merges
+- Phase 1 UI (agent) → 2c490e7; gates: lint clean, typecheck clean, Vitest 98 passed, static build 10 routes.
+- e2e harness (agent, cherry-picked) → a916363, 7693803; Playwright pinned 1.56.1 (matches /opt/pw-browsers chromium-1194); smoke 6 passed. e2e clock needs `supabase_admin` for `alter database` (local only).
+- Selfie freshness now real-time based (a2b084e) so the e2e clock works.
+- Phase 7 admin config RPCs (agent) → 6418d47; `supabase test db` Files=17, Tests=349 PASS.
+- Leave days can be cancelled by closures (fix found by the P7 agent) → Files=18, Tests=352 PASS.
+
+### Open items
+- After P3 merges: allow clock-out on a closure day added the same day (redefine the P3 version of clock_block_reason).
+- Release checklist: raising retention_days needs a new notice version (the notice promises 30 days).

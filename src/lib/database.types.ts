@@ -74,6 +74,7 @@ export type Database = {
           gesture: string
           id: string
           issued_at: string
+          issued_real_at: string
           person_id: string
           used_at: string | null
         }
@@ -83,6 +84,7 @@ export type Database = {
           gesture: string
           id?: string
           issued_at: string
+          issued_real_at?: string
           person_id: string
           used_at?: string | null
         }
@@ -92,6 +94,7 @@ export type Database = {
           gesture?: string
           id?: string
           issued_at?: string
+          issued_real_at?: string
           person_id?: string
           used_at?: string | null
         }
@@ -214,6 +217,35 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_exit_feedback: {
+        Row: {
+          answers: Json
+          id: string
+          placement_id: string
+          submitted_at: string
+        }
+        Insert: {
+          answers: Json
+          id?: string
+          placement_id: string
+          submitted_at?: string
+        }
+        Update: {
+          answers?: Json
+          id?: string
+          placement_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_exit_feedback_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: true
+            referencedRelation: "daymark_placements"
             referencedColumns: ["id"]
           },
         ]
@@ -971,6 +1003,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_uni_report: {
+        Args: { note?: string; placement: string }
+        Returns: undefined
+      }
+      audit_search: {
+        Args: {
+          action?: string
+          actor?: string
+          before_id?: number
+          from_ts?: string
+          page_size?: number
+          table_name?: string
+          to_ts?: string
+        }
+        Returns: Json
+      }
       capacity_preview: {
         Args: {
           days: Json
@@ -997,6 +1045,11 @@ export type Database = {
         }
         Returns: Json
       }
+      clock_status: { Args: never; Returns: Json }
+      confirm_completion: {
+        Args: { note?: string; placement: string }
+        Returns: undefined
+      }
       create_person: {
         Args: {
           display_name: string
@@ -1008,10 +1061,49 @@ export type Database = {
         }
         Returns: Json
       }
+      extend_placement: {
+        Args: {
+          allow_extra?: boolean
+          new_end: string
+          note?: string
+          placement: string
+        }
+        Returns: undefined
+      }
+      import_placements: {
+        Args: { dry_run?: boolean; rows: Json; temp_password: string }
+        Returns: Json
+      }
       mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
       my_consent: { Args: never; Returns: Json }
+      people_directory: {
+        Args: never
+        Returns: {
+          active: boolean
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          is_admin: boolean
+          is_intern: boolean
+          is_supervisor: boolean
+          last_sign_in_at: string
+          must_change_password: boolean
+          placement_id: string
+          placement_status: string
+        }[]
+      }
+      publish_notice: {
+        Args: { body: string; title: string; version: string }
+        Returns: Json
+      }
       record_consent: {
         Args: { decision: string; purpose: string; related_id?: string }
+        Returns: Json
+      }
+      remove_closure_day: { Args: { id: string }; Returns: Json }
+      save_closure_day: {
+        Args: { day: string; kind?: string; name: string; site_id: string }
         Returns: Json
       }
       save_cohort: {
@@ -1022,6 +1114,7 @@ export type Database = {
         Args: { allow_extra?: boolean; p: Json }
         Returns: string
       }
+      save_site: { Args: { site: Json }; Returns: Json }
       set_pattern: {
         Args: {
           allow_extra?: boolean
@@ -1049,7 +1142,24 @@ export type Database = {
         Args: { password: string; target_id: string }
         Returns: undefined
       }
+      set_site_active: { Args: { active: boolean; id: string }; Returns: Json }
+      site_headcounts: {
+        Args: { from_date: string; site?: string; to_date: string }
+        Returns: {
+          full: boolean
+          headcount: number
+          label: string
+          work_date: string
+        }[]
+      }
       start_clock: { Args: { event_type: string }; Returns: Json }
+      submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }
+      today_board: { Args: { site?: string }; Returns: Json }
+      update_settings: { Args: { changes: Json }; Returns: Json }
+      withdraw_placement: {
+        Args: { placement: string; reason: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
