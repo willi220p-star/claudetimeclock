@@ -31,7 +31,7 @@ export function StatusChip({
     <span
       data-tone={tone}
       className={cn(
-        "inline-flex w-fit items-center gap-1 rounded-[2.75px] px-2 py-0.5 text-xs font-semibold whitespace-nowrap",
+        "inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
         style.className,
         className,
       )}

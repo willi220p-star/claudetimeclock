@@ -36,35 +36,36 @@
   --color-warn-bg: var(--warn-bg);
   --color-bad: var(--bad);
   --color-bad-bg: var(--bad-bg);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, monospace;
-  /* Inputs and nav 8px, metric cards 12px, panels 16px (§15). */
-  --radius-sm: 6px;
-  --radius-md: 8px;
+  /* Apple-style continuous corners: controls 10px, list cards 14px, panels 18px, sheets 24px. */
+  --radius-sm: 8px;
+  --radius-md: 10px;
   --radius-lg: var(--radius);
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
   --shadow-card: var(--shadow-card);
 }
 
 :root {
-  --background: #f9f8f6;
-  --foreground: #0d1117;
+  /* iOS grouped look: light grey page, white cards, DGK blue as the only accent. */
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
   --card: #ffffff;
-  --card-foreground: #0d1117;
+  --card-foreground: #1c1c1e;
   --popover: #ffffff;
-  --popover-foreground: #0d1117;
+  --popover-foreground: #1c1c1e;
   --primary: #3859f9;
   --primary-foreground: #ffffff;
   --secondary: #ffffff;
-  --secondary-foreground: #0d1117;
-  --muted: #e6e8ec;
-  --muted-foreground: #55534e;
-  --accent: #e6e8ec;
-  --accent-foreground: #0d1117;
-  --border: #dad4c8;
-  --input: #dad4c8;
+  --secondary-foreground: #1c1c1e;
+  --muted: #ececf1;
+  --muted-foreground: #636366;
+  --accent: #ececf1;
+  --accent-foreground: #1c1c1e;
+  --border: #e3e3e8;
+  --input: #d1d1d6;
   --ring: #3859f9;
   --destructive: #b42318;
   --ash: #9f9b93;
@@ -78,19 +79,19 @@
   --warn-bg: #fff1e6;
   --bad: #b42318;
   --bad-bg: #fdecea;
-  --radius: 12px;
-  --shadow-card: rgba(13, 17, 23, 0.1) 0 1px 1px 0, rgba(13, 17, 23, 0.04) 0 -1px 1px 0 inset,
-    rgba(13, 17, 23, 0.05) 0 -0.5px 1px 0;
+  --radius: 14px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
   /* Teal text on white is 2.2:1 and fails WCAG AA. "Ahead" text uses teal deepened with
      Navy Ink (about 5:1); icons and ring fills keep pure teal. */
   --teal-ink: color-mix(in oklab, var(--teal) 60%, var(--foreground));
 }
 
+/* iOS section header: small, quiet, uppercase. */
 @utility caption {
   font-size: 12px;
   line-height: 1.4;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.04em;
 }
 
 @layer base {
@@ -103,19 +104,24 @@
   body {
     @apply bg-background text-foreground;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.5;
     font-variant-numeric: tabular-nums;
+    -webkit-tap-highlight-color: transparent;
   }
+  /* iOS large title and headline. */
   h1 {
-    font-size: 32px;
-    line-height: 1.2;
+    font-family: var(--font-heading);
+    font-size: 34px;
+    line-height: 1.15;
     font-weight: 700;
-    letter-spacing: -0.32px;
+    letter-spacing: -0.02em;
   }
   h2 {
+    font-family: var(--font-heading);
     font-size: 20px;
     line-height: 1.3;
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
   :focus-visible {
     outline: 2px solid var(--ring);
