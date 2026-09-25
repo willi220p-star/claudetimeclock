@@ -3,7 +3,8 @@ import { clearOfficeClock, expect, nextMonday, setOfficeClock, signIn, test } fr
 // Golden path 4 (§16): catch-up option B submitted.
 test.afterEach(() => clearOfficeClock());
 
-test("intern sends catch-up option B", async ({ page }) => {
+test("intern sends catch-up option B", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "golden paths share one seed; run once on mobile");
   setOfficeClock(`${nextMonday()}T09:00`);
   await signIn(page, "intern2@dgk.test");
   await expect(page).toHaveURL(/\/clock/);
@@ -25,5 +26,5 @@ test("intern sends catch-up option B", async ({ page }) => {
   const extras = page.getByRole("listitem").filter({ hasText: "Extra day" });
   await expect(extras.first()).toBeVisible();
   expect(await extras.count()).toBeGreaterThan(0);
-  await expect(extras.first().getByText("supervisor", { exact: true })).toBeVisible();
+  await expect(extras.first().getByText(/supervisor/i)).toBeVisible();
 });

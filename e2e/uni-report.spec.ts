@@ -3,7 +3,8 @@ import { clearOfficeClock, expect, SEED, signIn, signOut, test } from "./fixture
 // Golden path 5 (§16, D13): supervisor approves the uni report. No PDF.
 test.afterEach(() => clearOfficeClock());
 
-test("supervisor approves the uni report", async ({ page }) => {
+test("supervisor approves the uni report", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "golden paths share one seed; run once on mobile");
   await signIn(page, SEED.supervisors[1]);
   await page.goto("/supervisor/interns");
   await page.getByRole("link", { name: /Fatima/ }).first().click();

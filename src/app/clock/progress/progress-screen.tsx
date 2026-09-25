@@ -105,5 +105,5 @@ function forecastLag(daysLate: number | null) {
   if (daysLate === null) return "";
   if (daysLate === 0) return " · on plan";
   if (daysLate < 0) return ` · ${-daysLate} days early`;
-  return ` · ${daysLate} days late`;
+  return ` · ${daysLate} ${daysLate === 1 ? "day" : "days"} late`;
 }

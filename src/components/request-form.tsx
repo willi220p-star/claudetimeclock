@@ -234,8 +234,8 @@ export function RequestForm({
       </section>
 
       {error ? <FormMessage>{error}</FormMessage> : null}
-      <Button type="submit" disabled={busy || Boolean(preview && !preview.ok)}>
-        {submitLabel}
+      <Button type="submit" disabled={busy || !preview?.ok || (type === "punch_fix" && reason.trim().length < 20)}>
+        {busy ? "Sending…" : preview && !preview.ok ? preview.message : submitLabel}
       </Button>
     </form>
   );

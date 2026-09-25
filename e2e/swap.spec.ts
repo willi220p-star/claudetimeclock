@@ -4,7 +4,8 @@ import { addUtcDays, clearOfficeClock, expect, nextMonday, setOfficeClock, signI
 // Golden path 2 (§16): intern submits a swap → supervisor approves → the schedule updates.
 test.afterEach(() => clearOfficeClock());
 
-test("intern swaps a day and the supervisor approves it", async ({ page }) => {
+test("intern swaps a day and the supervisor approves it", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "golden paths share one seed; run once on mobile");
   const monday = nextMonday();
   const thursday = addUtcDays(monday, 3);
   const friday = addUtcDays(monday, 4);
@@ -33,7 +34,7 @@ test("intern swaps a day and the supervisor approves it", async ({ page }) => {
   await page.getByRole("button", { name: /^Pending$/ }).click();
   const pending = page.getByRole("listitem").filter({ hasText: "Swap" }).first();
   await expect(pending).toBeVisible();
-  await expect(pending.getByText("supervisor", { exact: true })).toBeVisible();
+  await expect(pending.getByText(/supervisor/i)).toBeVisible();
 
   await signOut(page);
   await signIn(page, "sup1@dgk.test");

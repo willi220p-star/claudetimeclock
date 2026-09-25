@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FormMessage } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function CatchUpSheet({
   placementId: string;
   onDone?: () => void;
 }) {
+  const router = useRouter();
   const [busy, setBusy] = useState<"a" | "b" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +39,7 @@ export function CatchUpSheet({
     toast.success("Catch-up requests sent.");
     onDone?.();
     onClose();
+    router.push("/clock/requests");
   }
 
   return (

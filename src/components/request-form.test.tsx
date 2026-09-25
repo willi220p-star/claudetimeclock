@@ -4,6 +4,8 @@ import { describe, expect, test, vi } from "vitest";
 const previewRequest = vi.fn();
 const rpc = vi.fn();
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("@/lib/data", () => ({
   previewRequest: (...args: unknown[]) => previewRequest(...args),
 }));

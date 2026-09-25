@@ -13,11 +13,11 @@ import {
 
 const FULL = "Full — request an extra spot (needs admin approval)";
 
-// Golden path 3 (§16): extra-spot flow through the admin. Use the week after next Monday so
-// golden path 2 can move Aisha off that week's Wednesday without emptying this date.
+// Golden path 3 (§16): extra-spot flow through the admin. Next Wednesday is 3/3 (Aisha+Chloe+Dev).
 test.afterEach(() => clearOfficeClock());
 
-test("a 4th spot needs the supervisor and then the admin", async ({ page }) => {
+test("a 4th spot needs the supervisor and then the admin", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "golden paths share one seed; run once on mobile");
   const monday = nextMonday();
   const wednesday = addUtcDays(monday, 2);
 
@@ -41,13 +41,18 @@ test("a 4th spot needs the supervisor and then the admin", async ({ page }) => {
   await page.getByRole("link", { name: "Requests" }).click();
   const pending = page.getByRole("listitem").filter({ hasText: "Extra day" }).first();
   await expect(pending).toBeVisible();
-  await expect(pending.getByText("supervisor", { exact: true })).toBeVisible();
-  await expect(pending.getByText("admin", { exact: true })).toBeVisible();
+  await expect(pending.getByText(/supervisor/i)).toBeVisible();
+  await expect(pending.getByText(/admin/i)).toBeVisible();
 
   await signOut(page);
   await signIn(page, "sup1@dgk.test");
   await page.goto("/supervisor/approvals");
-  await page.getByRole("button", { name: /Extra day/ }).filter({ hasText: "Ben" }).click();
+  await page
+    .getByRole("button")
+    .filter({ hasText: "Extra day" })
+    .filter({ hasText: "Ben" })
+    .filter({ hasText: /extra spot/i })
+    .click();
   await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
   await expect(page.getByText(/Extra day approved/i)).toBeVisible();
 

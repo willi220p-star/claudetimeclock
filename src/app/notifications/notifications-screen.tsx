@@ -1,31 +1,56 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { InternFrame } from "@/app/clock/intern-frame";
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
-import { DeskGate } from "@/components/desk-gate";
+import { Opening, useHydrated } from "@/components/desk-gate";
+import { StaffShell } from "@/components/desk-shell";
 import { buttonVariants } from "@/components/ui/button";
-import { loadNotifications } from "@/lib/data";
+import { sessionProfile } from "@/lib/browser-session";
+import { loadNotifications, markNotificationsRead } from "@/lib/data";
 import { relativeOrDate } from "@/lib/darwin";
 import type { Profile } from "@/lib/daymark";
-import { createClient } from "@/lib/supabase/client";
+import { ROLE_HOME, rolesOf } from "@/lib/roles";
 import { useLoad } from "@/lib/use-load";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function NotificationsScreen() {
-  return (
-    <DeskGate role="intern">
-      {(profile) => (
-        <InternFrame profile={profile} title="Notifications">
-          <NotificationsDesk profile={profile} />
-        </InternFrame>
-      )}
-    </DeskGate>
-  );
+  if (!useHydrated()) return <Opening label="Opening notifications…" />;
+  return <NotificationsSession />;
 }
 
-function NotificationsDesk({ profile }: { profile: Profile }) {
+function NotificationsSession() {
+  const router = useRouter();
+  const profile = use(sessionProfile());
+
+  useEffect(() => {
+    if (!profile) router.replace("/");
+  }, [profile, router]);
+
+  if (!profile) return <Opening label="Sending you to sign in…" />;
+
+  const role = rolesOf(profile)[0];
+  const body = <NotificationsDesk profile={profile} home={role ? ROLE_HOME[role] : "/"} />;
+  if (role === "intern") {
+    return (
+      <InternFrame profile={profile} title="Notifications">
+        {body}
+      </InternFrame>
+    );
+  }
+  if (role === "supervisor" || role === "admin") {
+    return (
+      <StaffShell profile={profile} role={role} title="Notifications">
+        {body}
+      </StaffShell>
+    );
+  }
+  return body;
+}
+
+function NotificationsDesk({ profile, home }: { profile: Profile; home: string }) {
   const load = useCallback(() => loadNotifications(profile.id, 40), [profile.id]);
   const [state, reload] = useLoad(load);
   const [now] = useState(() => new Date());
@@ -34,7 +59,7 @@ function NotificationsDesk({ profile }: { profile: Profile }) {
     if (state.status !== "ready") return;
     const unread = state.data.filter((row) => !row.read_at).map((row) => row.id);
     if (unread.length === 0) return;
-    void createClient().rpc("mark_notifications_read", { ids: unread });
+    void markNotificationsRead(unread).catch(() => undefined);
   }, [state]);
 
   return (
@@ -45,14 +70,14 @@ function NotificationsDesk({ profile }: { profile: Profile }) {
         reload={reload}
         empty="No notifications yet."
         action={
-          <Link href="/clock" className={buttonVariants({ variant: "secondary" })}>
-            Back to Today
+          <Link href={home} className={buttonVariants({ variant: "secondary" })}>
+            Back
           </Link>
         }
       >
         {(rows) =>
           rows.length === 0 ? (
-            <EmptyState action={<Link href="/clock" className={buttonVariants({ variant: "secondary" })}>Back to Today</Link>}>
+            <EmptyState action={<Link href={home} className={buttonVariants({ variant: "secondary" })}>Back</Link>}>
               No notifications yet.
             </EmptyState>
           ) : (

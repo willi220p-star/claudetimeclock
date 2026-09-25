@@ -179,8 +179,14 @@ function ScheduleDesk() {
           <DialogDescription>The Preview panel is the server verdict.</DialogDescription>
           {action && sheet ? (
             <RequestForm
-              initialType={action}
-              initialFields={fieldsFor(action, sheet)}
+              type={action}
+              defaults={{
+                scheduled_day_id: sheet.dayId,
+                start: sheet.start,
+                end: sheet.end,
+                date: sheet.date,
+                dates: action === "leave" ? [sheet.date] : undefined,
+              }}
               onSubmitted={() => {
                 setAction(null);
                 setSheet(null);
@@ -192,14 +198,4 @@ function ScheduleDesk() {
       </Dialog>
     </>
   );
-}
-
-function fieldsFor(action: NonNullable<typeof action>, sheet: Sheet): Record<string, string> {
-  const start = sheet.start?.slice(0, 5) ?? "09:00";
-  const end = sheet.end?.slice(0, 5) ?? "17:00";
-  if (action === "swap") return { scheduled_day_id: sheet.dayId ?? "", start, end };
-  if (action === "shift_change") return { scheduled_day_id: sheet.dayId ?? "", start, end };
-  if (action === "leave") return { dates: sheet.date, kind: "personal" };
-  if (action === "punch_fix") return { date: sheet.date };
-  return { date: sheet.date, start, end };
 }
