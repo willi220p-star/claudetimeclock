@@ -45,3 +45,21 @@ As in build prompt §19, plus:
 - **Phase 5:** supervisor confirmation and punch-fix limits.
 - **Phase 6:** flagged-events view.
 - **Phase 8:** 7-day certificate purge.
+
+## Deferred — add when Dilip asks
+These were cut to finish faster or left for later. The database parts marked "ready" already exist and are tested; adding them is screen work.
+
+| Feature | Decision | Database | What adding it takes |
+|---|---|---|---|
+| Admin **Sites** screen | D15 | ready: `save_site`, `set_site_active` | CRUD table + form in `/admin/sites` |
+| Admin **Closures** screen | D15 | ready: `save_closure_day`, `remove_closure_day` (restores days, reports skipped) | list + add/remove in `/admin/closures` |
+| Admin **Settings** screen | D15 | ready: `update_settings`, `publish_notice`, `run_job` | grouped form + "Publish new notice" + "Run a job" in `/admin/settings` |
+| Admin **Audit** screen | D15 | ready: `audit_search` (filters, keyset paging) | filterable log with before/after in `/admin/audit` |
+| Intern **month calendar** (desktop) | D15 | ready: `daymark_scheduled_days`, `site_headcounts` | month grid in `/clock/schedule` |
+| Intern **forecast chart** | D15 | ready: `placement_progress`, `daymark_v_week_hours` | recharts area chart in `/clock/progress` |
+| Supervisor **Flags** tab | D15 | ready: `flagged_events` | tab on `/supervisor/intern` |
+| Weekly **check-ins** + **Monday summary** | D14 | table `daymark_checkins` exists; needs `save_checkin` + `monday_summary` RPCs and a Monday cron | two supervisor pages + 2 RPCs |
+| **Uni report / certificate PDFs** | D13 | ready: report approval, weekly hours views | `@react-pdf/renderer` documents |
+| **MFA** (TOTP, aal2) for staff | D5 | not started | enrolment flow + restrictive RLS policies |
+| **Office code** kiosk | D4 | not started | kiosk role, HMAC code, check in `clock_punch` |
+| **CAPTCHA** on sign-in/reset | release checklist | dashboard setting | Turnstile widget + CSP entry |
