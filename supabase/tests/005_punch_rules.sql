@@ -51,7 +51,10 @@ select lives_ok($$select tests.clock((select a from ids), 'shift_out', '2026-10-
 select throws_ok($$select tests.clock((select a from ids), 'shift_out', '2026-10-15 10:00+09:30')$$,
   'P0001', 'Clock in before you clock out.', 'shift_out needs an open shift');
 
--- Flags (review rule 9)
+-- Flags (review rule 9). R5.1.6: the log for 14 Oct comes first.
+select tests.as_person((select a from ids));
+select public.save_work_log('2026-10-14', 'Set up the reception desk');
+reset role;
 select lives_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-15 09:00+09:30', tests.north(199.9))$$,
   'same coordinates on a later day are accepted');
 select ok((select 'repeat_coords' = any(flags) from public.daymark_punches where user_id = (select a from ids)
