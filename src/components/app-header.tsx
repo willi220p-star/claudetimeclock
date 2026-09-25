@@ -1,35 +1,24 @@
-import { LogOut } from "lucide-react";
-import type { Profile } from "@/lib/daymark";
+import { DgkLogo } from "@/components/dgk-logo";
+import { NotificationBell } from "@/components/notification-bell";
+import { RoleSwitcher } from "@/components/role-switcher";
 import { SignOutButton } from "@/components/sign-out-button";
+import type { Profile } from "@/lib/daymark";
+import type { Role } from "@/lib/roles";
 
-export function AppHeader({
-  profile,
-  eyebrow,
-}: {
-  profile: Profile;
-  eyebrow: string;
-}) {
+/** §15: sticky 56px header, white at 95% with a blur and a Sand bottom border. */
+export function AppHeader({ profile, role, title }: { profile: Profile; role: Role; title: string }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border/80 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-2xl bg-primary font-heading text-sm tracking-tight text-primary-foreground">
-            DG
-          </div>
-          <div>
-            <p className="font-heading text-lg leading-none tracking-tight">DGK Clock</p>
-            <p className="mt-1 text-xs text-muted-foreground">{eyebrow}</p>
-          </div>
+    <header className="sticky top-0 z-30 h-14 border-b border-border bg-card/95 backdrop-blur">
+      <div className="mx-auto flex h-full w-full max-w-[1200px] items-center justify-between gap-2 px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <DgkLogo size={32} className="shrink-0" />
+          <p className="truncate font-semibold">{title}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium">{profile.display_name}</p>
-            <p className="text-xs text-muted-foreground">{profile.login_id}</p>
-          </div>
-          <SignOutButton>
-            <LogOut />
-            Sign out
-          </SignOutButton>
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+          <RoleSwitcher profile={profile} current={role} />
+          {/* ponytail: notifications arrive in Phase 4; the bell shows 0 until then. */}
+          <NotificationBell count={0} />
+          <SignOutButton compact />
         </div>
       </div>
     </header>
