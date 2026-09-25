@@ -31,8 +31,7 @@ There are no public sign-ups. The admin creates every login.
 - See today's board: who's in, who's late, and the extra-spot marker.
 - Clear approvals with one tap. Each one shows its effect and the office count after approval. Overtime can be approved in part.
 - See which interns are at risk, and why.
-- Open an intern to see their schedule, hours, requests, work logs, check-ins and selfies.
-- Do a weekly check-in (three 1–5 ratings and a comment) and read the Monday summary.
+- Open an intern to see their schedule, hours, requests, work logs and selfies.
 - Confirm attendance for interns who said no to location or selfie.
 - Extend a placement, confirm completion, withdraw it, and approve the uni report once hours are final.
 - You can never approve your own request.
@@ -57,7 +56,7 @@ There are no public sign-ups. The admin creates every login.
 - **Static site on GitHub Pages.** Next.js builds a static export under `/claudetimeclock`. There's no server at runtime: no server actions, route handlers or dynamic segments. Detail pages use query strings (`/admin/placement?id=…`).
 - **All rules live in Postgres.** Constraints, triggers, row-level security on every table, views and functions. The browser only displays and submits, and the database checks everything again.
 - **Private definer, public invoker.** Privileged logic sits in `private` `SECURITY DEFINER` functions with `set search_path = ''`. The app calls thin `public` `SECURITY INVOKER` wrappers. Execute is revoked from `public` and `anon`, then granted to `authenticated`. Punches, requests and consent are written through RPCs only, and the audit log is append-only.
-- **Scheduled jobs in `pg_cron`.** Auto-close (7:05 pm), day close (7:10 pm), escalation (hourly), the Monday summary (6:00 am Monday) and the nightly run (2:00 am: reconcile, retention reminders, purge). Cron runs in UTC; the times here are Darwin time.
+- **Scheduled jobs in `pg_cron`.** Auto-close (7:05 pm), day close (7:10 pm), escalation (hourly) and the nightly run (2:00 am: reconcile, retention reminders, clock guard, purge). Cron runs in UTC; the times here are Darwin time.
 - **`retention-purge` Edge Function.** `pg_cron` calls it through `pg_net` with an `x-cron-secret` header. It removes Storage objects through the Storage API, deletes the rows with `purge_intern` in one transaction, then removes the Auth user.
 - **Darwin time, server clock.** Every date is an `Australia/Darwin` date (UTC+9:30, no daylight saving). Rules read time from `private.clock_now()`, never from the phone. Minutes are whole numbers everywhere.
 
