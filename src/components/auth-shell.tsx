@@ -6,11 +6,9 @@ export function AuthShell({ title, intro, children }: { title: string; intro?: R
   return (
     <main className="grid min-h-svh place-items-center px-4 py-12">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center gap-3">
-          <DgkLogo size={48} />
-          <p className="font-semibold">DGK Clock</p>
-        </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <DgkLogo size={64} />
+          <p className="text-sm font-semibold text-muted-foreground">DGK Clock</p>
           <h1>{title}</h1>
           {intro ? <p className="text-muted-foreground">{intro}</p> : null}
         </div>

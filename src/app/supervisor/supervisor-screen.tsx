@@ -42,7 +42,7 @@ function TodayDesk() {
         reload={reload}
         skeleton={
           <div className="flex flex-col gap-4">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
               <Skeleton className="h-28 rounded-lg" />
               <Skeleton className="h-28 rounded-lg" />
               <Skeleton className="h-28 rounded-lg" />
@@ -58,7 +58,7 @@ function TodayDesk() {
           const placements = new Map(progress.map((row) => [row.intern_id, row.placement_id]));
           return (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
                 <MetricCard
                   label="Approvals waiting"
                   value={String(kpi.approvals_waiting)}

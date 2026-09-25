@@ -40,10 +40,10 @@ export function MetricCard({
   className?: string;
 }) {
   return (
-    <section className={cn("flex flex-col gap-1 rounded-lg bg-card p-6 shadow-card", className)}>
+    <section className={cn("flex flex-col gap-1 rounded-xl bg-card p-5 shadow-card", className)}>
       <h3 className="caption font-semibold text-muted-foreground">{label}</h3>
       <div className="flex items-end justify-between gap-3">
-        <p className="text-[32px] leading-tight font-bold tracking-[-0.32px] tabular-nums">{value}</p>
+        <p className="font-heading text-[30px] leading-tight font-bold tracking-[-0.02em] tabular-nums">{value}</p>
         {sparkline && sparkline.length > 1 ? (
           <svg aria-hidden viewBox="0 0 80 24" className="h-6 w-20 shrink-0 overflow-visible text-teal">
             <polyline

@@ -5,13 +5,12 @@ import { Slot } from "radix-ui"
 
 // §15: pill buttons, 44px minimum; the focus ring comes from the global :focus-visible rule.
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-[1584px] border border-transparent bg-clip-padding text-sm font-semibold whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-bad [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-transparent bg-clip-padding text-[15px] font-semibold active:scale-[0.98] active:opacity-80 motion-reduce:active:scale-100 whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-bad [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        secondary:
-          "border-border bg-secondary text-secondary-foreground hover:bg-muted aria-expanded:bg-muted",
+        secondary: "bg-primary/10 text-primary hover:bg-primary/15 aria-expanded:bg-primary/15",
         outline:
           "border-border bg-secondary text-secondary-foreground hover:bg-muted aria-expanded:bg-muted",
         ghost: "text-primary hover:bg-muted aria-expanded:bg-muted",
@@ -21,7 +20,7 @@ const buttonVariants = cva(
       size: {
         default: "min-h-11 px-5",
         sm: "min-h-11 px-4",
-        lg: "min-h-16 px-8 text-lg",
+        lg: "min-h-14 px-8 text-[17px]",
         icon: "size-11",
       },
     },
