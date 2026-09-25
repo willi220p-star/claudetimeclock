@@ -106,3 +106,20 @@ Assumptions: A-2.1 a closure day added later cancels leave days too (not owed). 
 ### Open items
 - After P3 merges: allow clock-out on a closure day added the same day (redefine the P3 version of clock_block_reason).
 - Release checklist: raising retention_days needs a new notice version (the notice promises 30 days).
+
+### Database complete (main session, after the agents stopped at the usage limit)
+- Merged hours engine (P3) + requests (P5); integration fixes (overtime payload key, test helper clash) → 69a7e01. 658 PASS.
+- Preview verdict, supervisor-confirmation path, escalation job → 8829b78.
+- Catch-up planner (§8.7) → 9cd037d.
+- Retention purge SQL + certificate expiry + pg_cron→pg_net wiring via Vault → f1bd563.
+- Clock-out allowed on a same-day closure → ff7c76b.
+- Seed: ten weeks replayed through the real rules → ae92b3b (+ fixes). Local auth: email provider back on (public sign-ups still off) → 8151b0a.
+- Tests independent of the seed; cache = compute on seed data → 3b4ed8f.
+- KPI bundles + flagged events → f1f118f. `supabase test db`: Files=37, Tests=716, PASS.
+- e2e golden path 1 (clock in/out, phone) → a413f1b: 1 passed.
+- README + release checklist → 816abad, 84c6f26.
+- Draft PR: https://github.com/willi220p-star/claudetimeclock/pull/1
+
+Decisions: D14 (Dilip) no check-ins / Monday summary screens. Open question: an extra day adds to both expected and counted, so it closes the schedule gap but not the owed balance (R5.6 as written); overtime is the only thing that pays owed down.
+
+### Final screen agents (3): intern app (wip-intern), supervisor app (wip-supervisor), admin app (wip-admin).
