@@ -1,23 +1,18 @@
 "use client";
 
-import type { Profile } from "@/lib/daymark";
-import { forgetOwnPunches } from "@/lib/punches";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { PROFILE_COLUMNS, type Consent, type Profile } from "@/lib/daymark";
 import { createClient } from "@/lib/supabase/client";
 
+// One cached load per sign-in, so `use()` in the desk gates gets a stable promise.
 let generation = 0;
 const profiles = new Map<number, Promise<Profile | null>>();
+const consents = new Map<number, Promise<Consent>>();
 
 export function clearSessionCache() {
   generation += 1;
   profiles.clear();
-  forgetOwnPunches();
-}
-
-export function rememberProfile(profile: Profile) {
-  generation += 1;
-  profiles.clear();
-  forgetOwnPunches();
-  profiles.set(generation, Promise.resolve(profile));
+  consents.clear();
 }
 
 export function sessionProfile() {
@@ -26,22 +21,48 @@ export function sessionProfile() {
   if (existing) return existing;
   const pending = fetchProfile();
   profiles.set(current, pending);
+  pending.catch(() => profiles.delete(current));
   return pending;
+}
+
+/** The signed-in intern's consent state. Rejects on a network or database error. */
+export function sessionConsent() {
+  const current = generation;
+  const existing = consents.get(current);
+  if (existing) return existing;
+  const pending = fetchConsent();
+  consents.set(current, pending);
+  pending.catch(() => consents.delete(current));
+  return pending;
+}
+
+/** After recording a consent decision, keep the fresh state for the gates. */
+export function rememberConsent(consent: Consent) {
+  consents.set(generation, Promise.resolve(consent));
 }
 
 async function fetchProfile(): Promise<Profile | null> {
   const supabase = createClient();
   const { data, error } = await supabase.auth.getClaims();
+  // Offline is not signed out: surface it so the page can offer "Try again".
+  if (error && isAuthRetryableFetchError(error)) throw error;
   const userId = data?.claims?.sub;
   if (error || !userId) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("daymark_profiles")
-    .select("id, login_id, display_name, role, active, created_at")
+    .select(PROFILE_COLUMNS)
     .eq("id", userId)
     .maybeSingle();
+  if (profileError) throw profileError;
 
-  if (!profile) return null;
-  if (profile.role !== "admin" && profile.role !== "staff") return null;
-  return profile as Profile;
+  // A paused login is treated as signed out; its sessions end when it is paused.
+  if (!profile || !profile.active) return null;
+  return profile;
+}
+
+async function fetchConsent(): Promise<Consent> {
+  const { data, error } = await createClient().rpc("my_consent");
+  if (error) throw error;
+  return data as Consent;
 }
