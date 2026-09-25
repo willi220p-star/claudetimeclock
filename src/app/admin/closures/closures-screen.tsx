@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import { AdminFrame } from "@/app/admin/admin-frame";
 import { ConfirmDialog } from "@/app/admin/confirm-dialog";
-import { FormField, FormMessage } from "@/components/form-field";
+import { FormField } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
@@ -301,6 +301,3 @@ function ClosureForm({
     </form>
   );
 }
-
-// Kept for the form-level message when the site list fails; the closure list shows its own error.
-export { FormMessage };

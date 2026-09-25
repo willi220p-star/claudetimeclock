@@ -69,6 +69,8 @@ export const SETTING_GROUPS = [
 ] as const;
 
 export type SettingKey = (typeof SETTING_GROUPS)[number]["fields"][number]["key"];
+export type SettingField = { key: SettingKey; label: string; unit: string; min: number; max: number };
+export const SETTING_FIELDS = (SETTING_GROUPS as readonly { fields: readonly SettingField[] }[]).flatMap((g) => g.fields);
 export type SettingValues = Record<SettingKey, number> & { fortnight_anchor: string };
 
 /** Only the keys whose value changed, ready for update_settings. */

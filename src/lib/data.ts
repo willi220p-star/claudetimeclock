@@ -264,10 +264,9 @@ export async function loadClosureDays() {
 /** The settings singleton and the collection notice it points at. */
 export async function loadSettings() {
   const client = createClient();
-  const settings = unwrap(
-    await client.from("daymark_settings").select("*").eq("id", 1).maybeSingle(),
-    "Settings didn't load.",
-  );
+  const { data: settings, error: settingsError } = await client.from("daymark_settings").select("*").eq("id", 1).maybeSingle();
+  if (settingsError) throw settingsError;
+  if (!settings) throw new Error("Settings didn't load.");
   const { data: notice, error } = await client
     .from("daymark_notices")
     .select("version, title, published_at")

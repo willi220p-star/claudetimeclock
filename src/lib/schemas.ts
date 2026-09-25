@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SETTING_GROUPS, type SettingKey } from "@/lib/admin-config";
+import { SETTING_FIELDS, type SettingKey } from "@/lib/admin-config";
 
 // Client checks for quick feedback. They mirror private.clean_email, private.check_password
 // and private.create_person; the database re-validates everything.
@@ -99,8 +99,6 @@ export const noticeSchema = z.object({
   title: z.string().trim().min(1, "Give the notice a title.").max(120, "Use 120 characters or fewer."),
   body: z.string().trim().min(50, "Write the full notice, at least 50 characters.").max(20000, "Use 20,000 characters or fewer."),
 });
-
-const SETTING_FIELDS = SETTING_GROUPS.flatMap((group) => group.fields);
 
 export const settingsSchema = z
   .object({

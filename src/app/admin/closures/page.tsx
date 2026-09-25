@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { AdminPlaceholderScreen } from "@/app/admin/placeholder-screen";
+import { ClosuresScreen } from "@/app/admin/closures/closures-screen";
 import { Opening } from "@/components/desk-gate";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function ClosuresPage() {
   return (
     <Suspense fallback={<Opening label="Opening closures…" />}>
-      <AdminPlaceholderScreen title="Closures" rpc="save_closure_day" />
+      <ClosuresScreen />
     </Suspense>
   );
 }
