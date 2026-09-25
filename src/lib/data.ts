@@ -11,7 +11,7 @@ import {
   type TodayBoard,
 } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
-import type { Tables } from "@/lib/database.types";
+import type { Json, Tables } from "@/lib/database.types";
 
 export function unwrap<T>(result: { data: T; error: { message: string } | null }, fallback: string): T {
   if (result.error) throw result.error;
@@ -49,7 +49,7 @@ export async function loadCatchUp(placement: string): Promise<CatchUpPlan> {
 }
 
 export async function previewRequest(req: Record<string, unknown>): Promise<RequestPreview> {
-  return unwrap(await createClient().rpc("preview_request", { req }), "The preview didn't load.") as RequestPreview;
+  return unwrap(await createClient().rpc("preview_request", { req: req as Json }), "The preview didn't load.") as RequestPreview;
 }
 
 export async function loadNotifications(personId: string, limit = 20) {
