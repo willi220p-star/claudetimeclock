@@ -34,7 +34,7 @@ test("intern swaps a day and the supervisor approves it", async ({ page }, testI
   await page.getByRole("button", { name: /^Pending$/ }).click();
   const pending = page.getByRole("listitem").filter({ hasText: "Swap" }).first();
   await expect(pending).toBeVisible();
-  await expect(pending.getByText(/supervisor/i)).toBeVisible();
+  await expect(pending.getByText(/waiting for supervisor/i)).toBeVisible();
 
   await signOut(page);
   await signIn(page, "sup1@dgk.test");

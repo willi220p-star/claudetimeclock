@@ -293,15 +293,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
           </div>
           <div className="rounded-xl bg-card p-4 shadow-card">
             <p className="caption font-semibold text-muted-foreground">Balance</p>
-            <p className="text-lg font-semibold">
-              {owedLabel(kpi.owed)}
-              {kpi.owed !== 0 ? (
-                <>
-                  {" "}
-                  · <MinutesText minutes={kpi.owed} />
-                </>
-              ) : null}
-            </p>
+            <p className="text-lg font-semibold">{owedLabel(kpi.owed)}</p>
           </div>
         </section>
       ) : extras.status === "loading" ? (

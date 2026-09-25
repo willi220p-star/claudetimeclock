@@ -30,7 +30,7 @@ Resume here. Continue from the first unchecked item. Each entry lists the commit
 - [x] 1.16 Shared components
 - [x] 1.17 PWA and CSP
 - [x] 1.18 Seed
-- [ ] 1.19 Gates, review, docs, tag — frontend gates green on this box; pgTAP + Playwright need a healthy local Supabase
+- [x] 1.19 Gates, review, docs — all gates green on the cloud box (see "Docker gates" below)
 
 ### Phase 2 — Placements & schedule (plan written at phase start)
 - [x] 2.core cohorts, placements (62a758c), CSV import (546a053)
@@ -44,7 +44,7 @@ Resume here. Continue from the first unchecked item. Each entry lists the commit
 - [x] 4.x intern Today/Schedule/Requests/Progress/Me, catch-up, work-log gate, notifications. e2e path 1 written (a413f1b). Month calendar and forecast chart deferred (D15).
 
 ### Phase 5 — Requests & approvals
-- [x] 5.x request SQL already merged. UI + e2e paths 2–4 written (be22b63, e9f95fc). Playwright not re-run on this box.
+- [x] 5.x request SQL already merged. UI + e2e paths 2–4 written (be22b63, e9f95fc), run green on the cloud box.
 
 ### Phase 6 — Supervisor
 - [x] 6.x supervisor Today, Approvals, Interns, intern detail, uni report Confirm. Check-ins / Monday summary cut (D14). Flags tab deferred (D15).
@@ -216,8 +216,8 @@ Monday summary cron was not added (D14). GitHub Actions is not used for jobs.
 | Gate | Result |
 |---|---|
 | Vitest | **103** passed (13 files) on this box |
-| pgTAP | Last healthy: **716** passed (37 files). Not re-run here — `db reset` fails on this VM |
-| Playwright | Specs written: smoke + golden paths 1–5. Last executed here: smoke 6 + path 1. Paths 2–5 not executed on this box |
+| pgTAP | **716** passed (37 files), after `supabase db reset` on the cloud box |
+| Playwright | **11** passed, 5 skipped (golden paths 1–5 run once, on the phone project; smoke on both) |
 | lint / typecheck / `GITHUB_PAGES=true` build | clean; 31 static routes |
 | Brand grep | only `DgkLogo` |
 
@@ -281,6 +281,12 @@ Every seed password is in the README. Do this after `supabase start && supabase 
 8. Fatima (`intern5@dgk.test`) → Me: uni report approved by Tom. Still no PDF.
 9. Admin → People: set a password (write-only). There is no Delete. Sites/Closures/Settings/Audit say "coming in a later update".
 10. Sign in as a supervisor, open Today, confirm the extra-spot marker after step 5. Sign out everywhere.
+
+### Docker gates (cloud box, after the Cursor turn)
+- `supabase db reset && npm run test:db` — Files=37, Tests=716, PASS.
+- `npx playwright test` — first run: all 5 golden paths failed on selectors that matched two elements, and path 1 waited for "Day done", which never shows while only the database clock is frozen (the card's "today" is the browser's real date). Fixed in the specs, no rule weakened: pick the request by its date and chip ("Waiting for supervisor"), and check the server-stamped "clocked out at 4:55 pm" toast. Now 11 passed, 5 skipped.
+- Balance card said "Owed 5h 45m · 5h 45m"; the repeat is gone.
+- lint, typecheck, Vitest 103, `GITHUB_PAGES=true` build, brand grep: clean.
 
 ### Release
 Draft PR: https://github.com/willi220p-star/claudetimeclock/pull/1  

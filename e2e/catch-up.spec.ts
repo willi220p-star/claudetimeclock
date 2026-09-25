@@ -9,7 +9,7 @@ test("intern sends catch-up option B", async ({ page }, testInfo) => {
   await signIn(page, "intern2@dgk.test");
   await expect(page).toHaveURL(/\/clock/);
 
-  await expect(page.getByText(/Owed /)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Catch up" }).getByText(/Owed /)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Catch up" })).toBeVisible();
   await page.getByRole("button", { name: /^Catch up$/ }).click();
 
@@ -26,5 +26,5 @@ test("intern sends catch-up option B", async ({ page }, testInfo) => {
   const extras = page.getByRole("listitem").filter({ hasText: "Extra day" });
   await expect(extras.first()).toBeVisible();
   expect(await extras.count()).toBeGreaterThan(0);
-  await expect(extras.first().getByText(/supervisor/i)).toBeVisible();
+  await expect(extras.first().getByText(/waiting for supervisor/i)).toBeVisible();
 });

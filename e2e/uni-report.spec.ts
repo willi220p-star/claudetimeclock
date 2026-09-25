@@ -19,7 +19,7 @@ test("supervisor approves the uni report", async ({ page }, testInfo) => {
   await signIn(page, "intern5@dgk.test");
   await page.getByRole("link", { name: "Me" }).click();
   await expect(page).toHaveURL(/\/clock\/me/);
-  await expect(page.getByText(/uni report/i)).toContainText(/approved/i);
+  await expect(page.getByText(/your uni report is approved/i)).toBeVisible();
   await expect(page.getByText(/Tom Walsh/)).toBeVisible();
   await expect(page.getByRole("button", { name: /download/i })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /download/i })).toHaveCount(0);

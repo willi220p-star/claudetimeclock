@@ -43,5 +43,6 @@ test("intern clocks in and out", async ({ page }, testInfo) => {
   await page.reload();
   await page.getByRole("button", { name: /clock out/i }).first().click();
   await selfie(page);
-  await expect(page.getByRole("button", { name: /^clock in$/i }).or(page.getByText(/day done/i))).toBeVisible();
+  // The browser clock is real time while the office clock is frozen, so check the server's stamp.
+  await expect(page.getByText(/clocked out at 4:55 pm/i)).toBeVisible();
 });
