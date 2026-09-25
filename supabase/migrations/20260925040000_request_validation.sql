@@ -73,7 +73,7 @@ begin
     when 'extra_day' then '{date,start,end}'
     when 'leave' then '{dates,kind}'
     when 'punch_fix' then '{date,clock_in,clock_out,replaces_in_punch_id,replaces_out_punch_id}'
-    when 'overtime' then '{date}'
+    when 'overtime' then '{date,work_date}'
     when 'pattern_change' then '{effective_from,pattern}'
     when 'attendance' then '{punch_id,event_type}'
   end;

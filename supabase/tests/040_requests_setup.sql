@@ -31,7 +31,7 @@ as $$
 $$;
 
 -- The intern's live scheduled (or leave) day on a date.
-create or replace function tests.day(p_intern uuid, p_date date)
+create or replace function tests.sday(p_intern uuid, p_date date)
 returns uuid
 language sql
 as $$

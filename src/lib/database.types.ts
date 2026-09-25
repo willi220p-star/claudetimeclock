@@ -67,6 +67,60 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_checkins: {
+        Row: {
+          comment: string | null
+          communication: number
+          created_at: string
+          id: string
+          placement_id: string
+          quality: number
+          reliability: number
+          supervisor_id: string | null
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          comment?: string | null
+          communication: number
+          created_at?: string
+          id?: string
+          placement_id: string
+          quality: number
+          reliability: number
+          supervisor_id?: string | null
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          comment?: string | null
+          communication?: number
+          created_at?: string
+          id?: string
+          placement_id?: string
+          quality?: number
+          reliability?: number
+          supervisor_id?: string | null
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_checkins_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_checkins_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_clock_challenges: {
         Row: {
           event_type: string
@@ -217,6 +271,86 @@ export type Database = {
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_day_results: {
+        Row: {
+          approved_ot: number
+          auto_closed: boolean
+          base: number
+          break: number
+          closed: boolean
+          computed_at: string
+          countable: number
+          counted: number
+          late: boolean
+          left_early: boolean
+          no_show: boolean
+          over_max: number
+          overtime: number
+          placement_id: string
+          raw: number
+          scheduled: number
+          short: number | null
+          unscheduled: boolean
+          unverified: boolean
+          work_date: string
+          worked: number
+        }
+        Insert: {
+          approved_ot: number
+          auto_closed: boolean
+          base: number
+          break: number
+          closed: boolean
+          computed_at: string
+          countable: number
+          counted: number
+          late: boolean
+          left_early: boolean
+          no_show: boolean
+          over_max: number
+          overtime: number
+          placement_id: string
+          raw: number
+          scheduled: number
+          short?: number | null
+          unscheduled: boolean
+          unverified: boolean
+          work_date: string
+          worked: number
+        }
+        Update: {
+          approved_ot?: number
+          auto_closed?: boolean
+          base?: number
+          break?: number
+          closed?: boolean
+          computed_at?: string
+          countable?: number
+          counted?: number
+          late?: boolean
+          left_early?: boolean
+          no_show?: boolean
+          over_max?: number
+          overtime?: number
+          placement_id?: string
+          raw?: number
+          scheduled?: number
+          short?: number | null
+          unscheduled?: boolean
+          unverified?: boolean
+          work_date?: string
+          worked?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_day_results_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
             referencedColumns: ["id"]
           },
         ]
@@ -682,6 +816,7 @@ export type Database = {
           supervisor_decision: string | null
           supervisor_id: string | null
           supervisor_note: string | null
+          system_note: string | null
           type: string
           updated_at: string
         }
@@ -708,6 +843,7 @@ export type Database = {
           supervisor_decision?: string | null
           supervisor_id?: string | null
           supervisor_note?: string | null
+          system_note?: string | null
           type: string
           updated_at?: string
         }
@@ -734,6 +870,7 @@ export type Database = {
           supervisor_decision?: string | null
           supervisor_id?: string | null
           supervisor_note?: string | null
+          system_note?: string | null
           type?: string
           updated_at?: string
         }
@@ -953,6 +1090,67 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_shifts: {
+        Row: {
+          auto_closed: boolean
+          clock_in_at: string
+          clock_out_at: string | null
+          id: string
+          in_punch_id: string
+          out_punch_id: string | null
+          placement_id: string
+          unscheduled: boolean
+          unverified: boolean
+          work_date: string
+        }
+        Insert: {
+          auto_closed?: boolean
+          clock_in_at: string
+          clock_out_at?: string | null
+          id?: string
+          in_punch_id: string
+          out_punch_id?: string | null
+          placement_id: string
+          unscheduled?: boolean
+          unverified?: boolean
+          work_date: string
+        }
+        Update: {
+          auto_closed?: boolean
+          clock_in_at?: string
+          clock_out_at?: string | null
+          id?: string
+          in_punch_id?: string
+          out_punch_id?: string | null
+          placement_id?: string
+          unscheduled?: boolean
+          unverified?: boolean
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_shifts_in_punch_id_fkey"
+            columns: ["in_punch_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_shifts_out_punch_id_fkey"
+            columns: ["out_punch_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_punches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_shifts_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_sites: {
         Row: {
           active: boolean
@@ -998,14 +1196,186 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_work_logs: {
+        Row: {
+          created_at: string
+          id: string
+          placement_id: string
+          summary: string
+          updated_at: string
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          placement_id: string
+          summary: string
+          updated_at?: string
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          placement_id?: string
+          summary?: string
+          updated_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_work_logs_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      daymark_v_day_hours: {
+        Row: {
+          approved_ot: number | null
+          auto_closed: boolean | null
+          base: number | null
+          break: number | null
+          closed: boolean | null
+          computed_at: string | null
+          countable: number | null
+          counted: number | null
+          intern_id: string | null
+          late: boolean | null
+          left_early: boolean | null
+          no_show: boolean | null
+          over_max: number | null
+          overtime: number | null
+          placement_id: string | null
+          raw: number | null
+          scheduled: number | null
+          short: number | null
+          supervisor_id: string | null
+          unscheduled: boolean | null
+          unverified: boolean | null
+          work_date: string | null
+          worked: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_day_results_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_intern_id_fkey"
+            columns: ["intern_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_placements_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_v_fortnight_hours: {
+        Row: {
+          approved_ot: number | null
+          counted: number | null
+          fortnight_end: string | null
+          fortnight_start: string | null
+          late_days: number | null
+          no_shows: number | null
+          overtime: number | null
+          placement_id: string | null
+          scheduled: number | null
+          short: number | null
+          worked: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_day_results_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_v_placement_progress: {
+        Row: {
+          counted_to_date: number | null
+          counted_total: number | null
+          days_late: number | null
+          expected_to_date: number | null
+          forecast_finish: string | null
+          forecast_ratio: number | null
+          fortnight_end: string | null
+          fortnight_start: string | null
+          future_sched: number | null
+          intern_id: string | null
+          intern_name: string | null
+          latest_checkin_average: number | null
+          no_shows_fortnight: number | null
+          owed: number | null
+          pace: string | null
+          placement_id: string | null
+          planned_end_date: string | null
+          remaining: number | null
+          risk_reasons: string[] | null
+          schedule_gap: number | null
+          start_date: string | null
+          status: string | null
+          supervisor_id: string | null
+          target_minutes: number | null
+          target_reached_at: string | null
+          total_weeks: number | null
+          week_no: number | null
+        }
+        Relationships: []
+      }
+      daymark_v_week_hours: {
+        Row: {
+          approved_ot: number | null
+          counted: number | null
+          late_days: number | null
+          no_shows: number | null
+          overtime: number | null
+          placement_id: string | null
+          scheduled: number | null
+          short: number | null
+          week_no: number | null
+          week_start: string | null
+          worked: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_day_results_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      add_request_reason: {
+        Args: { reason: string; request_id: string }
+        Returns: Json
+      }
       approve_uni_report: {
         Args: { note?: string; placement: string }
         Returns: undefined
+      }
+      attach_leave_certificate: {
+        Args: { path: string; request_id: string }
+        Returns: Json
       }
       audit_search: {
         Args: {
@@ -1019,6 +1389,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_request: { Args: { request_id: string }; Returns: Json }
       capacity_preview: {
         Args: {
           days: Json
@@ -1061,6 +1432,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_request: {
+        Args: { payload: Json; reason?: string; type: string }
+        Returns: Json
+      }
+      decide_request: {
+        Args: {
+          approved_minutes?: number
+          decision: string
+          note?: string
+          request_id: string
+        }
+        Returns: Json
+      }
       extend_placement: {
         Args: {
           allow_extra?: boolean
@@ -1074,6 +1458,7 @@ export type Database = {
         Args: { dry_run?: boolean; rows: Json; temp_password: string }
         Returns: Json
       }
+      mark_certificate_sighted: { Args: { request_id: string }; Returns: Json }
       mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
       my_consent: { Args: never; Returns: Json }
       people_directory: {
@@ -1093,6 +1478,9 @@ export type Database = {
           placement_status: string
         }[]
       }
+      placement_progress: { Args: { placement: string }; Returns: Json }
+      progress_all: { Args: never; Returns: Json[] }
+      progress_for_supervisor: { Args: never; Returns: Json[] }
       publish_notice: {
         Args: { body: string; title: string; version: string }
         Returns: Json
@@ -1102,6 +1490,7 @@ export type Database = {
         Returns: Json
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
+      run_job: { Args: { name: string }; Returns: Json }
       save_closure_day: {
         Args: { day: string; kind?: string; name: string; site_id: string }
         Returns: Json
@@ -1115,6 +1504,10 @@ export type Database = {
         Returns: string
       }
       save_site: { Args: { site: Json }; Returns: Json }
+      save_work_log: {
+        Args: { summary: string; work_date: string }
+        Returns: Json
+      }
       set_pattern: {
         Args: {
           allow_extra?: boolean

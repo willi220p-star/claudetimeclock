@@ -106,7 +106,7 @@ select ok(exists (select 1 from public.daymark_notifications where person_id = (
 insert into req values ('a3', tests.ask((select a from ids), 'extra_day', '{"date":"2026-10-08","start":"09:00","end":"17:00"}'));
 select is(tests.decide((select sup from ids), (select id from req where k = 'a3'), 'approve'), 'approved', 'the supervisor approves');
 select is((select source || '|' || (origin_request_id = (select id from req where k = 'a3'))::text
-           from public.daymark_scheduled_days where id = tests.day((select a from ids), '2026-10-08')),
+           from public.daymark_scheduled_days where id = tests.sday((select a from ids), '2026-10-08')),
   'extra_day|true', 'the effect is applied in the same transaction');
 select ok(exists (select 1 from public.daymark_notifications where person_id = (select a from ids) and title like '%approved%'),
   'the intern hears about the approval');
@@ -115,7 +115,7 @@ select ok(exists (select 1 from public.daymark_audit_log where action = 'approve
 
 -- The admin may decide any pending step, including escalated ones
 insert into req values ('b1', tests.ask((select b from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select b from ids), '2026-10-14'), 'start', '10:00', 'end', '16:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select b from ids), '2026-10-14'), 'start', '10:00', 'end', '16:00')));
 update public.daymark_requests set escalated_at = '2026-10-05 10:00+09:30' where id = (select id from req where k = 'b1');
 select is(tests.decide((select admin from ids), (select id from req where k = 'b1'), 'approve', 'Approved while Sam is away.'),
   'approved', 'the admin decides an escalated request');
@@ -126,17 +126,17 @@ select ok(exists (select 1 from public.daymark_notifications where person_id = (
 
 -- Segregation of duties for dual-role people (review rule 13)
 insert into req values ('x1', tests.ask((select x from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select x from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select x from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
 select is(tests.decide((select dual from ids), (select id from req where k = 'x1'), 'approve'), 'approved',
   'a supervisor-intern decides their own intern''s request');
 insert into req values ('d1', tests.ask((select dual from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select dual from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select dual from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
 select throws_ok(format($$select tests.decide(%L, %L, 'approve')$$, (select dual from ids), (select id from req where k = 'd1')),
   '42501', 'You can''t decide your own request. Another supervisor or the DGK admin will.', 'a supervisor-intern cannot decide their own');
 select is(tests.decide((select sup from ids), (select id from req where k = 'd1'), 'approve'), 'approved',
   'their own supervisor decides it');
 insert into req values ('ai1', tests.ask((select admin_intern from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select admin_intern from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select admin_intern from ids), '2026-10-13'), 'start', '10:00', 'end', '16:00')));
 select throws_ok(format($$select tests.decide(%L, %L, 'approve')$$, (select admin_intern from ids), (select id from req where k = 'ai1')),
   '42501', 'You can''t decide your own request. Another supervisor or the DGK admin will.', 'not even an admin decides their own');
 

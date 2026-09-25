@@ -31,7 +31,7 @@ select is(tests.verdict((select a from ids), 'extra_day', '{"date":"2026-02-30",
 select is(tests.verdict((select a from ids), 'extra_day', '{"date":"2026-10-08","start":"9am","end":"17:00"}'),
   'Enter times as hours and minutes, like 09:00.', 'times are HH:MM');
 select is(tests.verdict((select a from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select a from ids), '2026-10-07'), 'new_date', '2026-10-08', 'start', '09:00')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select a from ids), '2026-10-07'), 'new_date', '2026-10-08', 'start', '09:00')),
   'Pick the start and end times together.', 'swap times come in pairs');
 select is(tests.verdict((select a from ids), 'leave', '{"dates":["2026-10-07"],"kind":"holiday"}'),
   'Choose sick or personal leave.', 'leave kind is sick or personal');

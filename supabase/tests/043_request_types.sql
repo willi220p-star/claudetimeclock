@@ -33,32 +33,32 @@ select tests.at('2026-10-05 10:00+09:30');   -- Mon 5 Oct
 
 -- Swap: old day moved, new day source swap (§9.2)
 select is((private.validate_request(tests.draft((select sw from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw from ids), '2026-10-07'), 'new_date', '2026-10-08')))).dates,
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw from ids), '2026-10-07'), 'new_date', '2026-10-08')))).dates,
   '{2026-10-07,2026-10-08}'::date[], 'a swap touches both dates');
 insert into req values ('sw', tests.ask((select sw from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw from ids), '2026-10-07'), 'new_date', '2026-10-08',
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw from ids), '2026-10-07'), 'new_date', '2026-10-08',
                      'start', '10:00', 'end', '16:00')));
 select is(tests.decide((select sup from ids), (select id from req where k = 'sw'), 'approve'), 'approved', 'swap approved');
 select is((select status from public.daymark_scheduled_days
            where placement_id = private.current_placement((select sw from ids)) and work_date = '2026-10-07'), 'moved',
   'the old day is moved');
 select is((select source || ' ' || start_time || '-' || end_time || ' ' || (origin_request_id = (select id from req where k = 'sw'))::text
-           from public.daymark_scheduled_days where id = tests.day((select sw from ids), '2026-10-08')),
+           from public.daymark_scheduled_days where id = tests.sday((select sw from ids), '2026-10-08')),
   'swap 10:00:00-16:00:00 true', 'the new day has the new times and source swap');
 select ok(exists (select 1 from public.daymark_schedule_history where request_id = (select id from req where k = 'sw')
                   and after ->> 'status' = 'moved'), 'the move is in the schedule history');
 insert into req values ('sw_b', tests.ask((select sw from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw from ids), '2026-10-12'), 'new_date', '2026-10-13')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw from ids), '2026-10-12'), 'new_date', '2026-10-13')));
 select tests.decide((select sup from ids), (select id from req where k = 'sw_b'), 'approve');
-select is((select start_time || '-' || end_time from public.daymark_scheduled_days where id = tests.day((select sw from ids), '2026-10-13')),
+select is((select start_time || '-' || end_time from public.daymark_scheduled_days where id = tests.sday((select sw from ids), '2026-10-13')),
   '09:00:00-17:00:00', 'a swap without times keeps the day''s times');
 
 -- §16 a swap onto a date at 3 needs an extra spot and goes to the admin; at 4 it is rejected
 select is(tests.verdict((select sw2 from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw2 from ids), '2026-10-12'), 'new_date', '2026-10-16')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw2 from ids), '2026-10-12'), 'new_date', '2026-10-16')),
   'ok +extra', 'a swap onto a full day needs an extra spot');
 insert into req values ('sw2', tests.ask((select sw2 from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw2 from ids), '2026-10-12'), 'new_date', '2026-10-16')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw2 from ids), '2026-10-12'), 'new_date', '2026-10-16')));
 select is(tests.decide((select sup from ids), (select id from req where k = 'sw2'), 'approve'), 'pending_admin',
   'the supervisor''s approval sends it to the admin');
 select is(tests.decide((select admin from ids), (select id from req where k = 'sw2'), 'approve'), 'approved',
@@ -69,30 +69,30 @@ select is((select count(*)::int from public.daymark_scheduled_days
 select ok(exists (select 1 from public.daymark_audit_log where action = 'extra_spot'
                   and after ->> 'origin_request_id' = (select id from req where k = 'sw2')::text), 'the extra spot is audited');
 select is(tests.verdict((select sw3 from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw3 from ids), '2026-10-12'), 'new_date', '2026-10-16')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw3 from ids), '2026-10-12'), 'new_date', '2026-10-16')),
   'Fri 16 Oct already has 4 interns — the office limit. Pick another day.', 'a swap onto a day at 4 is rejected');
 select is(tests.verdict((select sw3 from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw3 from ids), '2026-10-12'), 'new_date', '2026-10-12')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw3 from ids), '2026-10-12'), 'new_date', '2026-10-12')),
   'Pick a different date. To change the times on the same day, ask for a shift change.', 'a swap needs another date');
 select is(tests.verdict((select sw3 from ids), 'swap',
-  jsonb_build_object('scheduled_day_id', tests.day((select sw2 from ids), '2026-10-19'), 'new_date', '2026-10-20')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sw2 from ids), '2026-10-19'), 'new_date', '2026-10-20')),
   'Pick one of your scheduled days to swap.', 'only your own days can be swapped');
 
 -- Shift change: times updated, before/after history
 select is(tests.verdict((select sc from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select sc from ids), '2026-10-07'), 'start', '09:00', 'end', '17:00')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sc from ids), '2026-10-07'), 'start', '09:00', 'end', '17:00')),
   'Those are already the times for Wed 7 Oct.', 'a shift change must change something');
 insert into req values ('sc', tests.ask((select sc from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select sc from ids), '2026-10-07'), 'start', '08:00', 'end', '18:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select sc from ids), '2026-10-07'), 'start', '08:00', 'end', '18:00')));
 select tests.decide((select sup from ids), (select id from req where k = 'sc'), 'approve');
 select is((select start_time || '-' || end_time || ' ' || planned_minutes || ' ' || source
-           from public.daymark_scheduled_days where id = tests.day((select sc from ids), '2026-10-07')),
+           from public.daymark_scheduled_days where id = tests.sday((select sc from ids), '2026-10-07')),
   '08:00:00-18:00:00 570 shift_change', 'the times, planned minutes and source are updated');
 select is((select before ->> 'start_time' || ' → ' || (after ->> 'start_time') from public.daymark_schedule_history
            where request_id = (select id from req where k = 'sc')), '09:00:00 → 08:00:00', 'the history keeps before and after');
 select tests.at('2026-10-07 08:00+09:30');
 select is(tests.verdict((select sc from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select sc from ids), '2026-10-08'), 'start', '07:00', 'end', '17:00')),
+  jsonb_build_object('scheduled_day_id', tests.sday((select sc from ids), '2026-10-08'), 'start', '07:00', 'end', '17:00')),
   'Thu 8 Oct starts in less than 24 hours. Changes need 24 hours'' notice — talk to your supervisor.',
   'C4 counts from the earlier of the old and new start');
 select tests.at('2026-10-05 10:00+09:30');
@@ -166,7 +166,7 @@ select is(tests.verdict((select pc from ids), 'pattern_change',
   'Tue 6 Oct starts in less than 24 hours. Changes need 24 hours'' notice — talk to your supervisor.',
   'every changed day needs 24 h notice');
 insert into req values ('pc_sc', tests.ask((select pc from ids), 'shift_change',
-  jsonb_build_object('scheduled_day_id', tests.day((select pc from ids), '2026-10-15'), 'start', '08:00', 'end', '12:00')));
+  jsonb_build_object('scheduled_day_id', tests.sday((select pc from ids), '2026-10-15'), 'start', '08:00', 'end', '12:00')));
 select tests.decide((select sup from ids), (select id from req where k = 'pc_sc'), 'approve');
 insert into req values ('pc', tests.ask((select pc from ids), 'pattern_change',
   '{"effective_from":"2026-10-12","pattern":[{"weekday":1,"start":"10:00","end":"16:00"},{"weekday":3,"start":"10:00","end":"16:00"}]}'));
@@ -181,9 +181,9 @@ select ok(exists (select 1 from public.daymark_pattern_versions
 select is((select count(*)::int from public.daymark_scheduled_days
            where placement_id = private.current_placement((select pc from ids)) and status = 'scheduled' and work_date >= '2026-10-12'),
   21, '10 Mondays + 10 Wednesdays + the kept shift-change day');
-select is((select start_time from public.daymark_scheduled_days where id = tests.day((select pc from ids), '2026-10-14')),
+select is((select start_time from public.daymark_scheduled_days where id = tests.sday((select pc from ids), '2026-10-14')),
   '10:00'::time, 'regenerated days use the new times');
-select is((select start_time || ' ' || source from public.daymark_scheduled_days where id = tests.day((select pc from ids), '2026-10-15')),
+select is((select start_time || ' ' || source from public.daymark_scheduled_days where id = tests.sday((select pc from ids), '2026-10-15')),
   '08:00:00 shift_change', 'a shift-change day is kept');
 select is((select start_time || ' ' || status from public.daymark_scheduled_days
            where placement_id = private.current_placement((select pc from ids)) and work_date = '2026-10-09'),
