@@ -104,7 +104,7 @@ export function RequestForm({
     setBusy(true);
     const { error: fail } = await createClient().rpc("create_request", {
       type,
-      payload,
+      payload: payload as import("@/lib/database.types").Json,
       reason: reason.trim() || undefined,
     });
     setBusy(false);

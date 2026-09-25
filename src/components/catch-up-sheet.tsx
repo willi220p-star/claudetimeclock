@@ -96,7 +96,7 @@ function OptionCard({
   onSend: () => void;
 }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+    <section aria-label={title} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
       <div>
         <h3 className="font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{hint}</p>
