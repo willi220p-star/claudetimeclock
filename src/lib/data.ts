@@ -213,6 +213,38 @@ export async function loadWorkLogs(placementId: string) {
   return data ?? [];
 }
 
+export async function loadSettings() {
+  const { data, error } = await createClient()
+    .from("daymark_settings")
+    .select("idle_signout_minutes, cert_retention_days")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadCertRetentionDays() {
+  return (await loadSettings())?.cert_retention_days;
+}
+
+/** The current fortnight's totals (visa self-check); zeros before any day in it has a result. */
+export async function loadFortnightHours(placementId: string, fortnightStart: string) {
+  const { data, error } = await createClient()
+    .from("daymark_v_fortnight_hours")
+    .select("counted, scheduled, worked")
+    .eq("placement_id", placementId)
+    .eq("fortnight_start", fortnightStart)
+    .maybeSingle();
+  if (error) throw error;
+  return { counted: data?.counted ?? 0, scheduled: data?.scheduled ?? 0, worked: data?.worked ?? 0 };
+}
+
+export async function loadPlacementProgress(placementId: string) {
+  const { data, error } = await createClient().rpc("placement_progress", { placement: placementId });
+  if (error) throw error;
+  return asRecord(data) ? (data as unknown as Tables<"daymark_v_placement_progress">) : null;
+}
+
 export async function loadWeekHours(placementId: string) {
   const { data, error } = await createClient()
     .from("daymark_v_week_hours")

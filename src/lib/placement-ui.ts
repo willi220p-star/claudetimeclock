@@ -352,3 +352,42 @@ export function buildRequestPayload(type: string, fields: Record<string, string>
       return { ...fields };
   }
 }
+
+/** "This fortnight (Mon 28 Sep – Sun 11 Oct): 22h 30m counted" — the visa self-check line. */
+export function fortnightLabel(start: string, end: string, counted: number) {
+  return `This fortnight (${formatDay(start)} – ${formatDay(end)}): ${formatMinutes(counted)} counted`;
+}
+
+export type ForecastPoint = { week: number; counted: number | null; plan: number; projection: number | null };
+
+const hours = (minutes: number) => Math.round(minutes / 6) / 10;
+
+/**
+ * Progress chart rows in hours, from week 0: cumulative counted up to the current week, the
+ * straight-line plan to the target by the planned last week, and a projection from today's total
+ * to the target at the forecast finish week.
+ */
+export function forecastSeries(args: {
+  weeks: { week_no: number | null; counted: number | null }[];
+  targetMinutes: number;
+  totalWeeks: number;
+  currentWeek: number;
+  forecastWeek: number | null;
+}): ForecastPoint[] {
+  const { weeks, targetMinutes, currentWeek, forecastWeek } = args;
+  const totalWeeks = Math.max(1, args.totalWeeks);
+  const last = Math.max(totalWeeks, currentWeek, forecastWeek ?? 0);
+  const countedBy = (week: number) =>
+    weeks.reduce((sum, row) => sum + ((row.week_no ?? 0) <= week ? (row.counted ?? 0) : 0), 0);
+  const now = countedBy(currentWeek);
+  const projects = forecastWeek !== null && forecastWeek > currentWeek;
+  return Array.from({ length: last + 1 }, (_, week) => ({
+    week,
+    counted: week <= currentWeek ? hours(countedBy(week)) : null,
+    plan: hours(Math.min(targetMinutes, Math.round((targetMinutes * week) / totalWeeks))),
+    projection:
+      projects && week >= currentWeek && week <= forecastWeek
+        ? hours(Math.round(now + ((targetMinutes - now) * (week - currentWeek)) / (forecastWeek - currentWeek)))
+        : null,
+  }));
+}
