@@ -36,7 +36,7 @@
 - The audit log is append-only: no API write grants, and a trigger raises on update or delete.
 - Signed URLs last 60 s. No `dangerouslySetInnerHTML`. CSV cells starting with `= + - @` are escaped. PDFs are built from data.
 - Client idle sign-out after 30 min, and a "Sign out everywhere" option.
-- Interns see a fortnight hours summary (R5.7.2 fortnights).
+- ~~Interns see a fortnight hours summary (R5.7.2 fortnights).~~ Removed 26 Sep (Dilip): no visa self-check card.
 - Uni report entries show the verification method and approver.
 
 ## Phase map

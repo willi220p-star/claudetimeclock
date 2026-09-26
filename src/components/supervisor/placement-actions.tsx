@@ -74,7 +74,7 @@ export function PlacementActions({
           ? "Placement marked complete."
           : action === "withdraw"
             ? "Placement withdrawn."
-            : "Uni report approved.",
+            : "Intern report approved.",
     );
     close();
     onDone();
@@ -98,7 +98,7 @@ export function PlacementActions({
         ) : null}
         {canReport ? (
           <Button type="button" onClick={() => setAction("report")}>
-            Approve uni report
+            Approve intern report
           </Button>
         ) : null}
       </div>
@@ -119,7 +119,7 @@ export function PlacementActions({
                 ? "Confirm completion"
                 : action === "withdraw"
                   ? "Withdraw placement"
-                  : "Approve uni report"}
+                  : "Approve intern report"}
           </DialogTitle>
           <DialogDescription>
             {action === "extend"
@@ -128,7 +128,7 @@ export function PlacementActions({
                 ? "This ends the placement and cancels days after today."
                 : action === "withdraw"
                   ? "This ends the placement. Give a reason."
-                  : "Approve the hours report once they are final."}
+                  : "Approve the intern report once the hours are final."}
           </DialogDescription>
           {action === "extend" ? (
             <>

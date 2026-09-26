@@ -26,7 +26,7 @@ const TIMES = (() => {
   return out;
 })();
 
-type Day = { on: boolean; start: string; end: string };
+export type Day = { on: boolean; start: string; end: string };
 export type PatternDay = { weekday: number; start: string; end: string };
 
 export type WizardDraft = {
@@ -42,7 +42,7 @@ export type WizardDraft = {
   days: Record<number, Day>;
 };
 
-const DEFAULT_DAY: Day = { on: false, start: "09:00", end: "17:00" };
+export const DEFAULT_DAY: Day = { on: false, start: "09:00", end: "17:00" };
 
 export function emptyDraft(): WizardDraft {
   return {
@@ -89,7 +89,7 @@ export function draftFromPlacement(args: {
   };
 }
 
-function patternOf(days: Record<number, Day>): PatternDay[] {
+export function patternOf(days: Record<number, Day>): PatternDay[] {
   return WEEKDAYS.filter(({ n }) => days[n]?.on).map(({ n }) => ({
     weekday: n,
     start: days[n].start,
@@ -290,54 +290,7 @@ export function PlacementWizard({
         <div className="flex flex-col gap-4">
           <h2>Weekly pattern</h2>
           <p className="text-sm text-muted-foreground">Monday to Friday, 15-minute steps. Live planned minutes update as you go.</p>
-          <ul className="flex flex-col gap-3">
-            {WEEKDAYS.map(({ n, label }) => {
-              const day = draft.days[n] ?? DEFAULT_DAY;
-              const minutes = day.on ? plannedMinutes(day.start, day.end) : 0;
-              return (
-                <li key={n} className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center">
-                  <label className="flex min-h-11 items-center gap-2 sm:w-24">
-                    <input
-                      type="checkbox"
-                      className="size-5 accent-primary"
-                      checked={day.on}
-                      onChange={(e) => set("days", { ...draft.days, [n]: { ...day, on: e.target.checked } })}
-                    />
-                    {label}
-                  </label>
-                  <div className="grid flex-1 grid-cols-2 gap-2">
-                    <select
-                      aria-label={`${label} start`}
-                      disabled={!day.on}
-                      className={selectClass}
-                      value={day.start}
-                      onChange={(e) => set("days", { ...draft.days, [n]: { ...day, start: e.target.value } })}
-                    >
-                      {TIMES.map((time) => (
-                        <option key={time} value={time}>
-                          {formatTimeOfDay(time)}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      aria-label={`${label} end`}
-                      disabled={!day.on}
-                      className={selectClass}
-                      value={day.end}
-                      onChange={(e) => set("days", { ...draft.days, [n]: { ...day, end: e.target.value } })}
-                    >
-                      {TIMES.map((time) => (
-                        <option key={time} value={time}>
-                          {formatTimeOfDay(time)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="text-sm text-muted-foreground sm:w-20 sm:text-right">{day.on ? formatMinutes(minutes) : "—"}</p>
-                </li>
-              );
-            })}
-          </ul>
+          <PatternEditor days={draft.days} onChange={(days) => set("days", days)} />
           <p className="font-semibold">Planned {formatMinutes(weekMinutes)} a week</p>
         </div>
       ) : null}
@@ -419,4 +372,58 @@ export function PlacementWizard({
 
 export function weekdayLabel(n: number) {
   return WEEKDAYS.find((day) => day.n === n)?.label ?? `Day ${n}`;
+}
+
+/** Mon–Fri with a start and finish time each, in 15-minute steps; shows each day's planned hours. */
+export function PatternEditor({ days, onChange }: { days: Record<number, Day>; onChange: (days: Record<number, Day>) => void }) {
+  return (
+    <ul className="flex flex-col gap-3">
+      {WEEKDAYS.map(({ n, label }) => {
+        const day = days[n] ?? DEFAULT_DAY;
+        const minutes = day.on ? plannedMinutes(day.start, day.end) : 0;
+        return (
+          <li key={n} className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center">
+            <label className="flex min-h-11 items-center gap-2 sm:w-24">
+              <input
+                type="checkbox"
+                className="size-5 accent-primary"
+                checked={day.on}
+                onChange={(e) => onChange({ ...days, [n]: { ...day, on: e.target.checked } })}
+              />
+              {label}
+            </label>
+            <div className="grid flex-1 grid-cols-2 gap-2">
+              <select
+                aria-label={`${label} start`}
+                disabled={!day.on}
+                className={selectClass}
+                value={day.start}
+                onChange={(e) => onChange({ ...days, [n]: { ...day, start: e.target.value } })}
+              >
+                {TIMES.map((time) => (
+                  <option key={time} value={time}>
+                    {formatTimeOfDay(time)}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label={`${label} end`}
+                disabled={!day.on}
+                className={selectClass}
+                value={day.end}
+                onChange={(e) => onChange({ ...days, [n]: { ...day, end: e.target.value } })}
+              >
+                {TIMES.map((time) => (
+                  <option key={time} value={time}>
+                    {formatTimeOfDay(time)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-sm text-muted-foreground sm:w-20 sm:text-right">{day.on ? formatMinutes(minutes) : "—"}</p>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }

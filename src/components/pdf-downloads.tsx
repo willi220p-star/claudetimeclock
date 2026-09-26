@@ -10,7 +10,7 @@ import { buildCertificateModel, buildReportModel, certificateBlocker, documentId
 type Kind = "report" | "certificate";
 
 /**
- * Uni report and certificate downloads (§13). The PDF is built in the browser from the caller's
+ * Intern report and certificate downloads (§13). The PDF is built in the browser from the caller's
  * RLS-visible data; react-pdf loads only on click. `report` hides the report button (the intern
  * sees it only after approval).
  */
@@ -45,7 +45,7 @@ export function PdfDownloads({
       const name = data.internName.replace(/[^A-Za-z0-9]+/g, "-");
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
-      link.download = `${kind === "report" ? "Hours-report" : "Certificate"}-${name}-${id}.pdf`;
+      link.download = `${kind === "report" ? "Intern-report" : "Certificate"}-${name}-${id}.pdf`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
     } catch (error) {
@@ -60,7 +60,7 @@ export function PdfDownloads({
       <div className="flex flex-wrap gap-2">
         {report ? (
           <Button type="button" variant="secondary" disabled={busy !== null} onClick={() => void download("report")}>
-            {busy === "report" ? "Building PDF…" : "Download report (PDF)"}
+            {busy === "report" ? "Building PDF…" : "Download intern report (PDF)"}
           </Button>
         ) : null}
         <Button

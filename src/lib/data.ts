@@ -100,6 +100,34 @@ export async function loadScheduledDays(placementId: string, from: string, to: s
   return data ?? [];
 }
 
+/** Who is rostered between two dates (§ roster): admins see everyone, a supervisor their own interns. */
+export async function loadRoster(from: string, to: string, supervisorId?: string) {
+  let query = createClient()
+    .from("daymark_scheduled_days")
+    .select(
+      "id, work_date, start_time, end_time, status, leave_kind, placement:daymark_placements!inner(id, supervisor_id, intern:daymark_profiles!daymark_placements_intern_id_fkey(id, display_name))",
+    )
+    .in("status", ["scheduled", "leave"])
+    .gte("work_date", from)
+    .lte("work_date", to);
+  if (supervisorId) query = query.eq("placement.supervisor_id", supervisorId);
+  const { data, error } = await query.order("work_date").order("start_time");
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    work_date: row.work_date,
+    start_time: row.start_time,
+    end_time: row.end_time,
+    status: row.status,
+    leave_kind: row.leave_kind,
+    placement_id: row.placement.id,
+    intern_id: row.placement.intern?.id ?? "",
+    intern_name: row.placement.intern?.display_name ?? "Intern",
+  }));
+}
+
+export type RosterRow = Awaited<ReturnType<typeof loadRoster>>[number];
+
 export async function loadDayResults(placementId: string, from: string, to: string) {
   const { data, error } = await createClient()
     .from("daymark_day_results")
@@ -230,17 +258,6 @@ export async function loadCertRetentionDays() {
 }
 
 /** The current fortnight's totals (visa self-check); zeros before any day in it has a result. */
-export async function loadFortnightHours(placementId: string, fortnightStart: string) {
-  const { data, error } = await createClient()
-    .from("daymark_v_fortnight_hours")
-    .select("counted, scheduled, worked")
-    .eq("placement_id", placementId)
-    .eq("fortnight_start", fortnightStart)
-    .maybeSingle();
-  if (error) throw error;
-  return { counted: data?.counted ?? 0, scheduled: data?.scheduled ?? 0, worked: data?.worked ?? 0 };
-}
-
 export async function loadPlacementProgress(placementId: string) {
   const { data, error } = await createClient().rpc("placement_progress", { placement: placementId });
   if (error) throw error;
@@ -377,7 +394,7 @@ export async function loadFlaggedEvents(from: string, to: string) {
   return data ?? [];
 }
 
-/** Everything the uni report and certificate need (§13), read under the caller's RLS. */
+/** Everything the intern report and certificate need (§13), read under the caller's RLS. */
 export async function loadReportData(placementId: string): Promise<Omit<ReportInput, "generatedAt" | "documentId">> {
   const client = createClient();
   const { data: placement, error: placementError } = await client

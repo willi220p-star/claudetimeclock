@@ -5,7 +5,6 @@ import {
   coversLine,
   dayCellStatus,
   forecastSeries,
-  fortnightLabel,
   overtimeSteps,
   requestTimeline,
   splitEffect,
@@ -34,13 +33,6 @@ describe("placement-ui", () => {
     expect(coversLine(360, 450)).toBe("Covers 6h of 7h 30m owed");
     expect(dayCellStatus({ workDate: "2026-10-06", today: "2026-10-06", dayStatus: "scheduled" })).toBe("today");
     expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "moved" })).toBe("moved");
-  });
-
-  test("fortnightLabel is the visa self-check line", () => {
-    expect(fortnightLabel("2026-09-28", "2026-10-11", 1350)).toBe(
-      "This fortnight (Mon 28 Sep – Sun 11 Oct): 22h 30m counted",
-    );
-    expect(fortnightLabel("2026-09-28", "2026-10-11", 0)).toBe("This fortnight (Mon 28 Sep – Sun 11 Oct): 0h counted");
   });
 
   test("forecastSeries accumulates counted hours and projects to the forecast week", () => {

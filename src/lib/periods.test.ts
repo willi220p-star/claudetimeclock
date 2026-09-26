@@ -8,8 +8,10 @@ import {
   fortnightEnd,
   fortnightIndex,
   fortnightStart,
+  isoWeekday,
   lastWeekStart,
   mondayOf,
+  rosterTotal,
   totalWeeks,
   weekNo,
 } from "@/lib/periods";
@@ -83,5 +85,17 @@ describe("periods (R5.7)", () => {
     expect(august[0][0]).toBe("2026-08-03");
     expect(august.at(-1)).toEqual(["2026-08-31", null, null, null, null]);
     expect(august.flat().filter(Boolean)).toHaveLength(21);
+  });
+
+  test("isoWeekday runs Monday 1 to Sunday 7", () => {
+    expect(isoWeekday("2026-10-05")).toBe(1);
+    expect(isoWeekday("2026-10-11")).toBe(7);
+  });
+
+  test("rosterTotal adds a weekly pattern across the dates, both ends included", () => {
+    // Mon 450 min, Wed 240 min, from Mon 5 Oct to Mon 26 Oct: 4 Mondays and 3 Wednesdays.
+    const minutes = (weekday: number) => (weekday === 1 ? 450 : weekday === 3 ? 240 : 0);
+    expect(rosterTotal("2026-10-05", "2026-10-26", minutes)).toEqual({ days: 7, minutes: 4 * 450 + 3 * 240 });
+    expect(rosterTotal("2026-10-06", "2026-10-06", minutes)).toEqual({ days: 0, minutes: 0 });
   });
 });

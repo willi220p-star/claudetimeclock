@@ -227,7 +227,7 @@ export type Database = {
           id: number
           notice_sha256: string
           notice_version: string
-          person_id: string
+          person_id: string | null
           purpose: string
           recorded_at: string
           recorded_by: string
@@ -239,7 +239,7 @@ export type Database = {
           id?: never
           notice_sha256: string
           notice_version: string
-          person_id: string
+          person_id?: string | null
           purpose: string
           recorded_at?: string
           recorded_by: string
@@ -251,7 +251,7 @@ export type Database = {
           id?: never
           notice_sha256?: string
           notice_version?: string
-          person_id?: string
+          person_id?: string | null
           purpose?: string
           recorded_at?: string
           recorded_by?: string
@@ -699,6 +699,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           occurred_at: string
+          photo_deleted_at: string | null
           photo_path: string | null
           place_name: string | null
           placement_id: string | null
@@ -722,6 +723,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
+          photo_deleted_at?: string | null
           photo_path?: string | null
           place_name?: string | null
           placement_id?: string | null
@@ -745,6 +747,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
+          photo_deleted_at?: string | null
           photo_path?: string | null
           place_name?: string | null
           placement_id?: string | null
@@ -1416,6 +1419,11 @@ export type Database = {
           week_start: string
         }[]
       }
+      cleanup_preview: { Args: { older_than_days: number }; Returns: Json }
+      cleanup_run: {
+        Args: { kind: string; older_than_days: number }
+        Returns: Json
+      }
       clock_punch: {
         Args: {
           accuracy_m: number
@@ -1430,6 +1438,18 @@ export type Database = {
       confirm_completion: {
         Args: { note?: string; placement: string }
         Returns: undefined
+      }
+      create_intern: {
+        Args: {
+          allow_extra?: boolean
+          display_name: string
+          email: string
+          is_admin: boolean
+          is_supervisor: boolean
+          password: string
+          placement: Json
+        }
+        Returns: Json
       }
       create_person: {
         Args: {
@@ -1455,6 +1475,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
       extend_placement: {
         Args: {
           allow_extra?: boolean
@@ -1632,12 +1653,24 @@ export type Database = {
         }[]
       }
       start_clock: { Args: { event_type: string }; Returns: Json }
+      storage_usage: {
+        Args: never
+        Returns: {
+          bucket: string
+          bytes: number
+          files: number
+        }[]
+      }
       submit_catch_up: {
         Args: { option: string; placement: string }
         Returns: Json
       }
       submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }
       today_board: { Args: { site?: string }; Returns: Json }
+      update_record: {
+        Args: { patch: Json; row_id: string; tbl: string }
+        Returns: Json
+      }
       update_settings: { Args: { changes: Json }; Returns: Json }
       withdraw_placement: {
         Args: { placement: string; reason: string }

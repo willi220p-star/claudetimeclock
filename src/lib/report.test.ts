@@ -60,7 +60,7 @@ function input(overrides: Partial<ReportInput> = {}): ReportInput {
   };
 }
 
-describe("uni report model", () => {
+describe("intern report model", () => {
   test("the document id is the placement's short id plus a SHA-256 of id + generated_at", async () => {
     const id = await documentId(PLACEMENT_ID, GENERATED);
     expect(id).toMatch(/^DGK-3F2A91C0-[0-9A-F]{8}$/);
