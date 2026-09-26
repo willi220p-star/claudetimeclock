@@ -94,14 +94,10 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Audit log: keep the actor's name at the time of the action.
 -- ---------------------------------------------------------------------------
+-- No backfill: the audit log is append-only (a trigger raises on any update, no exceptions), so
+-- existing rows keep actor_name null and fall back to audit_search's live profile join, same as
+-- before this migration. Only actions logged from here on get the name stored permanently.
 alter table public.daymark_audit_log add column actor_name text;
-
--- Backfill what can still be resolved today; anything already unresolvable stays null (unchanged
--- from before this migration — we can't recover a name that was never stored).
-update public.daymark_audit_log a
-set actor_name = p.display_name
-from public.daymark_profiles p
-where p.id = a.actor_id and a.actor_name is null;
 
 create or replace function private.audit(
   action text,
