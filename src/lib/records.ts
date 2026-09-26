@@ -213,7 +213,8 @@ export const RECORD_TABLES: RecordTable[] = [
     adminOnly: true,
     order: { column: "at" },
     title: (r) => join(LABEL(r.action), text(r.table_name)),
-    subtitle: (r, n) => join(n.person(r.actor_id) ?? "System", when(r.at)),
+    // actor_name is stored at the time of the action, so it survives that person being deleted later.
+    subtitle: (r) => join((r.actor_name as string | null) ?? (r.actor_id ? "Unknown person" : "System"), when(r.at)),
   },
   {
     table: "daymark_sites",

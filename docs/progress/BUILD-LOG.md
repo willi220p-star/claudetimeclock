@@ -313,3 +313,12 @@ Dilip's answers: admins edit and delete, supervisors view only; the audit log an
 - Phone: staff tab strip scrolls the current tab into view; new screens checked at 390 px.
 - Migration `20260926010000_records_roster.sql`, pgTAP `090_records.sql` (45), e2e `records-roster.spec.ts`.
 Gates: lint, typecheck, Vitest 151, pgTAP 39 files / 805, Playwright 13 passed / 7 skipped, static build, brand grep.
+
+### Clock always on; audit log keeps the actor's name (Dilip, 2026-09-26)
+Dilip's answers: lift the weekday/office-hours/closure block entirely (weekends + time window + closures); keep GPS+selfie and the placement's start/end dates; a day/time outside the roster still counts 0 hours until approved (unchanged, needed no code); store the actor's name on the audit row forever, even after that person is deleted.
+- `private.clock_block_reason` no longer blocks on weekday, the site's clocking window or a closure day (R5.1.2 lifted, D16). Kept: inactive login, no/ended placement, target reached, the placement's own start/planned-end dates, in/out sequence, the previous day's work-log gate (R5.1.6), the office headcount cap for an unscheduled shift (R5.1.8), and the 60-second rate limit.
+- `daymark_audit_log` gained `actor_name text`, filled by `private.audit()` at write time and backfilled for existing rows still resolvable; `audit_search` prefers the stored name, falling back to a live profile join for rows written before this migration. The Records tab's Audit log entries do the same (D17).
+- Removed the now-dead `weekend`/`closure`/`window` block-reason branches from the ClockCard's `blockFix`.
+- Flagged, not changed: the collection notice still says clocking never happens outside Mon–Fri 7am–7pm, which is no longer true — publishing new wording needs a new notice version and interns re-consenting, a call for Dilip (see program-design spec, Deferred).
+- Migration `20260926020000_clock_always_on.sql`. Updated pgTAP: `005_punch_rules.sql` (weekday/weekend/closure now `lives_ok`), `027_closure_clock_out.sql` (a closure blocks nothing, not even re-entry), `030_today.sql` (a still-valid `not_started` block code in place of `weekend`).
+Gates: lint, typecheck, Vitest 151, pgTAP 39 files / 805, Playwright 13 passed / 7 skipped, static build, brand grep.
