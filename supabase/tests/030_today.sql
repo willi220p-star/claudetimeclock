@@ -60,9 +60,10 @@ reset role;
 select tests.as_person((select a from ids));
 select is((public.clock_status() ->> 'next_event'), 'shift_out', 'clocked-in interns are offered Clock out');
 reset role;
-select tests.at('2026-10-17 09:00+09:30');
+-- Weekends no longer block (26 Sep, Dilip: always on); before the placement starts still does.
+select tests.at('2026-10-01 09:00+09:30');
 select tests.as_person((select d from ids));
-select is((public.clock_status() ->> 'block_code'), 'weekend', 'blocked states carry a code for the fix action');
+select is((public.clock_status() ->> 'block_code'), 'not_started', 'blocked states carry a code for the fix action');
 reset role;
 
 -- Realtime publication

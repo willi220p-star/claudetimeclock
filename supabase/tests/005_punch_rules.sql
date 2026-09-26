@@ -15,13 +15,23 @@ select tests.consent_all(d) from ids;
 select tests.consent_all(e) from ids;
 select tests.consent_all(sup) from ids;
 
--- R5.1.2 window, weekends, closure days
-select throws_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-14 06:59:59+09:30')$$,
-  'P0001', 'Clocking is open 7:00 am to 7:00 pm on weekdays.', '06:59:59 is too early');
-select throws_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-17 10:00+09:30')$$,
-  'P0001', 'The office is closed on weekends.', 'Saturday is closed');
-select throws_ok($$select tests.clock((select a from ids), 'shift_in', '2026-12-25 10:00+09:30')$$,
-  'P0001', 'The office is closed today for Christmas Day.', 'closure days are closed');
+-- R5.1.2 lifted (Dilip, 26 Sep): the office-hours window, weekends and closure days no longer
+-- block clocking. Separate interns, so `a` stays fresh for the geofence tests below.
+create temp table always_on as
+select tests.create_intern('paw@test.dev') as early,
+       tests.create_intern('pwe@test.dev') as weekend,
+       tests.create_intern('pcl@test.dev') as closure;
+grant select on always_on to authenticated;
+select tests.consent_all(early) from always_on;
+select tests.consent_all(weekend) from always_on;
+select tests.consent_all(closure) from always_on;
+insert into public.daymark_closure_days (day, name) values ('2026-10-21', 'Test closure');
+select lives_ok($$select tests.clock((select early from always_on), 'shift_in', '2026-10-14 06:59:59+09:30')$$,
+  'clocking before 7am now works');
+select lives_ok($$select tests.clock((select weekend from always_on), 'shift_in', '2026-10-17 10:00+09:30')$$,
+  'clocking on a Saturday now works');
+select lives_ok($$select tests.clock((select closure from always_on), 'shift_in', '2026-10-21 10:00+09:30')$$,
+  'clocking on a closure day now works');
 
 -- R5.1.2 geofence and review accuracy cap
 select throws_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-14 09:00+09:30', p_acc => 151)$$,

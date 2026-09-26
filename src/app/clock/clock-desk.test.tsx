@@ -146,13 +146,18 @@ describe("ClockDesk", () => {
   test("a blocked clock-in shows the database's reason", async () => {
     rpc.mockImplementation((name: string) => {
       if (name === "start_clock") {
-        return Promise.resolve({ data: null, error: { message: "The office is closed on weekends." } });
+        return Promise.resolve({
+          data: null,
+          error: { message: "You've reached your target hours. Your supervisor will confirm what happens next." },
+        });
       }
       return extraRpc(name, { data: null, error: null });
     });
     render(<ClockDesk profile={intern} />);
     fireEvent.click(await screen.findByRole("button", { name: "Clock in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("The office is closed on weekends.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "You've reached your target hours. Your supervisor will confirm what happens next.",
+    );
     expect(getUserMedia).not.toHaveBeenCalled();
   });
 

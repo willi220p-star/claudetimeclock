@@ -15,7 +15,7 @@
 | D4 | Office code / kiosk | — | Not built |
 | D5 | MFA (aal2) | — | Not now; open question and release checklist item |
 | D6 | Consent | — | Full consent pack: collection notice v1.0, append-only consent records, `has_consent` gate, supervisor-confirmation path, `verification_method` on reports |
-| D7 | Clock window end | 19:00:00 inclusive | Kept (review said 18:59) |
+| D7 | Clock window end | 19:00:00 inclusive | Kept (review said 18:59), then superseded by D16 (2026-09-26): no window at all |
 | D8 | Offboarding | Read-only for 30 days | Kept; Auth user removed by `retention-purge` |
 | D9 | Hosting | GitHub Pages | Kept with meta CSP; host move, CAPTCHA, Sydney region, backups, Pro plan go to the release checklist |
 | D10 | Seed data in migrations | Site and closure days in `seed.sql` | The Regus site and NT closure days 2026–2027 are real data, so they go in a migration. `seed.sql` holds only test people and history |
@@ -23,7 +23,9 @@
 | D13 | Uni report and certificate PDFs (§13) | Built client-side with @react-pdf/renderer | Built (reversed by Dilip, 2026-09-25): both PDFs generate in the browser via a lazy-loaded @react-pdf/renderer; CSP adds 'wasm-unsafe-eval' and connect-src data: |
 | D14 | Check-ins and Monday summary (§11.3) | Built | Built (reversed by Dilip, 2026-09-25): `save_checkin`, `checkins_due`, `monday_summary`, Monday 08:00 job; late alert at clock-in, left-early alert at day close |
 | D15 | Faster finish (Dilip) | Full screens | Built (reversed by Dilip, 2026-09-25): admin Sites/Closures/Settings/Audit screens, intern month calendar, forecast chart, supervisor Flags tab. Only `/admin/reports` stays a placeholder |
-| D12 | Deleting people | Admin could delete a login | Removed. Admin deactivates; deletion happens only through the retention purge |
+| D12 | Deleting people | Admin could delete a login | Removed, then reversed (Dilip, 2026-09-26): admins can delete a person and most records from the Records tab (`delete_person`, `delete_record`). The audit log and consent records are never deleted; deleting keeps `daymark.purging`'s sibling flag `daymark.erasing` so the append-only trigger allows only clearing the consent link, nothing else |
+| D16 | Clock-in/out window (R5.1.2) | Mon–Fri, site hours, no closure days | Reversed (Dilip, 2026-09-26): clocking is always on — no weekday, office-hours or closure-day block. GPS + selfie, the placement's own start/end dates, the office headcount cap for unscheduled shifts (R5.1.8) and the previous day's work-log gate (R5.1.6) are unchanged. A day/time outside the intern's roster still counts 0 hours until a supervisor or admin approves it as extra time or overtime |
+| D17 | Audit log actor | Actor id only, joined live to the current profile | The actor's display name is stored on the row at the time of the action (`daymark_audit_log.actor_name`), so it's never lost when that person is later deleted |
 
 ## Security overlay (review §5, mapped to daymark names)
 - Clocking goes through `public.start_clock(event_type)` → a `daymark_clock_challenges` row (90 s, single use, random gesture) → selfie uploaded to `daymark-photos/<intern>/<challenge>.jpg` → `public.clock_punch(...)`. The function checks the challenge, that the object exists, is owned by the caller and was created within 3 minutes of issue, and that `accuracy_m ≤ 150`. It stamps `occurred_at := private.clock_now()` and keeps the client time only as `client_reported_at`.
@@ -58,3 +60,4 @@ Still deferred:
 | **Office code** kiosk | D4 | not started | kiosk role, HMAC code, check in `clock_punch` |
 | **CAPTCHA** on sign-in/reset | release checklist | dashboard setting | Turnstile widget + CSP entry |
 | Report ID + data hash stored (`uni_reports`) | security review | not started | a table and an insert when a PDF is generated |
+| Collection notice wording update | D16 | not started | the published notice (`daymark_notices`) still says "We never track you... outside Mon–Fri 7:00 am–7:00 pm", which is no longer true after D16. Updating the notice text means publishing a new version (`publish_notice`) and existing interns re-consenting — a legal/product call for Dilip, not made here |

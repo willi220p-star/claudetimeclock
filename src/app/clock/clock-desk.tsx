@@ -555,10 +555,8 @@ function countedToday(punches: PunchCard[], todayKey: string) {
   return raw > 300 ? raw - 30 : raw;
 }
 
+// Clocking is always on (26 Sep, Dilip): no more "weekend"/"closure"/"window" block codes.
 function blockFix(code: string | null | undefined) {
-  if (code === "window") return "Wait until clocking opens, then try again.";
-  if (code === "weekend") return "Come back on a weekday.";
-  if (code === "closure") return "The office is closed today.";
   if (code === "read_only") return "Your placement has ended.";
   return "Check the reason, then try again.";
 }
