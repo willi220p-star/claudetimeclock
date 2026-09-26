@@ -48,7 +48,8 @@ reach only new sessions, so each call also makes PostgREST drop its pooled conne
 | `swap.spec.ts` | 2. Swap → supervisor approves → schedule updates | Runs (mobile) |
 | `extra-spot.spec.ts` | 3. Extra spot through the admin | Runs (mobile) |
 | `catch-up.spec.ts` | 4. Catch-up option B submitted | Runs (mobile) |
-| `uni-report.spec.ts` | 5. Supervisor approves the uni report (no PDF, D13) | Runs (mobile) |
+| `intern-report.spec.ts` | 5. Supervisor approves the intern report (no PDF, D13) | Runs (mobile) |
+| `records-roster.spec.ts` | Admin adds an intern with a roster, roster views, Records edit/delete; supervisor view-only | Runs (mobile) |
 
 Each stub lists its steps as comments. Golden paths change the seed, so give the `mobile` and
 `desktop` runs different seed accounts (or reset between them).

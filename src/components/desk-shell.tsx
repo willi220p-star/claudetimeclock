@@ -22,12 +22,15 @@ const SUPERVISOR_NAV = [
   { href: "/supervisor", label: "Today", match: (path: string) => path === "/supervisor" || path === "/supervisor/" },
   { href: "/supervisor/approvals", label: "Approvals", match: (path: string) => path.startsWith("/supervisor/approvals") },
   { href: "/supervisor/interns", label: "Interns", match: (path: string) => path.startsWith("/supervisor/intern") },
+  { href: "/supervisor/roster", label: "Roster", match: (path: string) => path.startsWith("/supervisor/roster") },
   { href: "/supervisor/summary", label: "Summary", match: (path: string) => path.startsWith("/supervisor/summary") },
+  { href: "/supervisor/records", label: "Records", match: (path: string) => path.startsWith("/supervisor/records") },
 ] as const;
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Overview", match: (path: string) => path === "/admin" || path === "/admin/" },
   { href: "/admin/placements", label: "Placements", match: (path: string) => path.startsWith("/admin/placement") },
+  { href: "/admin/roster", label: "Roster", match: (path: string) => path.startsWith("/admin/roster") },
   { href: "/admin/people", label: "People", match: (path: string) => path.startsWith("/admin/people") },
   { href: "/admin/cohorts", label: "Cohorts", match: (path: string) => path.startsWith("/admin/cohorts") },
   { href: "/admin/import", label: "Import", match: (path: string) => path.startsWith("/admin/import") },
@@ -36,6 +39,7 @@ const ADMIN_NAV = [
   { href: "/admin/closures", label: "Closures", match: (path: string) => path.startsWith("/admin/closures") },
   { href: "/admin/settings", label: "Settings", match: (path: string) => path.startsWith("/admin/settings") },
   { href: "/admin/reports", label: "Reports", match: (path: string) => path.startsWith("/admin/reports") },
+  { href: "/admin/records", label: "Records", match: (path: string) => path.startsWith("/admin/records") },
   { href: "/admin/audit", label: "Audit", match: (path: string) => path.startsWith("/admin/audit") },
 ] as const;
 
@@ -81,6 +85,8 @@ function NavLinks({ items, orientation }: { items: readonly NavItem[]; orientati
             <Link
               href={item.href}
               aria-current={current ? "page" : undefined}
+              // On phones the tabs scroll sideways: keep the current one in view.
+              ref={current && orientation === "tabs" ? (node) => node?.scrollIntoView({ block: "nearest", inline: "center" }) : undefined}
               className={cn(
                 "inline-flex min-h-11 w-full items-center px-4 text-[15px] font-medium whitespace-nowrap transition-colors",
                 orientation === "tabs" ? "justify-center rounded-full" : "justify-start rounded-md",

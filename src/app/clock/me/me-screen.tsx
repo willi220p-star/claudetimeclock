@@ -52,20 +52,20 @@ function MeDesk() {
 
   return (
     <>
-      <PageHeader title="Me" description="Work logs, your uni report, and sign out." />
+      <PageHeader title="Me" description="Work logs, your intern report, and sign out." />
       <LoadBlock state={state} reload={reload} empty="No placement on this login.">
         {({ placement, logs, approver }) => (
           <div className="flex flex-col gap-6">
             <section className="flex flex-col gap-2 rounded-xl bg-card p-6 shadow-card">
-              <h2>Uni report</h2>
+              <h2>Intern report</h2>
               {placement?.report_approved_at ? (
                 <p>
-                  Your uni report is <span className="font-semibold">approved</span>
+                  Your intern report is <span className="font-semibold">approved</span>
                   {approver ? ` by ${approver}` : ""} on {formatDay(placement.report_approved_at)}.
                 </p>
               ) : (
                 <p className="text-muted-foreground">
-                  Your supervisor approves the uni report when your hours are final. The download will show here.
+                  Your supervisor approves the intern report when your hours are final. The download will show here.
                 </p>
               )}
               {placement ? (

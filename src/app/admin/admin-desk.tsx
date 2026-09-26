@@ -57,7 +57,7 @@ export function AdminDesk({ profile }: { profile: Profile }) {
         }
       />
       <div className="grid items-start gap-6 lg:grid-cols-[360px_1fr]">
-        <AddPersonForm onAdded={reloadPeople} />
+        <AddPersonForm people={people.status === "ready" ? people.data : []} onAdded={reloadPeople} />
         <PeopleList me={profile} people={people} reload={reloadPeople} />
       </div>
       <TimeCards people={people.status === "ready" ? people.data : []} />

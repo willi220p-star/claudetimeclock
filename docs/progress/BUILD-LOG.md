@@ -301,3 +301,15 @@ Four agents in parallel, merged on `claude/quirky-lovelace-ktg6f8`:
 - Intern month calendar, forecast chart (recharts), visa fortnight card, medical certificate upload (consent → upload → attach; supervisor view + sighted), live notifications (Realtime), idle sign-out, sign out all devices. Plain Sign out is now this device only.
 - Uni hours report and completion certificate PDFs (@react-pdf/renderer, lazy); CSP adds `'wasm-unsafe-eval'` and `connect-src data:`. Missing weeks (closure weeks) are listed with zeros.
 Gates: lint, typecheck, Vitest 142, pgTAP 38 files / 760, Playwright 11 passed / 5 skipped, static build, brand grep.
+
+### Records, roster and add-intern (Dilip, 2026-09-26)
+Dilip's answers: admins edit and delete, supervisors view only; the audit log and consent records are never deleted; the add-intern form asks for the full placement; supervisors see their own interns, week view first.
+- "Uni report" is now "Intern report" everywhere (UI, PDF title and file name `Intern-report-…pdf`, notifications). SQL function names stay.
+- Visa self-check (fortnight card) removed with `fortnightLabel` and `loadFortnightHours`.
+- Add person: ticking Intern asks for supervisor, university, course, start/end dates, days with start/finish times and target hours ("Use roster" fills the roster total). `create_intern` adds the login, placement and roster in one transaction; full days still need "Allow extra spots".
+- Roster (`/admin/roster`, `/supervisor/roster`): Week (default), Month (tap a day) and a two-week day-by-day List.
+- Records (`/admin/records`, `/supervisor/records`): every table with counts, search, record preview; admins edit whitelisted fields (`update_record`) and delete (`delete_record`, `delete_person`), audited, with hours rebuilt and stored files removed. Storage card: usage per bucket and clean-ups (read notifications, used clock-in codes, old selfies → `photo_deleted_at`, files nothing uses).
+- Deleting a person keeps their consent records (person link set to null) and the audit log. Admins can now delete stored files and read all notifications and clock-in codes.
+- Phone: staff tab strip scrolls the current tab into view; new screens checked at 390 px.
+- Migration `20260926010000_records_roster.sql`, pgTAP `090_records.sql` (45), e2e `records-roster.spec.ts`.
+Gates: lint, typecheck, Vitest 151, pgTAP 39 files / 805, Playwright 13 passed / 7 skipped, static build, brand grep.

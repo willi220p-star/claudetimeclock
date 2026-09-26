@@ -4,7 +4,7 @@ import { addDays } from "@/lib/periods";
 import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
 
 /**
- * Uni hours report and completion certificate (§13, D13): pure data → document model. The
+ * Intern report and completion certificate (§13, D13): pure data → document model. The
  * react-pdf components in src/components/pdf only lay these strings out. No selfies, GPS or
  * addresses ever reach the model (§13).
  */
@@ -245,7 +245,7 @@ export function buildReportModel(input: ReportInput): ReportModel {
 export function certificateBlocker(placement: Pick<ReportPlacement, "status" | "report_approved_at">) {
   if (placement.status === "completed") return null;
   if (placement.status === "target_reached" && placement.report_approved_at) return null;
-  if (placement.status === "target_reached") return "The certificate unlocks once the uni report is approved.";
+  if (placement.status === "target_reached") return "The certificate unlocks once the intern report is approved.";
   return "The certificate unlocks when the placement is completed.";
 }
 

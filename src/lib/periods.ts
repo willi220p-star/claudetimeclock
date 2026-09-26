@@ -92,3 +92,25 @@ export function monthGrid(key: string): (string | null)[][] {
   }
   return rows;
 }
+
+/** ISO weekday of a date key: Monday 1 … Sunday 7. */
+export function isoWeekday(key: string) {
+  return ((new Date(dayNumber(key) * DAY).getUTCDay() + 6) % 7) + 1;
+}
+
+/**
+ * What a weekly pattern adds up to between two dates (inclusive), before closures: the roster
+ * the database will generate. `minutesFor` gives a weekday's planned minutes, 0 when off.
+ */
+export function rosterTotal(start: string, end: string, minutesFor: (weekday: number) => number) {
+  let days = 0;
+  let minutes = 0;
+  for (let n = dayNumber(start); n <= dayNumber(end); n++) {
+    const planned = minutesFor(isoWeekday(keyOf(n)));
+    if (planned > 0) {
+      days += 1;
+      minutes += planned;
+    }
+  }
+  return { days, minutes };
+}

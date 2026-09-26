@@ -10,10 +10,10 @@ import { PageHeader } from "@/components/page-header";
 import { ProgressRing } from "@/components/progress-ring";
 import { ForecastChart } from "@/components/forecast-chart";
 import { formatDay } from "@/lib/darwin";
-import { loadFortnightHours, loadInternKpi, loadMyPlacement, loadPlacementProgress, loadWeekHours } from "@/lib/data";
+import { loadInternKpi, loadMyPlacement, loadPlacementProgress, loadWeekHours } from "@/lib/data";
 import { formatMinutes } from "@/lib/minutes";
 import { weekNo } from "@/lib/periods";
-import { forecastSeries, fortnightLabel, type InternKpi } from "@/lib/placement-ui";
+import { forecastSeries, type InternKpi } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
 export function ProgressScreen() {
@@ -31,17 +31,9 @@ export function ProgressScreen() {
 function ProgressDesk() {
   const load = useCallback(async () => {
     const [kpi, placement] = await Promise.all([loadInternKpi(), loadMyPlacement()]);
-    if (!placement) return { kpi, weeks: [], progress: null, fortnight: null };
+    if (!placement) return { kpi, weeks: [], progress: null };
     const [weeks, progress] = await Promise.all([loadWeekHours(placement.id), loadPlacementProgress(placement.id)]);
-    const fortnight =
-      progress?.fortnight_start && progress.fortnight_end
-        ? {
-            start: progress.fortnight_start,
-            end: progress.fortnight_end,
-            ...(await loadFortnightHours(placement.id, progress.fortnight_start)),
-          }
-        : null;
-    return { kpi, weeks, progress, fortnight };
+    return { kpi, weeks, progress };
   }, []);
   const [state, reload] = useLoad(load);
 
@@ -49,7 +41,7 @@ function ProgressDesk() {
     <>
       <PageHeader title="Progress" description="Hours counted against your target. The forecast is written as text." />
       <LoadBlock state={state} reload={reload} empty="No placement hours yet.">
-        {({ kpi, weeks, progress, fortnight }) =>
+        {({ kpi, weeks, progress }) =>
           kpi ? (
             <div className="flex flex-col gap-6">
               <section className="flex flex-col items-center gap-3 rounded-xl bg-card p-6 shadow-card">
@@ -72,38 +64,6 @@ function ProgressDesk() {
                     : "Can't forecast"}
                 </p>
               </section>
-              {fortnight ? (
-                <section aria-labelledby="fortnight-title" className="flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card">
-                  <p className="caption text-muted-foreground">Visa self-check</p>
-                  <h2 id="fortnight-title" className="text-[17px] leading-snug font-semibold">
-                    {fortnightLabel(fortnight.start, fortnight.end, fortnight.counted)}
-                  </h2>
-                  <dl className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <dt className="text-muted-foreground">Counted</dt>
-                      <dd className="font-semibold">
-                        <MinutesText minutes={fortnight.counted} />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Scheduled</dt>
-                      <dd className="font-semibold">
-                        <MinutesText minutes={fortnight.scheduled} />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">Worked</dt>
-                      <dd className="font-semibold">
-                        <MinutesText minutes={fortnight.worked} />
-                      </dd>
-                    </div>
-                  </dl>
-                  <p className="text-sm text-muted-foreground">
-                    Worked is your time on the clock; counted is what goes toward your placement. Check the limits on your
-                    own visa.
-                  </p>
-                </section>
-              ) : null}
               {progress ? <ForecastCard kpi={kpi} weeks={weeks} progress={progress} /> : null}
               <section className="flex flex-col gap-3">
                 <h2>Weekly hours</h2>

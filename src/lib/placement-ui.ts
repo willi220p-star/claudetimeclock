@@ -376,10 +376,6 @@ export function checkinOverdue(latestWeekStart: string | null, lastWeek: string)
 }
 
 /** "This fortnight (Mon 28 Sep – Sun 11 Oct): 22h 30m counted" — the visa self-check line. */
-export function fortnightLabel(start: string, end: string, counted: number) {
-  return `This fortnight (${formatDay(start)} – ${formatDay(end)}): ${formatMinutes(counted)} counted`;
-}
-
 export type ForecastPoint = { week: number; counted: number | null; plan: number; projection: number | null };
 
 const hours = (minutes: number) => Math.round(minutes / 6) / 10;

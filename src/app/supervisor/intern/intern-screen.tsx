@@ -270,7 +270,7 @@ function InternDetail({
 
       {placement.report_approved_at ? (
         <p className="rounded-lg bg-ok-bg px-4 py-3 text-ok">
-          Uni report <span className="font-semibold">approved</span> · {approvedName} · {formatDay(placement.report_approved_at)}
+          Intern report <span className="font-semibold">approved</span> · {approvedName} · {formatDay(placement.report_approved_at)}
         </p>
       ) : null}
 

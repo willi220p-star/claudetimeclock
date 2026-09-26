@@ -66,12 +66,12 @@ function Cells({ values, widths }: { values: string[]; widths: string[] }) {
 
 function ReportDocument({ m }: { m: ReportModel }) {
   return (
-    <Document title={`Placement hours report — ${m.internName}`} author="DGK Business Consultancy" subject={m.documentId}>
+    <Document title={`Intern report — ${m.internName}`} author="DGK Business Consultancy" subject={m.documentId}>
       <Page size="A4" style={s.page}>
         <View style={s.header}>
           <Logo size={44} />
           <View style={{ flexGrow: 1 }}>
-            <Text style={s.title}>Placement hours report</Text>
+            <Text style={s.title}>Intern report</Text>
             <Text style={s.muted}>DGK Business Consultancy · Palmerston City NT</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
