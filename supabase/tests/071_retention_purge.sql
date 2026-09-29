@@ -34,7 +34,7 @@ set local role service_role;
 create temp table counts as select public.purge_intern((select gone from ids), 3) as j;
 reset role;
 
-select ok((select (j ->> 'punches')::int = 2 and (j ->> 'placements')::int = 1 and (j ->> 'profiles')::int = 1 from counts),
+select ok((select (j ->> 'punches')::int = 2 and (j ->> 'placements')::int = 1 and (j ->> 'consent_records')::int = 3 from counts),
   'rows were deleted and counted');
 select is((select count(*)::int from public.daymark_punches where user_id = (select gone from ids)), 0, 'no punches left');
 select is((select count(*)::int from public.daymark_consent_records where person_id = (select gone from ids)), 0, 'no consent records left');
@@ -42,8 +42,8 @@ select is((select count(*)::int from public.daymark_placements where intern_id =
 select is((select count(*)::int from public.daymark_audit_log where actor_id = (select gone from ids) or row_id = (select gone from ids)::text), 0,
   'no audit rows about them left');
 select ok(exists (select 1 from public.daymark_audit_log where action = 'retention_purge'
-                  and row_id = encode(extensions.digest((select gone from ids)::text, 'sha256'), 'hex')
-                  and (after ->> 'storage_objects')::int = 3), 'one audit row with a hash and the counts');
+                  and row_id is null and actor_id is null
+                  and (after ->> 'storage_objects')::int = 3), 'one nameless audit row with the counts, no id or hash');
 select ok(not exists (select 1 from public.daymark_audit_log where action = 'retention_purge'
                       and (after::text ilike '%gone@test.dev%' or after::text ilike '%gone%')), 'without personal data');
 select is((select count(*)::int from public.daymark_punches where user_id = (select stay from ids)), 2, 'the other intern is untouched');

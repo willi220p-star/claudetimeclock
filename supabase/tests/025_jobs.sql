@@ -1,5 +1,5 @@
 begin;
-select plan(33);
+select plan(34);
 select tests.without_seed();
 
 -- §8.11 jobs. Wed 14 Oct 2026 (fortnight 12–25 Oct). Interns work Mon–Fri 9:00–5:00 unless noted.
@@ -35,10 +35,12 @@ create function pg_temp.snap() returns text language sql as $$
 $$;
 create temp table snaps (k text primary key, v text);
 
--- R5.5.1 as changed by D3: auto-close (19:05)
-select is(private.job_auto_close(), '{"auto_closed": 0}'::jsonb, 'before 19:00 an open shift is left alone');
-select tests.at('2026-10-14 19:05+09:30');
-select is(private.job_auto_close(), '{"auto_closed": 2}'::jsonb, 'at 19:05 both open shifts are closed');
+-- R5.5.1 as changed by D3 and D16 (always on): a shift open 12 hours is auto-closed (hourly job)
+select is(private.job_auto_close(), '{"auto_closed": 0}'::jsonb, 'an open shift under 12 hours is left alone');
+select tests.at('2026-10-14 21:00+09:30');
+select is(private.job_auto_close(), '{"auto_closed": 1}'::jsonb, '12 hours after 9:00 am the first open shift is closed');
+select tests.at('2026-10-15 02:05+09:30');
+select is(private.job_auto_close(), '{"auto_closed": 1}'::jsonb, 'the 2:00 pm clock-in closes 12 hours after it started');
 select results_eq($$select clock_out_at = clock_in_at, auto_closed from public.daymark_shifts
                     where placement_id = tests.placement((select a from ids))$$,
   $$values (true, true)$$, 'D3 the clock-out is the clock-in, flagged auto_closed');
@@ -146,10 +148,10 @@ reset role;
 
 -- A2 pg_cron schedules (UTC)
 select results_eq($$select jobname::text, schedule::text, command from cron.job where jobname in ('daymark-auto-close', 'daymark-day-close', 'daymark-reconcile') order by jobname$$,
-  $$values ('daymark-auto-close', '35 9 * * *', 'select private.job_auto_close()'),
+  $$values ('daymark-auto-close', '5 * * * *', 'select private.job_auto_close()'),
            ('daymark-day-close', '40 9 * * *', 'select private.job_day_close()'),
            ('daymark-reconcile', '30 16 * * *', 'select private.job_reconcile()')$$,
-  'jobs run at 19:05, 19:10 and 02:00 Darwin');
+  'auto-close runs hourly; day close at 19:10 and reconcile at 02:00 Darwin');
 
 select * from finish();
 rollback;

@@ -138,10 +138,10 @@ select is((select count(*)::int from public.daymark_profiles where id = (select 
 select is((select count(*)::int from auth.users where id = (select b from ids)), 0, 'so is the login');
 select is((select count(*)::int from public.daymark_punches where user_id = (select b from ids)), 0, 'and their punches');
 select is((select count(*)::int from public.daymark_placements where intern_id = (select b from ids)), 0, 'and their placement');
-select is((select count(*)::int from public.daymark_consent_records c
-           where c.person_id is null and c.recorded_by = (select b from ids)), 3, 'consent records stay, unlinked');
-select ok(exists (select 1 from public.daymark_audit_log l where l.action = 'delete_person' and l.row_id = (select b from ids)::text
-  and l.before ->> 'display_name' = 'rc.b'), 'the deletion is audited');
+select is((select count(*)::int from public.daymark_consent_records c where c.recorded_by = (select b from ids)), 0,
+  'their consent records are gone too (full delete, notice v1.1)');
+select ok(exists (select 1 from public.daymark_audit_log l where l.action = 'delete_person' and l.row_id is null
+  and l.actor_id = (select admin from ids) and l.after::text not ilike '%rc.b%'), 'one nameless note records the deletion');
 
 -- Storage clean-up ------------------------------------------------------------------------
 insert into public.daymark_notifications (person_id, kind, title, body, read_at)
