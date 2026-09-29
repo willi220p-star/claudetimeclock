@@ -35,8 +35,8 @@ select is(tests.verdict((select pf from ids), 'punch_fix', '{"date":"2026-10-14"
   'I forgot to clock in and out that day.'), 'Punch fixes are for today or earlier.', 'no fixes for future days');
 select is(tests.verdict((select pf from ids), 'punch_fix', '{"date":"2026-10-13","clock_in":"09:00","clock_out":"11:00"}',
   'I forgot to clock in and out that day.'), 'Punch-fix times must be in the past.', 'no fixed times in the future');
-select is(tests.verdict((select pf from ids), 'punch_fix', '{"date":"2026-10-06","clock_in":"06:30","clock_out":"17:00"}',
-  'I forgot to clock in and out that day.'), 'Punch-fix times must be between 7:00 am and 7:00 pm.', 'times inside the window');
+select is(tests.verdict((select pf from ids), 'punch_fix', '{"date":"2026-10-06","clock_in":"06:30","clock_out":"21:00"}',
+  'I forgot to clock in and out that day.'), 'ok', 'any time of day now that clocking is always on (D16)');
 
 -- out > in, no overlap with another shift that day
 select is(tests.verdict((select pf from ids), 'punch_fix', '{"date":"2026-10-09","clock_in":"13:00","clock_out":"12:30"}',

@@ -128,6 +128,47 @@ export async function loadRoster(from: string, to: string, supervisorId?: string
 
 export type RosterRow = Awaited<ReturnType<typeof loadRoster>>[number];
 
+/** Banners the signed-in person should see now (admin's to everyone, their supervisor's to them). */
+export async function loadCurrentBanners() {
+  const { data, error } = await createClient().rpc("current_banners");
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** Banners the signed-in person can manage: their own, or every banner for an admin. */
+export async function loadManagedBanners() {
+  const { data, error } = await createClient()
+    .from("daymark_banners")
+    .select("*, author:daymark_profiles!daymark_banners_created_by_fkey(display_name)")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export type Banner = Awaited<ReturnType<typeof loadCurrentBanners>>[number];
+
+/** Live placements the signed-in staff member can change: all for an admin, their own for a supervisor. */
+export async function loadManagedPlacements(supervisorId?: string) {
+  let query = createClient()
+    .from("daymark_placements")
+    .select("id, start_date, planned_end_date, intern:daymark_profiles!daymark_placements_intern_id_fkey(display_name)")
+    .in("status", ["active", "extended", "target_reached"]);
+  if (supervisorId) query = query.eq("supervisor_id", supervisorId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? [])
+    .map((row) => ({
+      id: row.id,
+      intern_name: row.intern?.display_name ?? "Intern",
+      start_date: row.start_date,
+      planned_end_date: row.planned_end_date,
+    }))
+    .sort((a, b) => a.intern_name.localeCompare(b.intern_name));
+}
+
+export type ManagedPlacement = Awaited<ReturnType<typeof loadManagedPlacements>>[number];
+
 export async function loadDayResults(placementId: string, from: string, to: string) {
   const { data, error } = await createClient()
     .from("daymark_day_results")

@@ -70,6 +70,53 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_banners: {
+        Row: {
+          active: boolean
+          audience: string
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          id: string
+          message: string
+          starts_at: string
+          style: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          audience: string
+          created_at?: string
+          created_by: string
+          ends_at?: string | null
+          id?: string
+          message: string
+          starts_at?: string
+          style?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          audience?: string
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          id?: string
+          message?: string
+          starts_at?: string
+          style?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_checkins: {
         Row: {
           comment: string | null
@@ -1469,6 +1516,27 @@ export type Database = {
         Args: { payload: Json; reason?: string; type: string }
         Returns: Json
       }
+      current_banners: {
+        Args: never
+        Returns: {
+          active: boolean
+          audience: string
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          id: string
+          message: string
+          starts_at: string
+          style: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "daymark_banners"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       decide_request: {
         Args: {
           approved_minutes?: number
@@ -1479,6 +1547,7 @@ export type Database = {
         Returns: Json
       }
       delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
+      end_banner: { Args: { id: string }; Returns: undefined }
       extend_placement: {
         Args: {
           allow_extra?: boolean
@@ -1590,6 +1659,16 @@ export type Database = {
         }[]
       }
       run_job: { Args: { name: string }; Returns: Json }
+      save_banner: {
+        Args: {
+          ends_at?: string
+          id: string
+          message: string
+          starts_at?: string
+          style?: string
+        }
+        Returns: string
+      }
       save_checkin: {
         Args: {
           comment?: string
@@ -1627,6 +1706,16 @@ export type Database = {
         }
         Returns: string[]
       }
+      set_pattern_range: {
+        Args: {
+          allow_extra?: boolean
+          days: Json
+          from_date: string
+          placement: string
+          to_date: string
+        }
+        Returns: Json
+      }
       set_person_access: {
         Args: {
           active: boolean
@@ -1655,6 +1744,27 @@ export type Database = {
           work_date: string
         }[]
       }
+      staff_add_day: {
+        Args: {
+          allow_extra?: boolean
+          end_time: string
+          placement: string
+          start_time: string
+          work_date: string
+        }
+        Returns: string
+      }
+      staff_cancel_day: { Args: { day: string }; Returns: undefined }
+      staff_move_day: {
+        Args: {
+          allow_extra?: boolean
+          day: string
+          end_time: string
+          new_date: string
+          start_time: string
+        }
+        Returns: string
+      }
       start_clock: { Args: { event_type: string }; Returns: Json }
       storage_usage: {
         Args: never
@@ -1670,6 +1780,7 @@ export type Database = {
       }
       submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }
       today_board: { Args: { site?: string }; Returns: Json }
+      update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {
         Args: { patch: Json; row_id: string; tbl: string }
         Returns: Json

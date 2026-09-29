@@ -18,20 +18,21 @@ import { formatMinutes } from "@/lib/minutes";
 import { lastWeekStart } from "@/lib/periods";
 import { BOARD_STATUS, RISK_LABEL, checkinOverdue, type TodayPerson } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
+import { BannerManager } from "@/components/banner-manager";
 
 export function SupervisorScreen() {
   return (
     <DeskGate role="supervisor">
       {(profile) => (
         <StaffShell profile={profile} role="supervisor" title="Today">
-          <TodayDesk />
+          <TodayDesk isAdmin={profile.is_admin} />
         </StaffShell>
       )}
     </DeskGate>
   );
 }
 
-function TodayDesk() {
+function TodayDesk({ isAdmin }: { isAdmin: boolean }) {
   const load = useCallback(() => loadTodayDesk(), []);
   const [state, reload] = useLoad(load);
 
@@ -147,6 +148,7 @@ function TodayDesk() {
           );
         }}
       </LoadBlock>
+      <BannerManager audience={isAdmin ? "everyone" : "your interns"} />
     </>
   );
 }

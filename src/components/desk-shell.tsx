@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { CalendarDays, ChartPie, CircleUserRound, Clock, Inbox, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
@@ -157,7 +158,10 @@ export function StaffShell({
             <NavLinks items={items} orientation="tabs" />
           </nav>
           <main className="flex flex-col gap-6">{children}</main>
-          <div className="mt-10 flex justify-end border-t border-black/5 pt-4">
+          <div className="mt-10 flex flex-wrap justify-end gap-2 border-t border-black/5 pt-4">
+            <Link href="/set-password" className={buttonVariants({ variant: "ghost" })}>
+              Change password
+            </Link>
             <SignOutButton everywhere />
           </div>
         </div>

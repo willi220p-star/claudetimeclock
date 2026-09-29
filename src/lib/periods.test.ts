@@ -11,6 +11,7 @@ import {
   isoWeekday,
   lastWeekStart,
   mondayOf,
+  rollingWeek,
   rosterTotal,
   totalWeeks,
   weekNo,
@@ -97,5 +98,15 @@ describe("periods (R5.7)", () => {
     const minutes = (weekday: number) => (weekday === 1 ? 450 : weekday === 3 ? 240 : 0);
     expect(rosterTotal("2026-10-05", "2026-10-26", minutes)).toEqual({ days: 7, minutes: 4 * 450 + 3 * 240 });
     expect(rosterTotal("2026-10-06", "2026-10-06", minutes)).toEqual({ days: 0, minutes: 0 });
+  });
+
+  test("rollingWeek is today plus six days, marking scheduled ones", () => {
+    const week = rollingWeek("2026-10-13", ["2026-10-13", "2026-10-15", "2026-10-19", "2026-10-20"]);
+    expect(week.map((d) => d.date)).toEqual([
+      "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19",
+    ]);
+    expect(week.map((d) => d.weekday)).toEqual([2, 3, 4, 5, 6, 7, 1]);
+    expect(week.map((d) => d.scheduled)).toEqual([true, false, true, false, false, false, true]);
+    expect(week.filter((d) => d.today).map((d) => d.date)).toEqual(["2026-10-13"]);
   });
 });

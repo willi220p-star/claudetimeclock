@@ -1,7 +1,8 @@
 // Nightly retention purge (ADR 0003, build prompt §8.12, security review rule 21).
 // Called by pg_cron through pg_net with the `x-cron-secret` header. Storage objects are removed
 // through the Storage API (direct SQL deletes on storage.objects are blocked and would orphan
-// files), rows by `purge_intern` in one transaction, then the Auth user through the Admin API.
+// files), then `purge_intern` erases the rows, the audit history about the intern and the Auth
+// login in one transaction (private.erase_person).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const BUCKETS = ["daymark-photos", "daymark-leave-docs"];
@@ -66,8 +67,6 @@ Deno.serve(async (req) => {
         objects_deleted: objects,
       });
       if (purgeError) throw new Error(purgeError.message);
-      const { error: authError } = await admin.auth.admin.deleteUser(intern_id);
-      if (authError) throw new Error(`auth: ${authError.message}`);
       report.push({ ok: true, objects, rows: counts });
     } catch (error) {
       // No ids or names in the response: it may end up in logs.

@@ -114,3 +114,14 @@ export function rosterTotal(start: string, end: string, minutesFor: (weekday: nu
   }
   return { days, minutes };
 }
+
+export type RosterDot = { date: string; weekday: number; scheduled: boolean; today: boolean };
+
+/** Home's "Your roster": today and the next six days, marking the scheduled ones. */
+export function rollingWeek(today: string, scheduled: Iterable<string>): RosterDot[] {
+  const on = new Set(scheduled);
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(today, i);
+    return { date, weekday: isoWeekday(date), scheduled: on.has(date), today: i === 0 };
+  });
+}

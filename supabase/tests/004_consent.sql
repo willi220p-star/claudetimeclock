@@ -43,9 +43,9 @@ select throws_ok($$delete from public.daymark_consent_records$$, 'P0001', null, 
 select tests.as_person((select intern_a from ids));
 select public.record_consent('selfie', 'granted');
 reset role;
-select ok(private.has_consent((select intern_a from ids), 'selfie'), 'selfie consent under v1.0');
-insert into public.daymark_notices (version, title, body) values ('1.1', 'Test notice', 'Changed text');
-update public.daymark_settings set notice_version = '1.1';
+select ok(private.has_consent((select intern_a from ids), 'selfie'), 'selfie consent under the current notice');
+insert into public.daymark_notices (version, title, body) values ('1.2', 'Test notice', 'Changed text');
+update public.daymark_settings set notice_version = '1.2';
 select ok(not private.has_consent((select intern_a from ids), 'selfie'), 'a new notice version needs re-acknowledgement');
 
 select * from finish();

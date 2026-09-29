@@ -3,14 +3,15 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { DeskGate } from "@/components/desk-gate";
 import { StaffShell } from "@/components/desk-shell";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
+import { AddDaySheet, ChangeDaysSheet, DaySheet } from "@/components/roster-edit";
 import { Button } from "@/components/ui/button";
 import { darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
-import { loadClosures, loadRoster, type RosterRow } from "@/lib/data";
+import { loadClosures, loadManagedPlacements, loadRoster, type ManagedPlacement, type RosterRow } from "@/lib/data";
 import type { Profile } from "@/lib/daymark";
 import { addDays, addMonths, isoWeekday, mondayOf, monthGrid, monthStart } from "@/lib/periods";
 import { useLoad } from "@/lib/use-load";
@@ -52,16 +53,32 @@ function RosterDesk({ role, profile }: { role: Role; profile: Profile }) {
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState(today);
   const [picked, setPicked] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RosterRow | null>(null);
+  const [adding, setAdding] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
   const { from, to } = rangeOf(view, anchor);
+  const mine = role === "supervisor" ? profile.id : undefined;
 
   const load = useCallback(async () => {
-    const [rows, closures] = await Promise.all([
-      loadRoster(from, to, role === "supervisor" ? profile.id : undefined),
-      loadClosures(from, to),
-    ]);
+    const [rows, closures] = await Promise.all([loadRoster(from, to, mine), loadClosures(from, to)]);
     return { rows, closures };
-  }, [from, to, role, profile.id]);
+  }, [from, to, mine]);
   const [state, reload] = useLoad(load);
+  const loadPlacements = useCallback(() => loadManagedPlacements(mine).catch(() => [] as ManagedPlacement[]), [mine]);
+  const [managed] = useLoad(loadPlacements);
+  const placements = managed.status === "ready" ? managed.data : [];
+  const edit = {
+    today,
+    canAdd: placements.length > 0,
+    onEdit: (row: RosterRow) => setEditing(row),
+    onAdd: (date: string) => setAdding(date),
+  };
+  const done = () => {
+    setEditing(null);
+    setAdding(null);
+    setChanging(false);
+    reload();
+  };
 
   function step(direction: 1 | -1) {
     setPicked(null);
@@ -83,25 +100,32 @@ function RosterDesk({ role, profile }: { role: Role; profile: Profile }) {
         title="Roster"
         description={role === "admin" ? "Who is working, for every intern." : "Who is working, for your interns."}
         actions={
-          <div role="group" aria-label="Roster view" className="flex rounded-full bg-muted p-1">
-            {VIEWS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={view === option.value}
-                onClick={() => {
-                  setView(option.value);
-                  setPicked(null);
-                }}
-                className={cn(
-                  "min-h-11 rounded-full px-4 text-[15px] font-medium transition-colors sm:px-5",
-                  view === option.value ? "bg-card text-foreground shadow-card" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <>
+            {placements.length > 0 ? (
+              <Button type="button" variant="secondary" onClick={() => setChanging(true)}>
+                Change days
+              </Button>
+            ) : null}
+            <div role="group" aria-label="Roster view" className="flex rounded-full bg-muted p-1">
+              {VIEWS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={view === option.value}
+                  onClick={() => {
+                    setView(option.value);
+                    setPicked(null);
+                  }}
+                  className={cn(
+                    "min-h-11 rounded-full px-4 text-[15px] font-medium transition-colors sm:px-5",
+                    view === option.value ? "bg-card text-foreground shadow-card" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </>
         }
       />
       <div className="mt-4 flex items-center justify-between gap-2">
@@ -191,7 +215,7 @@ function RosterDesk({ role, profile }: { role: Role; profile: Profile }) {
                     })}
                 </ol>
                 <p className="text-sm text-muted-foreground">Tap a day to see who is working. Weekends aren&apos;t shown.</p>
-                {picked ? <DayCard date={picked} rows={on(picked)} closure={closure(picked)} today={today} link={link} /> : null}
+                {picked ? <DayCard date={picked} rows={on(picked)} closure={closure(picked)} link={link} edit={edit} /> : null}
               </div>
             );
           }
@@ -204,32 +228,52 @@ function RosterDesk({ role, profile }: { role: Role; profile: Profile }) {
             <ol className={cn("mt-2 grid gap-3", view === "week" && "lg:grid-cols-5")}>
               {days.map((date) => (
                 <li key={date}>
-                  <DayCard date={date} rows={on(date)} closure={closure(date)} today={today} link={link} compact={view === "week"} />
+                  <DayCard date={date} rows={on(date)} closure={closure(date)} link={link} edit={edit} compact={view === "week"} />
                 </li>
               ))}
             </ol>
           );
         }}
       </LoadBlock>
+
+      {editing ? (
+        <DaySheet
+          key={editing.id}
+          day={editing}
+          internName={editing.intern_name}
+          internLink={link(editing)}
+          today={today}
+          onClose={() => setEditing(null)}
+          onDone={done}
+        />
+      ) : null}
+      {adding ? (
+        <AddDaySheet key={adding} open date={adding} today={today} placements={placements} onClose={() => setAdding(null)} onDone={done} />
+      ) : null}
+      {changing ? <ChangeDaysSheet open today={today} placements={placements} onClose={() => setChanging(false)} onDone={done} /> : null}
     </>
   );
 }
+
+type Edit = { today: string; canAdd: boolean; onEdit: (row: RosterRow) => void; onAdd: (date: string) => void };
 
 function DayCard({
   date,
   rows,
   closure,
-  today,
   link,
+  edit,
   compact = false,
 }: {
   date: string;
   rows: RosterRow[];
   closure: string | null;
-  today: string;
   link: (row: RosterRow) => string;
+  edit: Edit;
   compact?: boolean;
 }) {
+  const today = edit.today;
+  const future = date >= today;
   const working = rows.filter((row) => row.status === "scheduled");
   const leave = rows.filter((row) => row.status === "leave");
   return (
@@ -242,8 +286,18 @@ function DayCard({
           {formatDay(date)}
           {date === today ? <span className="ml-2 text-sm font-normal text-primary">Today</span> : null}
         </h3>
-        <span className="text-sm text-muted-foreground tabular-nums">
+        <span className="flex items-center gap-1 text-sm text-muted-foreground tabular-nums">
           {closure ? "Closed" : `${working.length} working`}
+          {future && edit.canAdd ? (
+            <button
+              type="button"
+              onClick={() => edit.onAdd(date)}
+              aria-label={`Add a day on ${formatDay(date)}`}
+              className="grid size-9 place-items-center rounded-full text-primary hover:bg-primary/10"
+            >
+              <Plus aria-hidden className="size-4" />
+            </button>
+          ) : null}
         </span>
       </div>
       {closure ? <p className="text-sm text-muted-foreground">{closure}</p> : null}
@@ -253,20 +307,32 @@ function DayCard({
       <ul className="flex flex-col divide-y divide-border">
         {[...working, ...leave].map((row) => (
           <li key={row.id}>
-            <Link
-              href={link(row)}
-              className={cn(
-                "flex min-h-11 items-center justify-between gap-2 py-1.5",
+            {(() => {
+              const className = cn(
+                "flex min-h-11 w-full items-center justify-between gap-2 py-1.5 text-left",
                 compact && "lg:flex-col lg:items-start lg:gap-0",
-              )}
-            >
-              <span className={cn("font-medium", row.status === "leave" && "text-muted-foreground")}>{row.intern_name}</span>
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {row.status === "leave"
-                  ? "On leave"
-                  : `${formatTimeOfDay(row.start_time)}–${formatTimeOfDay(row.end_time)}`}
-              </span>
-            </Link>
+              );
+              const content = (
+                <>
+                  <span className={cn("font-medium", row.status === "leave" && "text-muted-foreground")}>{row.intern_name}</span>
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {row.status === "leave"
+                      ? "On leave"
+                      : `${formatTimeOfDay(row.start_time)}–${formatTimeOfDay(row.end_time)}`}
+                  </span>
+                </>
+              );
+              // Staff change a future scheduled day in place; anything else opens the intern.
+              return row.status === "scheduled" && future && edit.canAdd ? (
+                <button type="button" className={className} onClick={() => edit.onEdit(row)} aria-label={`Change ${row.intern_name} on ${formatDay(date)}`}>
+                  {content}
+                </button>
+              ) : (
+                <Link href={link(row)} className={className}>
+                  {content}
+                </Link>
+              );
+            })()}
           </li>
         ))}
       </ul>

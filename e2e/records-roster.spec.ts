@@ -4,6 +4,7 @@ import { addUtcDays, expect, nextMonday, SEED, signIn, test } from "./fixtures";
 // Phone-sized only, like the golden paths: every screen has to work there.
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "phone-sized flows");
+  test.setTimeout(90_000); // long multi-person flows
 });
 
 const shot = (name: string) => test.info().outputPath(`${name}.png`);
@@ -48,10 +49,10 @@ test("admin adds an intern with a roster, sees them on the roster, then edits an
   await expect(page.getByRole("button", { name: "Week", pressed: true })).toBeVisible();
   for (let week = 0; week < 3; week++) await page.getByRole("button", { name: "Next week" }).click();
   await expect(page.getByRole("heading", { name: /^Week of/ })).toContainText(/Mon/);
-  await expect(page.getByRole("link", { name: new RegExp(name) }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: new RegExp(`Change ${name}`) }).first()).toBeVisible();
   await page.screenshot({ path: shot("roster-week"), fullPage: true });
   await page.getByRole("button", { name: "List" }).click();
-  await expect(page.getByRole("link", { name: new RegExp(name) }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: new RegExp(`Change ${name}`) }).first()).toBeVisible();
   await page.getByRole("button", { name: "Month" }).click();
   await page.screenshot({ path: shot("roster-month"), fullPage: true });
 
@@ -79,7 +80,7 @@ test("admin adds an intern with a roster, sees them on the roster, then edits an
   await page.getByRole("searchbox", { name: "Search loaded records" }).fill(name);
   await page.getByRole("button", { name: new RegExp(name) }).click();
   await page.getByRole("button", { name: "Delete" }).click();
-  await expect(page.getByText(/The audit log and consent records stay/)).toBeVisible();
+  await expect(page.getByText(/Nothing that names them is kept/)).toBeVisible();
   await page.getByRole("button", { name: "Delete for good" }).click();
   await expect(page.getByText("Deleted.")).toBeVisible();
   await expect(page.getByRole("button", { name: new RegExp(name) })).toHaveCount(0);

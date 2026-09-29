@@ -20,14 +20,14 @@ test("supervisor approves the intern report", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: /Approve intern report/ }).click();
   await page.getByRole("dialog").getByRole("button", { name: /^Confirm$/ }).click();
   await expect(page.getByText(/Intern report/)).toContainText(/approved/i);
-  await expect(page.getByText(/Tom Walsh/)).toBeVisible();
+  await expect(page.getByText(/Intern report approved · Tom Walsh/)).toBeVisible();
 
   await signOut(page);
   await signIn(page, "intern5@dgk.test");
   await page.getByRole("link", { name: "Me" }).click();
   await expect(page).toHaveURL(/\/clock\/me/);
   await expect(page.getByText(/your intern report is approved/i)).toBeVisible();
-  await expect(page.getByText(/Tom Walsh/)).toBeVisible();
+  await expect(page.getByText(/your intern report is approved by Tom Walsh/i)).toBeVisible();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download intern report (PDF)" }).click();
   expect((await download).suggestedFilename()).toMatch(/^Intern-report-Fatima-Ali-DGK-[0-9A-F]{8}-[0-9A-F]{8}\.pdf$/);
