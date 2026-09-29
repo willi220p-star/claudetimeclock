@@ -14,10 +14,11 @@ import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { PdfDownloads } from "@/components/pdf-downloads";
+import { ChangeDaysSheet } from "@/components/roster-edit";
 import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { loadCohorts, loadPlacement, loadProfiles } from "@/lib/data";
-import { formatDay, formatTimeOfDay } from "@/lib/darwin";
+import { darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
 import { formatMinutes } from "@/lib/minutes";
 import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
@@ -32,21 +33,30 @@ function rel<T extends { display_name?: string; name?: string; contact_email?: s
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-async function loadPattern(placementId: string): Promise<PatternDay[]> {
+type PatternVersion = { effective_from: string; days: PatternDay[] };
+
+/** Every weekly pattern of the placement, newest first (date-range changes add future ones). */
+async function loadPatternHistory(placementId: string): Promise<PatternVersion[]> {
   const { data, error } = await createClient()
     .from("daymark_pattern_versions")
     .select("effective_from, daymark_pattern_days(weekday, start_time, end_time)")
     .eq("placement_id", placementId)
-    .order("effective_from", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("effective_from", { ascending: false });
   if (error) throw error;
-  const days = data?.daymark_pattern_days ?? [];
-  return (Array.isArray(days) ? days : [days]).map((day) => ({
-    weekday: day.weekday,
-    start: String(day.start_time).slice(0, 5),
-    end: String(day.end_time).slice(0, 5),
-  }));
+  return (data ?? []).map((version) => {
+    const days = version.daymark_pattern_days ?? [];
+    return {
+      effective_from: version.effective_from,
+      days: (Array.isArray(days) ? days : [days])
+        .map((day) => ({ weekday: day.weekday, start: String(day.start_time).slice(0, 5), end: String(day.end_time).slice(0, 5) }))
+        .sort((a, b) => a.weekday - b.weekday),
+    };
+  });
+}
+
+/** The pattern in force today: the newest one that has started, else the first one. */
+function currentPattern(versions: PatternVersion[], today: string) {
+  return (versions.find((v) => v.effective_from <= today) ?? versions.at(-1))?.days ?? [];
 }
 
 export function PlacementScreen() {
@@ -61,8 +71,8 @@ function PlacementDesk() {
   const id = useSearchParams().get("id") ?? "";
   const load = useCallback(async () => {
     if (!id) return null;
-    const [row, pattern] = await Promise.all([loadPlacement(id), loadPattern(id)]);
-    return row ? { row, pattern } : null;
+    const [row, versions] = await Promise.all([loadPlacement(id), loadPatternHistory(id)]);
+    return row ? { row, versions } : null;
   }, [id]);
   const [state, reload] = useLoad(load);
   const [profiles, reloadProfiles] = useLoad(loadProfiles);
@@ -95,7 +105,9 @@ function PlacementDesk() {
             </EmptyState>
           );
         }
-        const { row, pattern } = data;
+        const { row, versions } = data;
+        const today = darwinDateKey(new Date());
+        const pattern = currentPattern(versions, today);
         const intern = rel(row.intern);
         const supervisor = rel(row.supervisor);
         const cohort = rel(row.cohort);
@@ -143,7 +155,18 @@ function PlacementDesk() {
             </LoadBlock>
           );
         }
-        return <PlacementFields row={row} intern={intern} supervisor={supervisor} cohort={cohort} pattern={pattern} onEdit={() => setEditing(true)} />;
+        return (
+          <PlacementFields
+            row={row}
+            intern={intern}
+            supervisor={supervisor}
+            cohort={cohort}
+            versions={versions}
+            today={today}
+            onEdit={() => setEditing(true)}
+            onChanged={reload}
+          />
+        );
       }}
     </LoadBlock>
   );
@@ -154,16 +177,26 @@ function PlacementFields({
   intern,
   supervisor,
   cohort,
-  pattern,
+  versions,
+  today,
   onEdit,
+  onChanged,
 }: {
   row: Detail;
   intern: { display_name?: string; contact_email?: string | null } | null;
   supervisor: { display_name?: string } | null;
   cohort: { name?: string } | null;
-  pattern: PatternDay[];
+  versions: PatternVersion[];
+  today: string;
   onEdit: () => void;
+  onChanged: () => void;
 }) {
+  const [changing, setChanging] = useState(false);
+  const pattern = currentPattern(versions, today);
+  const describe = (days: PatternDay[]) =>
+    days.length === 0
+      ? "No days"
+      : days.map((day) => `${weekdayLabel(day.weekday)} ${formatTimeOfDay(day.start)}–${formatTimeOfDay(day.end)}`).join(" · ");
   return (
     <>
       <PageHeader
@@ -217,7 +250,14 @@ function PlacementFields({
         </div>
       </dl>
       <section aria-labelledby="pattern-title" className="flex flex-col gap-3">
-        <h2 id="pattern-title">Weekly pattern</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="pattern-title">Weekly pattern</h2>
+          {row.status === "active" || row.status === "extended" || row.status === "target_reached" ? (
+            <Button type="button" variant="secondary" onClick={() => setChanging(true)}>
+              Change days
+            </Button>
+          ) : null}
+        </div>
         {pattern.length === 0 ? (
           <p className="text-sm text-muted-foreground">No usual days on file.</p>
         ) : (
@@ -235,7 +275,35 @@ function PlacementFields({
               ))}
           </ul>
         )}
+        {versions.length > 1 ? (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">Pattern changes</h3>
+            <ol className="flex flex-col gap-1 text-sm">
+              {versions.map((version) => (
+                <li key={version.effective_from} className="flex flex-col rounded-lg bg-card px-4 py-2 shadow-card sm:flex-row sm:gap-3">
+                  <span className="font-semibold sm:w-40">
+                    {version.effective_from > today ? "From " : "Since "}
+                    {formatDay(version.effective_from)}
+                  </span>
+                  <span className="text-muted-foreground">{describe(version.days)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </section>
+      {changing ? (
+        <ChangeDaysSheet
+          open
+          today={today}
+          placements={[{ id: row.id, intern_name: intern?.display_name ?? "Intern", start_date: row.start_date, planned_end_date: row.planned_end_date }]}
+          onClose={() => setChanging(false)}
+          onDone={() => {
+            setChanging(false);
+            onChanged();
+          }}
+        />
+      ) : null}
     </>
   );
 }

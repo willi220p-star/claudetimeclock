@@ -322,3 +322,15 @@ Dilip's answers: lift the weekday/office-hours/closure block entirely (weekends 
 - Flagged, not changed: the collection notice still says clocking never happens outside Mon–Fri 7am–7pm, which is no longer true — publishing new wording needs a new notice version and interns re-consenting, a call for Dilip (see program-design spec, Deferred).
 - Migration `20260926020000_clock_always_on.sql`. Updated pgTAP: `005_punch_rules.sql` (weekday/weekend/closure now `lives_ok`), `027_closure_clock_out.sql` (a closure blocks nothing, not even re-entry), `030_today.sql` (a still-valid `not_started` block code in place of `weekend`).
 Gates: lint, typecheck, Vitest 151, pgTAP 39 files / 805, Playwright 13 passed / 7 skipped, static build, brand grep.
+
+### Profile, Home, banners, roster edits, full delete (Dilip, 2026-09-29)
+Dilip's answers: delete means everything about the person, and the consent notice must say so; skip "report anytime" (item 9); roster changes by date range and single day; Home in the screenshot's layout, DGK colours.
+- Always-on fixes: auto-close 12 hours after clock-in (hourly job, was 7:05 pm), overnight shifts pair across midnight on their start day, punch fixes at any hour. The Home status and the client now break a same-instant tie (auto clock-out stamped at the clock-in) the same way as the clock rules; the seed's Chloe showed a false "Clock in before you clock out".
+- Home: greeting with the latest clock selfie as the avatar, "Clocked in since" with a green dot, and "Your roster" dots for today plus six days (`rollingWeek`).
+- Me: profile card with photo, name (self-edit, `update_my_name`, audited), email (read-only), supervisor and Change password. Staff get Change password in the footer.
+- Banners (`daymark_banners`, `save_banner`, `end_banner`, `current_banners`): admin → everyone, supervisor → own interns; sticky or moving text (still under reduced motion); per-device hide. Managed from Admin → Settings and the supervisor Today screen.
+- People: "Supervisor: X" / "Supervises: A, B" per row, and Delete account.
+- Full delete (`erase_person`, D18) for People, Records and the 30-day purge; collection notice v1.1 published by the migration (interns re-acknowledge before their next clock-in). The Edge Function no longer deletes the Auth user itself.
+- Roster edits (D20): `staff_add_day`, `staff_move_day`, `staff_cancel_day`, `set_pattern_range`; `set_pattern` opened to the intern's supervisor. Roster rows open a Move / Change times / Remove sheet, "+" adds a day, "Change days" sets a date range. The admin placement screen shows the pattern history.
+- Migration `20260929010000_profile_banner_roster.sql`; pgTAP `100_profile_banner_roster.sql` (44) plus updates to 004, 025, 027, 044, 062, 071, 090; e2e `home-banner-roster.spec.ts`.
+Gates: lint, typecheck, Vitest 153, pgTAP 40 files / 850, Playwright 16 passed / 10 skipped, static build, brand grep.

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogIn, LogOut, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { PrivacyCard } from "@/app/clock/privacy-card";
+import { Avatar } from "@/components/avatar";
 import { SelfieCamera } from "@/app/clock/selfie-camera";
 import { CatchUpSheet } from "@/components/catch-up-sheet";
 import { EmptyState } from "@/components/empty-state";
@@ -19,12 +20,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WorkLogSheet } from "@/components/work-log-sheet";
 import { sessionConsent } from "@/lib/browser-session";
 import { canClockWithApp } from "@/lib/consent";
-import { addDays } from "@/lib/periods";
+import { addDays, rollingWeek, type RosterDot } from "@/lib/periods";
 import {
   loadCatchUp,
   loadClockStatus,
   loadInternKpi,
   loadNotifications,
+  loadScheduledDays,
   loadTodayBoard,
 } from "@/lib/data";
 import { darwinDateKey, formatDay, formatDayTime, formatTime, formatTimeOfDay, relativeOrDate } from "@/lib/darwin";
@@ -35,6 +37,7 @@ import { loadPunches, type PunchCard } from "@/lib/punches";
 import { createClient } from "@/lib/supabase/client";
 import { clockState, minutesSince } from "@/lib/time";
 import { useLoad, useOnline } from "@/lib/use-load";
+import { cn } from "@/lib/utils";
 
 type Phase =
   | { name: "idle" }
@@ -47,6 +50,7 @@ type DeskExtras = {
   kpi: InternKpi | null;
   board: TodayBoard | null;
   notes: Awaited<ReturnType<typeof loadNotifications>>;
+  roster: RosterDot[];
 };
 
 const tick = (onChange: () => void) => {
@@ -112,7 +116,12 @@ export function ClockDesk({ profile }: { profile: Profile }) {
       loadTodayBoard().catch(() => null),
       loadNotifications(profile.id, 2).catch(() => []),
     ]);
-    return { status, kpi: readKpi(kpi), board: readBoard(board), notes };
+    // Your roster: today and the next six days, from the server's Darwin date.
+    const today = status?.today ?? darwinDateKey(new Date());
+    const pid = status?.placement?.id ?? readKpi(kpi)?.placement_id ?? null;
+    const days = pid ? await loadScheduledDays(pid, today, addDays(today, 6)).catch(() => []) : [];
+    const roster = rollingWeek(today, days.filter((day) => day.status === "scheduled").map((day) => day.work_date));
+    return { status, kpi: readKpi(kpi), board: readBoard(board), notes, roster };
   }, [profile.id]);
   const [extras, reloadExtras] = useLoad(loadExtras);
   const extrasData = extras.status === "ready" ? extras.data : null;
@@ -196,6 +205,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   const todayPunches = punches.status === "ready" ? punches.data.filter((punch) => darwinDateKey(punch.occurred_at) === todayKey) : [];
   const logDate = previousShiftDate(punches.status === "ready" ? punches.data : [], todayKey);
   const catchUp = plan.status === "ready" ? plan.data : null;
+  const latestPhoto = punches.status === "ready" ? (punches.data.find((punch) => punch.photoUrl)?.photoUrl ?? null) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -213,20 +223,18 @@ export function ClockDesk({ profile }: { profile: Profile }) {
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1>Hi {firstName}</h1>
-          {kpi ? <PaceChip daysLate={kpi.days_late} /> : null}
+      <section aria-labelledby="clock-title" className="flex flex-col gap-5 rounded-xl bg-card p-5 shadow-card sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h1 id="clock-title">Hi {firstName} 👋</h1>
+            <p className="text-muted-foreground">DGK Business Consultancy</p>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{kpi ? `Week ${kpi.week_no} of ${kpi.total_weeks}` : formatDay(now)}</span>
+              {kpi ? <PaceChip daysLate={kpi.days_late} /> : null}
+            </div>
+          </div>
+          <Avatar url={latestPhoto} name={profile.display_name} size={64} />
         </div>
-        <p className="text-muted-foreground">
-          {kpi ? `Week ${kpi.week_no} of ${kpi.total_weeks}` : formatDay(now)}
-        </p>
-      </div>
-
-      <section aria-labelledby="clock-title" className="flex flex-col gap-4 rounded-xl bg-card p-6 shadow-card">
-        <h2 id="clock-title" className="sr-only">
-          Clock
-        </h2>
         {punches.status === "loading" ? (
           <div role="status" className="flex flex-col gap-4">
             <span className="sr-only">Checking location…</span>
@@ -277,6 +285,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
         )}
         {problem ? <FormMessage>{problem}</FormMessage> : null}
       </section>
+
+      {extrasData && extrasData.roster.length > 0 && placementId ? <RosterDots days={extrasData.roster} /> : null}
 
       <TodayStrip status={status} board={board} loading={extras.status === "loading"} />
 
@@ -435,8 +445,9 @@ function ClockPanel({
     return (
       <>
         <div className="flex flex-col gap-1">
-          <p className="text-lg font-semibold">
-            You&apos;re in since{" "}
+          <p className="flex items-center gap-2 text-lg font-semibold">
+            <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ok" />
+            Clocked in since{" "}
             {darwinDateKey(state.since) === todayKey ? formatTime(state.since) : formatDayTime(state.since)}
           </p>
           <p aria-live="polite" className="text-muted-foreground">
@@ -490,6 +501,37 @@ function ClockPanel({
         {step ?? "We'll ask for camera and location for this clock-in only."}
       </p>
     </>
+  );
+}
+
+const WEEKDAY_LETTER = ["M", "T", "W", "T", "F", "S", "S"];
+
+/** Home's "Your roster": today and the next six days; a filled dot is a scheduled day. */
+function RosterDots({ days }: { days: RosterDot[] }) {
+  return (
+    <Link
+      href="/clock/schedule"
+      aria-label={`Your roster: ${days.map((day) => `${formatDay(day.date)} ${day.scheduled ? "working" : "off"}`).join(", ")}. Open your schedule.`}
+      className="flex flex-col gap-3 rounded-xl bg-primary p-5 text-primary-foreground shadow-card"
+    >
+      <p className="caption font-semibold uppercase tracking-wide opacity-80">Your roster</p>
+      <ol aria-hidden className="grid grid-cols-7 gap-1 text-center">
+        {days.map((day) => (
+          <li key={day.date} className="flex flex-col items-center gap-2">
+            <span className={cn("text-[15px]", day.today ? "font-bold" : "font-medium opacity-90")}>
+              {WEEKDAY_LETTER[day.weekday - 1]}
+            </span>
+            <span
+              className={cn(
+                "size-7 rounded-full border-2",
+                day.scheduled ? "border-primary-foreground bg-primary-foreground/70" : "border-primary-foreground/40",
+                day.today && "ring-2 ring-primary-foreground ring-offset-2 ring-offset-primary",
+              )}
+            />
+          </li>
+        ))}
+      </ol>
+    </Link>
   );
 }
 

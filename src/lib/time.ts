@@ -3,7 +3,9 @@ import type { EventType } from "@/lib/daymark";
 
 type Timed = { id: string; event_type: EventType; occurred_at: string };
 
-const oldestFirst = (a: Timed, b: Timed) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at);
+// At the same instant a clock-in comes before its clock-out (an auto-close is stamped at the clock-in, D3).
+const oldestFirst = (a: Timed, b: Timed) =>
+  Date.parse(a.occurred_at) - Date.parse(b.occurred_at) || Number(a.event_type !== "shift_in") - Number(b.event_type !== "shift_in");
 
 /** R5.1.5: the latest punch decides whether the intern is clocked in. */
 export function clockState(punches: Timed[]) {

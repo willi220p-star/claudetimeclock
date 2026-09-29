@@ -19,7 +19,6 @@ import {
   changedPatch,
   columnLabel,
   displayValue,
-  fileBatches,
   formatBytes,
   inputValue,
   rowKey,
@@ -27,8 +26,8 @@ import {
   type Names,
   type RecordTable,
   type Row,
-  type StoredFile,
 } from "@/lib/records";
+import { filesOf, removeFiles } from "@/lib/stored-files";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
 import { cn } from "@/lib/utils";
@@ -77,21 +76,6 @@ async function loadNames(): Promise<Names> {
     person: (id) => (typeof id === "string" ? (person.get(id) ?? null) : null),
     placement: (id) => (typeof id === "string" ? (placement.get(id) ?? null) : null),
   };
-}
-
-/** Removes stored files; returns how many couldn't be removed. */
-async function removeFiles(files: StoredFile[]) {
-  let failed = 0;
-  for (const batch of fileBatches(files)) {
-    const { error } = await createClient().storage.from(batch.bucket).remove(batch.paths);
-    if (error) failed += batch.paths.length;
-  }
-  return failed;
-}
-
-function filesOf(result: unknown): StoredFile[] {
-  const files = (result as { files?: unknown } | null)?.files;
-  return Array.isArray(files) ? (files as StoredFile[]) : [];
 }
 
 function RecordsDesk({ canEdit, profile }: { canEdit: boolean; profile: Profile }) {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AddPersonForm } from "@/app/admin/add-person-form";
+import { ConfirmDialog } from "@/app/admin/confirm-dialog";
 import { PersonDialogs, type PersonDialog } from "@/app/admin/person-dialogs";
 import { EmptyState } from "@/components/empty-state";
 import { FormMessage } from "@/components/form-field";
@@ -21,6 +22,7 @@ import { addDays } from "@/lib/periods";
 import { loadPunches, type PunchCard } from "@/lib/punches";
 import { ROLE_LABEL } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/client";
+import { filesOf, removeFiles } from "@/lib/stored-files";
 import { useLoad, type Loaded } from "@/lib/use-load";
 
 type Access = Pick<Profile, "is_intern" | "is_supervisor" | "is_admin" | "active">;
@@ -34,6 +36,22 @@ const ROLE_FLAGS = [
 function roleChangeText(name: string, label: string, on: boolean) {
   const role = label.toLowerCase();
   return `${name} ${on ? "is now" : "is no longer"} ${/^[aeiou]/.test(role) ? "an" : "a"} ${role}.`;
+}
+
+/** Who supervises whom, from live placements: intern → supervisor, supervisor → interns. */
+async function loadSupervision() {
+  const { data, error } = await createClient()
+    .from("daymark_placements")
+    .select("intern_id, supervisor_id")
+    .in("status", ["active", "extended", "target_reached"]);
+  if (error) throw error;
+  const supervisorOf = new Map<string, string>();
+  const internsOf = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    supervisorOf.set(row.intern_id, row.supervisor_id);
+    internsOf.set(row.supervisor_id, [...(internsOf.get(row.supervisor_id) ?? []), row.intern_id]);
+  }
+  return { supervisorOf, internsOf };
 }
 
 async function loadPeople() {
@@ -69,6 +87,28 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [dialog, setDialog] = useState<PersonDialog>(null);
+  const [deleting, setDeleting] = useState<Profile | null>(null);
+  // Reloads with the people list, so a newly added intern shows their supervisor straight away.
+  const loadLinks = useCallback(
+    () => (people.status === "ready" ? loadSupervision() : Promise.resolve({ supervisorOf: new Map<string, string>(), internsOf: new Map<string, string[]>() })),
+    [people],
+  );
+  const [links, reloadLinks] = useLoad(loadLinks);
+  const names = new Map(people.status === "ready" ? people.data.map((p) => [p.id, p.display_name]) : []);
+  const supervisorOf = links.status === "ready" ? links.data.supervisorOf : new Map<string, string>();
+  const internsOf = links.status === "ready" ? links.data.internsOf : new Map<string, string[]>();
+
+  async function deletePerson(person: Profile) {
+    const { data, error } = await createClient().rpc("delete_record", { tbl: "daymark_profiles", row_id: person.id });
+    if (error) return errorText(error, "That account wasn't deleted. Try again.");
+    const failed = await removeFiles(filesOf(data));
+    if (failed > 0) toast.warning(`${person.display_name} is deleted. ${failed} photo file(s) are left: clear them under Records → Storage.`);
+    else toast.success(`${person.display_name} and everything about them is deleted.`);
+    setDeleting(null);
+    reload();
+    reloadLinks();
+    return null;
+  }
 
   async function setAccess(person: Profile, change: Partial<Access>, done: string) {
     const next = { ...person, ...change };
@@ -126,6 +166,18 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
                     {person.id === me.id ? <span className="font-normal text-muted-foreground"> (you)</span> : null}
                   </p>
                   <p className="text-sm break-all text-muted-foreground">{person.contact_email ?? "No email yet"}</p>
+                  {person.is_intern ? (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Supervisor: </span>
+                      {names.get(supervisorOf.get(person.id) ?? "") ?? "none yet"}
+                    </p>
+                  ) : null}
+                  {person.is_supervisor ? (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Supervises: </span>
+                      {(internsOf.get(person.id) ?? []).map((id) => names.get(id) ?? "Intern").join(", ") || "no interns yet"}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <StatusChip tone={person.active ? "ok" : "neutral"} label={person.active ? "Active" : "Deactivated"} />
@@ -174,6 +226,11 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
                     Reactivate
                   </Button>
                 )}
+                {person.id !== me.id ? (
+                  <Button type="button" variant="ghost" size="sm" className="text-bad" onClick={() => setDeleting(person)}>
+                    Delete account
+                  </Button>
+                ) : null}
               </div>
             </li>
           ))}
@@ -189,6 +246,15 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
         onDeactivate={async (person) => {
           if (await setAccess(person, { active: false }, `${person.display_name} is deactivated.`)) setDialog(null);
         }}
+      />
+      <ConfirmDialog
+        open={deleting !== null}
+        title={`Delete ${deleting?.display_name ?? "this account"}?`}
+        description="Deletes their login and everything about them for good: placement, hours, punches, requests, roster, photos, certificates, consent records and the audit history about them. Nothing that names them is kept. This can't be undone."
+        confirmLabel="Delete for good"
+        destructive
+        onCancel={() => setDeleting(null)}
+        onConfirm={() => (deleting ? deletePerson(deleting) : Promise.resolve(null))}
       />
     </section>
   );

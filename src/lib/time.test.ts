@@ -16,6 +16,13 @@ describe("clockState", () => {
     ];
     expect(clockState(punches)).toEqual({ clockedIn: true, since: "2026-10-13T23:30:00Z" });
   });
+
+  test("an auto clock-out stamped at its clock-in's instant closes the shift, in either order", () => {
+    const inn = punch("a", "shift_in", "2026-10-13T00:00:00Z");
+    const out = punch("b", "shift_out", "2026-10-13T00:00:00Z");
+    expect(clockState([out, inn])).toEqual({ clockedIn: false, since: null });
+    expect(clockState([inn, out])).toEqual({ clockedIn: false, since: null });
+  });
 });
 
 describe("minutesSince", () => {

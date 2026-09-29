@@ -18,7 +18,7 @@ const WEEKDAYS = [
   { n: 5, label: "Fri" },
 ] as const;
 
-const TIMES = (() => {
+export const TIMES = (() => {
   const out: string[] = [];
   for (let m = 7 * 60; m <= 19 * 60; m += 15) {
     out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);

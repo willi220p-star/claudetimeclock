@@ -45,7 +45,7 @@ export const RECORD_TABLES: RecordTable[] = [
     edit: [{ name: "display_name", label: "Name", kind: "text" }],
     deletable: true,
     deleteNote:
-      "Deletes their login, placement, punches, requests, roster, notifications and photos for good. The audit log and consent records stay.",
+      "Deletes their login and everything about them for good: placement, hours, punches, requests, roster, photos, consent records and the audit history about them. Nothing that names them is kept.",
   },
   {
     table: "daymark_placements",

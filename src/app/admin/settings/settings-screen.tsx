@@ -19,6 +19,7 @@ import { formatMinutes } from "@/lib/minutes";
 import { fieldErrors, noticeSchema, settingsSchema } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
+import { BannerManager } from "@/components/banner-manager";
 
 type Loaded = Awaited<ReturnType<typeof loadSettings>>;
 type Settings = Loaded["settings"];
@@ -59,6 +60,7 @@ function SettingsDesk() {
           </>
         )}
       </LoadBlock>
+      <BannerManager audience="everyone" />
     </>
   );
 }

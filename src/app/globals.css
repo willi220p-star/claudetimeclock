@@ -131,3 +131,27 @@
     color: var(--muted-foreground);
   }
 }
+
+/* Announcement banner, "moving text" style: two copies scroll left in a seamless loop, starting in
+   view. Reduced motion shows one copy, still and wrapped. */
+@keyframes dgk-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.dgk-marquee {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: dgk-marquee 18s linear infinite;
+}
+.dgk-marquee > span {
+  padding-right: 3rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dgk-marquee {
+    animation: none;
+    white-space: normal;
+  }
+  .dgk-marquee > span + span {
+    display: none;
+  }
+}

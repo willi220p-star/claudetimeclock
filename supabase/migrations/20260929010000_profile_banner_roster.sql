@@ -220,6 +220,79 @@ begin
 end;
 $$;
 
+-- The Home status reads the latest punch the same way the clock rules do: at the same instant an
+-- auto-close clock-out comes after its clock-in, so an auto-closed shift never reads as "still in".
+create or replace function private.clock_status()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  me uuid := (select auth.uid());
+  now_ts timestamptz := private.clock_now();
+  today date := private.darwin_today();
+  pl public.daymark_placements%rowtype;
+  last_event text;
+  last_at timestamptz;
+  next_event text;
+  reason text;
+  day public.daymark_scheduled_days%rowtype;
+begin
+  pl := private.live_placement(me);
+  if pl.id is null then
+    select * into pl from public.daymark_placements p where p.id = private.current_placement(me);
+  end if;
+
+  select x.event_type, x.occurred_at into last_event, last_at
+  from public.daymark_punches x
+  where x.user_id = me and x.event_type in ('shift_in', 'shift_out')
+  order by x.occurred_at desc, x.source = 'auto_close' desc, x.created_at desc
+  limit 1;
+  next_event := case when last_event = 'shift_in' then 'shift_out' else 'shift_in' end;
+  reason := private.clock_block_reason(me, next_event, now_ts);
+
+  select * into day from public.daymark_scheduled_days d
+  where d.placement_id = pl.id and d.work_date = today and d.status in ('scheduled', 'leave');
+
+  return jsonb_build_object(
+    'server_now', now_ts,
+    'today', today,
+    'next_event', next_event,
+    'open_since', case when last_event = 'shift_in' then last_at end,
+    'blocked', reason,
+    'block_code', case
+      when reason is null then null
+      when reason like '%weekends%' then 'weekend'
+      when reason like 'The office is closed today%' then 'closure'
+      when reason like 'Clocking is open%' then 'window'
+      when reason ilike '%work log%' then 'work_log'
+      when reason like '%placement has ended%' then 'read_only'
+      when reason ilike '%full%' then 'full'
+      when reason like '%paused%' then 'paused'
+      when reason like '%don''t have a placement%' then 'no_placement'
+      when reason like '%target hours%' then 'target_reached'
+      when reason like 'Your placement starts%' then 'not_started'
+      when reason like '%end date has passed%' then 'past_end'
+      when reason like '%Wait a minute%' then 'rate'
+      else 'sequence'
+    end,
+    'consent', private.my_consent(),
+    'needs_consent', not (private.has_consent(me, 'location') and private.has_consent(me, 'selfie')),
+    'scheduled', case when day.id is null then null else jsonb_build_object(
+      'start', day.start_time, 'end', day.end_time, 'planned_minutes', day.planned_minutes, 'status', day.status,
+      'leave_kind', day.leave_kind) end,
+    'placement', case when pl.id is null then null else jsonb_build_object(
+      'id', pl.id, 'status', pl.status, 'start_date', pl.start_date, 'planned_end_date', pl.planned_end_date,
+      'ended_on', pl.ended_on,
+      'read_only', pl.status in ('completed', 'withdrawn'),
+      'delete_on', case when pl.ended_on is not null then private.retention_date(pl.ended_on) end) end
+  );
+end;
+$$;
+
+
 -- ---------------------------------------------------------------------------
 -- 2. Change your own name. Profiles stay closed to direct updates.
 -- ---------------------------------------------------------------------------
