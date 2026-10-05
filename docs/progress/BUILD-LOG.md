@@ -348,3 +348,4 @@ Dilip's answers: Break shows 10 am–2 pm and Finish is always there, both in a 
 - Seed: work logs are written before the clock-out. Tests: `tests.clock` writes the day's log before a Finish unless `p_log => false`; 013 and 061 now clear the seed (its dates move with today).
 - Migration `20261005010000_breaks_timesheets_catchup.sql`; pgTAP `110_breaks_staff_edits.sql` (30), rewritten `047_catch_up.sql`, updates to 004, 005, 013, 020, 021, 024, 046, 050, 061, 062, 080; e2e `clock.spec.ts` (break + log before Finish), `catch-up.spec.ts`, new `timesheets-nav.spec.ts`.
 Gates: lint, typecheck, Vitest 166, pgTAP 41 files / 883, Playwright 20 passed / 12 skipped, `GITHUB_PAGES=true` build, brand grep.
+Preview: Regus Palmerston set to 4/5 (audited). Applying the migration timed out twice waiting for approval of its `drop` statements, so the PR (https://github.com/willi220p-star/claudetimeclock/pull/9) waits: apply the migration to preview first, then merge.
