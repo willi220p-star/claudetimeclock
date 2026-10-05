@@ -82,6 +82,7 @@ end;
 $$;
 
 -- The whole device clocking flow at a frozen time: challenge, selfie upload, punch.
+drop function if exists tests.clock(uuid, text, text, double precision, double precision, double precision, boolean);
 create or replace function tests.clock(
   p_person uuid,
   p_event text,
@@ -89,7 +90,8 @@ create or replace function tests.clock(
   p_lat double precision default -12.4785082,
   p_lng double precision default 130.9854825,
   p_acc double precision default 10,
-  p_photo boolean default true
+  p_photo boolean default true,
+  p_log boolean default true
 )
 returns jsonb
 language plpgsql
@@ -99,6 +101,15 @@ declare
   result jsonb;
 begin
   perform tests.at(p_at);
+  -- Finish needs the day's work log (5 Oct); write it unless the test is about that gate.
+  if p_event = 'shift_out' and p_log then
+    insert into public.daymark_work_logs (placement_id, work_date, summary)
+    select s.placement_id, s.work_date, 'Worked on the test tasks for the day.'
+    from public.daymark_shifts s
+    join public.daymark_placements pl on pl.id = s.placement_id
+    where pl.intern_id = p_person and s.clock_out_at is null
+    on conflict (placement_id, work_date) do nothing;
+  end if;
   perform tests.as_person(p_person);
   challenge := public.start_clock(p_event);
   perform set_config('role', 'postgres', true);

@@ -79,8 +79,9 @@ select ok((select 'desktop_ua' = any(flags) from public.daymark_punches where us
 select set_config('request.headers', '', true);
 
 -- Rate limit (review rule 8)
-select throws_ok($$select tests.clock((select b from ids), 'shift_out', '2026-10-14 09:00:30+09:30')$$,
-  'P0001', 'You just clocked. Wait a minute and try again.', 'one punch per minute');
+-- Clock as often as needed (5 Oct): no more one-punch-per-minute rule.
+select lives_ok($$select tests.clock((select b from ids), 'shift_out', '2026-10-14 09:00:30+09:30')$$,
+  'a quick clock-out right after clocking in is allowed');
 
 -- R5.1.1 who can clock
 select throws_ok($$select tests.clock((select sup from ids), 'shift_in', '2026-10-14 09:00+09:30')$$,
@@ -94,7 +95,7 @@ update public.daymark_profiles set active = true where id = (select d from ids);
 select tests.at('2026-10-14 09:00+09:30');
 select tests.as_person((select c from ids));
 select throws_ok($$select public.start_clock('shift_in')$$, 'P0001',
-  'Choose how you''ll clock in first: allow location and selfie, or ask your supervisor to confirm you.', 'clocking needs consent');
+  'Allow location and selfie to clock in. You can change this under Me → Privacy.', 'clocking needs consent');
 reset role;
 
 -- Challenge and selfie checks (review rules 5 and 7)
@@ -117,7 +118,7 @@ select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uui
 reset role;
 select tests.as_person((select e from ids));
 select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid from ch), -12.4785082, 130.9854825, 10, null)$$,
-  'P0001', 'That clock-in timed out. Tap Clock in again.', 'another person''s challenge is refused');
+  'P0001', 'That timed out. Tap the button again.', 'another person''s challenge is refused');
 reset role;
 update storage.objects set owner = (select d from ids), owner_id = (select d from ids)::text,
   created_at = now() - interval '1 second' where name like (select d from ids) || '/%';
@@ -130,7 +131,7 @@ update storage.objects set created_at = now() where name like (select d from ids
 select tests.at('2026-10-14 09:01:31+09:30');
 select tests.as_person((select d from ids));
 select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid from ch), -12.4785082, 130.9854825, 10, null)$$,
-  'P0001', 'That clock-in timed out. Tap Clock in again.', 'challenges expire after 90 seconds');
+  'P0001', 'That timed out. Tap the button again.', 'challenges expire after 90 seconds');
 reset role;
 select tests.at('2026-10-14 09:01:00+09:30');
 select tests.as_person((select d from ids));
@@ -138,7 +139,7 @@ select lives_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid
   'a fresh challenge with its own selfie clocks in');
 select tests.at('2026-10-14 09:03:00+09:30');
 select throws_ok($$select public.clock_punch((select (j ->> 'challenge_id')::uuid from ch), -12.4785082, 130.9854825, 10, null)$$,
-  'P0001', 'That clock-in timed out. Tap Clock in again.', 'a challenge works once');
+  'P0001', 'That timed out. Tap the button again.', 'a challenge works once');
 
 -- R5.1.4, R5.1.3, R5.1.7 and write access
 select throws_ok($$insert into public.daymark_punches (user_id, event_type) values ((select d from ids), 'shift_out')$$,
@@ -146,7 +147,7 @@ select throws_ok($$insert into public.daymark_punches (user_id, event_type) valu
 reset role;
 select throws_ok($$insert into public.daymark_punches (user_id, event_type, latitude, longitude, photo_path)
                    values ((select b from ids), 'break_in', -12.4785082, 130.9854825, (select b from ids) || '/' || gen_random_uuid() || '.jpg')$$,
-  'P0001', 'Breaks are no longer clocked. Just clock in and out.', 'break punches are rejected');
+  'P0001', 'Use Start, Break and Finish.', 'old break event types are rejected');
 select throws_ok($$insert into public.daymark_punches (user_id, event_type, source) values ((select b from ids), 'shift_out', 'device')$$,
   'P0001', 'A clock-in needs a selfie and your location.', 'device punches need a selfie and GPS');
 select lives_ok($$insert into public.daymark_punches (user_id, event_type, source, occurred_at)

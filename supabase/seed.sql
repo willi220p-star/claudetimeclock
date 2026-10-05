@@ -209,18 +209,18 @@ begin
                                   else interval '45 minutes' end;                     -- Aisha's overtime
       end if;
       perform seed.punch(r.intern_id, 'shift_in', in_at);
+      perform seed.work_log(r.placement_id, d);                                       -- before Finish (5 Oct)
       if not (r.intern_id = i3 and d = auto_day) then                                 -- Chloe forgets once
         perform seed.punch(r.intern_id, 'shift_out', least(out_at, private.darwin_at(d, '19:00')));
       end if;
-      perform seed.work_log(r.placement_id, d);
       n := n + 1;
     end loop;
 
     -- Ben's unscheduled Wednesday two weeks ago → all overtime, left pending.
     if d = date_trunc('week', today)::date - 12 then
       perform seed.punch(i2, 'shift_in', private.darwin_at(d, '10:00'));
-      perform seed.punch(i2, 'shift_out', private.darwin_at(d, '13:00'));
       perform seed.work_log(p2, d);
+      perform seed.punch(i2, 'shift_out', private.darwin_at(d, '13:00'));
     end if;
 
     continue when extract(isodow from d) > 5;

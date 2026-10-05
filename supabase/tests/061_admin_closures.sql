@@ -1,5 +1,6 @@
 begin;
 select plan(33);
+select tests.without_seed();  -- the local seed's dates move with today
 
 -- Phase 7: closure days (§6, §10, R5.2.5). Four interns on Wednesdays at one site; the 4th
 -- was placed by an admin capacity override (R5.3.7), so it holds the extra spot.

@@ -1,5 +1,6 @@
 begin;
 select plan(11);
+select tests.without_seed();  -- the local seed's dates move with today
 
 create temp table ids as
 select tests.create_person('imp.admin@test.dev', false, false, true) as admin,
