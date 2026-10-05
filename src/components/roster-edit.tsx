@@ -52,7 +52,7 @@ function useStaffSave(onDone: () => void) {
   return { busy, error, extra, run };
 }
 
-function TimeField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+export function TimeField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
   return (
     <FormField id={id} label={label}>
       {(field) => (
@@ -68,7 +68,7 @@ function TimeField({ id, label, value, onChange }: { id: string; label: string; 
   );
 }
 
-function Sheet({ open, title, description, onClose, children }: { open: boolean; title: string; description: string; onClose: () => void; children: ReactNode }) {
+export function Sheet({ open, title, description, onClose, children }: { open: boolean; title: string; description: string; onClose: () => void; children: ReactNode }) {
   return (
     <Dialog open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">

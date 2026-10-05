@@ -29,5 +29,7 @@ describe("plannedMinutes (R5.2.4)", () => {
   });
   test("short day has no break", () => {
     expect(plannedMinutes("09:00", "12:00")).toBe(180);
+    expect(plannedMinutes("09:00", "17:00", 45)).toBe(435);
+    expect(plannedMinutes("09:00", "17:00", 0)).toBe(480);
   });
 });

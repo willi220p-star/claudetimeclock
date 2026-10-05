@@ -143,8 +143,8 @@ function SettingsForm({ settings, onSaved }: { settings: Settings; onSaved: () =
           <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold">Break rule</p>
             <p className="text-sm text-muted-foreground">
-              {formatMinutes(settings.break_minutes)} off days over {formatMinutes(settings.break_threshold_minutes)}. Fixed by the
-              schedule rules, so it can&apos;t be changed here.
+              On days over {formatMinutes(settings.break_threshold_minutes)}, the breaks an intern takes are unpaid and topped up to
+              their own break, set on their placement (default {formatMinutes(settings.break_minutes)}).
             </p>
           </div>
         </div>

@@ -36,6 +36,11 @@ export function formatTime(value: Instant) {
   return format(toDarwin(value), "h:mm aaa", { in: inDarwin });
 }
 
+/** A Darwin wall-clock time as "09:00", for time inputs. */
+export function darwinClock(value: Instant) {
+  return format(toDarwin(value), "HH:mm", { in: inDarwin });
+}
+
 /** "Tue 14 Oct, 9:00 am" */
 export function formatDayTime(value: Instant) {
   return `${formatDay(value)}, ${formatTime(value)}`;

@@ -28,11 +28,11 @@ import { useLoad } from "@/lib/use-load";
 const CHOICES: Record<ConsentPurpose, { legend: string; text: string }> = {
   location: {
     legend: "Location",
-    text: "I agree that DGK Clock may read my phone's GPS location only at the moment I tap Clock in or Clock out, to check I'm within 200 m of the DGK office. I understand it is not tracked at any other time, and that I can withdraw and use supervisor confirmation instead.",
+    text: "I agree that DGK Clock may read my phone's GPS location only at the moment I tap Clock in, Start break, End break or Clock out, to check I'm within 200 m of the DGK office. I understand it is not tracked at any other time, and that without it I can't clock in.",
   },
   selfie: {
     legend: "Selfie",
-    text: "I agree that DGK Clock may take a live photo of me each time I clock in or out, stored privately and viewed only by my supervisor or the DGK admin to verify attendance. No facial recognition is used. I can withdraw and use supervisor confirmation instead.",
+    text: "I agree that DGK Clock may take a live photo of me each time I clock in, take a break or clock out, stored privately and viewed only by my supervisor or the DGK admin to verify attendance. No facial recognition is used. Without it I can't clock in.",
   },
 };
 
@@ -111,7 +111,7 @@ function ConsentForm() {
       toast.success(
         canClockWithApp(saved.current)
           ? "Thanks. You can clock in now."
-          : "Thanks. Your supervisor will confirm you're at the office when you arrive.",
+          : "Saved. You'll need to allow location and selfie before you can clock in.",
       );
       router.replace("/clock");
     } catch (error) {
@@ -203,7 +203,7 @@ function ConsentForm() {
               {(
                 [
                   ["agree", "Agree"],
-                  ["decline", "No thanks — my supervisor will confirm me"],
+                  ["decline", "Don't allow (I can't clock in)"],
                 ] as const
               ).map(([value, label]) => (
                 <label key={value} className="flex min-h-11 items-center gap-3">

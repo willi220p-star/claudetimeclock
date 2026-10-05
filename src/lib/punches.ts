@@ -27,12 +27,15 @@ export async function loadPunches({
 
   const { data, error } = await query;
   if (error) throw error;
-  const rows = data as Punch[];
+  return withPhotoUrls(data as Punch[]);
+}
 
+/** Adds a 60-second signed selfie URL to each row that has a photo. */
+export async function withPhotoUrls<T extends { photo_path: string | null }>(rows: T[]): Promise<(T & { photoUrl: string | null })[]> {
   const paths = rows.map((row) => row.photo_path).filter((path): path is string => Boolean(path));
   const urls = new Map<string, string>();
   if (paths.length > 0) {
-    const { data: signed } = await supabase.storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
+    const { data: signed } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
     for (const item of signed ?? []) {
       if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
     }

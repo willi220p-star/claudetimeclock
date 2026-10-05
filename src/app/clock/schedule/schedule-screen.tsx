@@ -2,7 +2,8 @@
 
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { format, parseISO } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import { InternShell } from "@/components/desk-shell";
 import { DAY_STATUS, DayStatusBadge, type DayStatus } from "@/components/day-status-badge";
 import { DeskGate } from "@/components/desk-gate";
@@ -20,6 +21,8 @@ import {
   loadScheduledDays,
 } from "@/lib/data";
 import { formatDay, formatTimeOfDay } from "@/lib/darwin";
+import { errorText } from "@/lib/daymark";
+import { rosterIcs } from "@/lib/ics";
 import { addDays, addMonths, mondayOf, monthGrid, monthStart } from "@/lib/periods";
 import { FULL_SPOT_TEXT, dayCellStatus } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
@@ -74,10 +77,26 @@ function ScheduleDesk() {
       loadClosures(from, to),
       loadDayResults(placement.id, from, to),
     ]);
-    return { view, from, today, days, counts, closures, results };
+    return { view, from, today, days, counts, closures, results, placement, place: status?.site?.name ?? "DGK office" };
   }, [view, anchor]);
   const [state, reload] = useLoad(load);
   const shown = state.status === "ready" ? state.data : null;
+
+  // Add my roster to my phone calendar: every scheduled day from today to the planned end.
+  async function downloadRoster() {
+    if (!shown?.placement) return;
+    try {
+      const days = await loadScheduledDays(shown.placement.id, shown.today, shown.placement.planned_end_date);
+      const scheduled = days.filter((day) => day.status === "scheduled");
+      const url = URL.createObjectURL(new Blob([rosterIcs(scheduled, shown.place)], { type: "text/calendar" }));
+      const link = Object.assign(document.createElement("a"), { href: url, download: "dgk-roster.ics" });
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`${scheduled.length} days saved. Open the file to add them to your calendar.`);
+    } catch (error) {
+      toast.error(errorText(error, "Your roster didn't download. Try again."));
+    }
+  }
 
   function step(direction: 1 | -1) {
     if (!shown) return;
@@ -252,6 +271,12 @@ function ScheduleDesk() {
           );
         }}
       </LoadBlock>
+      {shown?.placement ? (
+        <Button type="button" variant="ghost" className="mt-4 w-fit" onClick={() => void downloadRoster()}>
+          <CalendarPlus aria-hidden />
+          Add my roster to my phone calendar
+        </Button>
+      ) : null}
 
       <Dialog
         open={sheet !== null && action === null}

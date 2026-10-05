@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { use, useCallback, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { PrivacyCard } from "@/app/clock/privacy-card";
 import { Avatar } from "@/components/avatar";
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
@@ -17,7 +18,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loadMyPlacement, loadWorkLogs } from "@/lib/data";
 import { formatDay } from "@/lib/darwin";
-import { clearSessionCache } from "@/lib/browser-session";
+import { clearSessionCache, sessionConsent } from "@/lib/browser-session";
 import { errorText, type Profile } from "@/lib/daymark";
 import { loadPunches } from "@/lib/punches";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +44,7 @@ async function nameOf(id: string | null) {
 
 function MeDesk({ profile }: { profile: Profile }) {
   const [logDate, setLogDate] = useState<string | null>(null);
+  const [consent, setConsent] = useState(use(sessionConsent()));
   const load = useCallback(async () => {
     const [placement, punches] = await Promise.all([
       loadMyPlacement(),
@@ -66,6 +68,7 @@ function MeDesk({ profile }: { profile: Profile }) {
         {({ placement, logs, approver, supervisor, photo }) => (
           <div className="flex flex-col gap-6">
             <ProfileCard profile={profile} photo={photo} supervisor={supervisor} />
+            <PrivacyCard consent={consent} onChange={setConsent} />
             {!placement ? <EmptyState>No placement on this login yet.</EmptyState> : null}
             <section className="flex flex-col gap-2 rounded-xl bg-card p-6 shadow-card">
               <h2>Intern report</h2>
@@ -118,7 +121,9 @@ function MeDesk({ profile }: { profile: Profile }) {
           </div>
         )}
       </LoadBlock>
-      <WorkLogSheet open={logDate !== null} onClose={() => setLogDate(null)} workDate={logDate ?? ""} onSaved={reload} />
+      {logDate !== null ? (
+        <WorkLogSheet key={logDate} open onClose={() => setLogDate(null)} workDate={logDate} onSaved={reload} />
+      ) : null}
     </>
   );
 }

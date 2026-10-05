@@ -2,6 +2,9 @@ import type { Tables } from "@/lib/database.types";
 
 export type EventType = "shift_in" | "shift_out";
 
+/** What the intern taps (5 Oct): Start, Start/End break and Finish. A break is a clock-out and clock-in marked is_break. */
+export type ClockAction = "shift_in" | "break_start" | "break_end" | "shift_out";
+
 export type Profile = Pick<
   Tables<"daymark_profiles">,
   | "id"
@@ -21,17 +24,24 @@ export const PROFILE_COLUMNS =
 
 export type Punch = Pick<
   Tables<"daymark_punches">,
-  "id" | "user_id" | "occurred_at" | "photo_path" | "place_name" | "source" | "flags" | "distance_m" | "accuracy_m"
+  "id" | "user_id" | "occurred_at" | "photo_path" | "place_name" | "source" | "flags" | "distance_m" | "accuracy_m" | "is_break"
 > & { event_type: EventType };
 
 export const PUNCH_COLUMNS =
-  "id, user_id, event_type, occurred_at, photo_path, place_name, source, flags, distance_m, accuracy_m";
+  "id, user_id, event_type, occurred_at, photo_path, place_name, source, flags, distance_m, accuracy_m, is_break";
 
 /** Old break_in/break_out rows stay in the table and are ignored everywhere in the UI. */
 export const SHIFT_EVENTS: EventType[] = ["shift_in", "shift_out"];
 
 export const EVENT_LABEL: Record<EventType, string> = {
   shift_in: "Clock in",
+  shift_out: "Clock out",
+};
+
+export const ACTION_LABEL: Record<ClockAction, string> = {
+  shift_in: "Clock in",
+  break_start: "Start break",
+  break_end: "End break",
   shift_out: "Clock out",
 };
 
@@ -48,6 +58,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   auto_close: "Auto-closed",
   punch_fix: "Punch fix",
   supervisor: "Supervisor confirmed",
+  staff_edit: "Edited by staff",
 };
 
 export type ConsentDecision ="granted" | "refused" | "withdrawn";
@@ -63,7 +74,7 @@ export type Consent = {
 /** `rpc('start_clock')`. */
 export type ClockChallenge = {
   challenge_id: string;
-  event_type: EventType;
+  event_type: ClockAction;
   gesture: string;
   expires_at: string;
   photo_path: string;

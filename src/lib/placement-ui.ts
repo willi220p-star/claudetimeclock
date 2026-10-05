@@ -1,6 +1,7 @@
 import type { Effect } from "@/components/effect-preview";
 import type { DayStatus } from "@/components/day-status-badge";
 import type { Tone } from "@/components/status-chip";
+import type { ClockAction } from "@/lib/daymark";
 import { formatDay } from "@/lib/darwin";
 import { formatMinutes } from "@/lib/minutes";
 
@@ -48,6 +49,7 @@ export const BOARD_STATUS: Record<string, { label: string; tone: Tone }> = {
   not_in_yet: { label: "Not in yet", tone: "neutral" },
   in: { label: "In since", tone: "ok" },
   done: { label: "Done", tone: "ok" },
+  break: { label: "On a break", tone: "warn" },
   late: { label: "Late", tone: "warn" },
   leave: { label: "Leave", tone: "info" },
   no_show: { label: "No-show", tone: "bad" },
@@ -141,23 +143,13 @@ export function dayCellStatus(args: {
   return "scheduled";
 }
 
-export type CatchUpItem = {
-  type: string;
-  payload: Record<string, string>;
-  gain_minutes: number;
-  label: string;
-};
-
-export type CatchUpOption = {
-  requests: CatchUpItem[];
-  covers_minutes: number;
-  fully_covers: boolean;
-};
-
-export type CatchUpPlan = {
+/** `rpc('catch_up_slots')`: free office days the intern can pick to catch up (5 Oct). */
+export type CatchUpSlots = {
   owed_minutes: number;
-  a: CatchUpOption;
-  b: CatchUpOption;
+  break_minutes: number;
+  usual: { start: string; end: string };
+  window: { start: string; end: string };
+  days: { date: string; free: number }[];
 };
 
 export type InternKpi = {
@@ -212,10 +204,18 @@ export type AdminKpi = {
 export type ClockStatus = {
   server_now: string;
   today: string;
-  next_event: "shift_in" | "shift_out";
+  /** out, in, or on a break started today. */
+  state: "out" | "in" | "break";
+  next_event: ClockAction;
   open_since: string | null;
+  break_since: string | null;
+  /** The work date of the open shift: Finish needs its work log. */
+  open_work_date: string | null;
   blocked: string | null;
   block_code: string | null;
+  /** Each action the state allows, with the server's refusal (null = allowed). */
+  actions: Partial<Record<ClockAction, string | null>>;
+  site: { name: string; latitude: number; longitude: number; radius_m: number } | null;
   scheduled: { start: string; end: string; planned_minutes: number; status: string; leave_kind: string | null } | null;
   placement: {
     id: string;
@@ -223,6 +223,7 @@ export type ClockStatus = {
     start_date: string;
     planned_end_date: string;
     ended_on: string | null;
+    break_minutes: number;
     read_only: boolean;
     delete_on: string | null;
   } | null;

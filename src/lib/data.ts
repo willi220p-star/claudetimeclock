@@ -1,8 +1,10 @@
-import { errorText, PROFILE_COLUMNS, type Profile } from "@/lib/daymark";
+import { errorText, PROFILE_COLUMNS, PUNCH_COLUMNS, SHIFT_EVENTS, type Profile, type Punch } from "@/lib/daymark";
+import { addDays } from "@/lib/periods";
+import { withPhotoUrls } from "@/lib/punches";
 import {
   asRecord,
   type AdminKpi,
-  type CatchUpPlan,
+  type CatchUpSlots,
   type ClockStatus,
   type InternKpi,
   type ProgressRow,
@@ -45,8 +47,8 @@ export async function loadTodayBoard(): Promise<TodayBoard> {
   return unwrap(await createClient().rpc("today_board"), "The today board didn't load.") as TodayBoard;
 }
 
-export async function loadCatchUp(placement: string): Promise<CatchUpPlan> {
-  return unwrap(await createClient().rpc("catch_up_options", { placement }), "Catch-up options didn't load.") as CatchUpPlan;
+export async function loadCatchUpSlots(placement: string): Promise<CatchUpSlots> {
+  return unwrap(await createClient().rpc("catch_up_slots", { placement }), "Free days didn't load.") as CatchUpSlots;
 }
 
 export async function previewRequest(req: Record<string, unknown>): Promise<RequestPreview> {
@@ -168,6 +170,65 @@ export async function loadManagedPlacements(supervisorId?: string) {
 }
 
 export type ManagedPlacement = Awaited<ReturnType<typeof loadManagedPlacements>>[number];
+
+/**
+ * Timesheets (Dilip, 5 Oct): a week of clock-ins, breaks and clock-outs for every intern the viewer
+ * manages (admin: all; supervisor: their own), with day totals and who edited what. Punches replaced
+ * by a punch fix or a staff edit are hidden; the replacement shows instead.
+ */
+export async function loadTimesheet(from: string, to: string, supervisorId?: string) {
+  const supabase = createClient();
+  let placementQuery = supabase
+    .from("daymark_placements")
+    .select("id, intern_id, status, start_date, planned_end_date, intern:daymark_profiles!daymark_placements_intern_id_fkey(display_name)");
+  if (supervisorId) placementQuery = placementQuery.eq("supervisor_id", supervisorId);
+  const { data: placementRows, error: placementError } = await placementQuery;
+  if (placementError) throw placementError;
+  const placements = (placementRows ?? [])
+    .map((row) => ({
+      id: row.id,
+      intern_id: row.intern_id,
+      status: row.status,
+      start_date: row.start_date,
+      planned_end_date: row.planned_end_date,
+      intern_name: row.intern?.display_name ?? "Intern",
+    }))
+    .sort((a, b) => a.intern_name.localeCompare(b.intern_name));
+  const ids = placements.map((row) => row.id);
+  if (ids.length === 0) return { placements, punches: [], results: [], editors: {} as Record<string, string> };
+
+  const [punchResult, resultResult] = await Promise.all([
+    supabase
+      .from("daymark_punches")
+      .select(`${PUNCH_COLUMNS}, placement_id, replaces_punch_id, confirmed_by`)
+      .in("placement_id", ids)
+      .in("event_type", SHIFT_EVENTS)
+      .gte("occurred_at", `${from}T00:00:00+09:30`)
+      .lt("occurred_at", `${addDays(to, 1)}T00:00:00+09:30`)
+      .order("occurred_at"),
+    supabase
+      .from("daymark_day_results")
+      .select("placement_id, work_date, counted, scheduled, raw, break, worked, late, auto_closed, unscheduled")
+      .in("placement_id", ids)
+      .gte("work_date", from)
+      .lte("work_date", to),
+  ]);
+  if (punchResult.error) throw punchResult.error;
+  if (resultResult.error) throw resultResult.error;
+  const rows = (punchResult.data ?? []) as (Punch & { placement_id: string; replaces_punch_id: string | null; confirmed_by: string | null })[];
+  const replaced = new Set(rows.map((row) => row.replaces_punch_id).filter(Boolean));
+  const punches = await withPhotoUrls(rows.filter((row) => !replaced.has(row.id)));
+
+  const editorIds = [...new Set(punches.filter((row) => row.source === "staff_edit" && row.confirmed_by).map((row) => row.confirmed_by!))];
+  const editors: Record<string, string> = {};
+  if (editorIds.length > 0) {
+    const { data: people } = await supabase.from("daymark_profiles").select("id, display_name").in("id", editorIds);
+    for (const person of people ?? []) editors[person.id] = person.display_name;
+  }
+  return { placements, punches, results: resultResult.data ?? [], editors };
+}
+
+export type Timesheet = Awaited<ReturnType<typeof loadTimesheet>>;
 
 export async function loadDayResults(placementId: string, from: string, to: string) {
   const { data, error } = await createClient()

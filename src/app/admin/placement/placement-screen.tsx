@@ -140,6 +140,7 @@ function PlacementDesk() {
                     start_date: row.start_date,
                     planned_end_date: row.planned_end_date,
                     target_minutes: row.target_minutes,
+                    break_minutes: row.break_minutes,
                     pattern,
                   })}
                   interns={profiles.status === "ready" ? profiles.data.filter((p) => p.is_intern) : []}
@@ -243,6 +244,10 @@ function PlacementFields({
         <div>
           <dt className="text-sm text-muted-foreground">Target</dt>
           <dd>{formatMinutes(row.target_minutes)}</dd>
+        </div>
+        <div>
+          <dt className="text-sm text-muted-foreground">Break</dt>
+          <dd>{formatMinutes(row.break_minutes)} on days over 5 hours</dd>
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Lifecycle</dt>
