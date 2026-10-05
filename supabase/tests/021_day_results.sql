@@ -9,12 +9,12 @@ create temp table ids as
 select tests.create_intern('dr.d@test.dev') as d,
        tests.create_intern('dr.e@test.dev', null, '{1,3}') as e;
 
--- R5.4.2 break rule: a 29-minute gap still takes the break, a 30-minute gap doesn't
+-- R5.4.2 break rule (5 Oct): the gap is the unpaid break, topped up to the assigned 30 on long days
 select tests.shift((select d from ids), '2026-10-05 09:00', '2026-10-05 12:00');
 select tests.shift((select d from ids), '2026-10-05 12:29', '2026-10-05 15:30');
 select results_eq($$select raw, break, worked from public.daymark_day_results
                     where placement_id = tests.placement((select d from ids)) and work_date = '2026-10-05'$$,
-  $$values (361, 30, 331)$$, 'R5.4.2 a 29-minute gap: 30-minute break');
+  $$values (361, 1, 360)$$, 'R5.4.2 a 29-minute gap is topped up by 1 minute');
 select tests.shift((select d from ids), '2026-10-06 09:00', '2026-10-06 12:00');
 select tests.shift((select d from ids), '2026-10-06 12:30', '2026-10-06 15:31');
 select results_eq($$select raw, break, worked from public.daymark_day_results

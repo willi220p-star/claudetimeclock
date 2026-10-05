@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import type { z } from "zod";
-import { emptyDraft, patternOf, PatternEditor, type Day } from "@/app/admin/placements/placement-wizard";
+import { BreakField, breakOf, emptyDraft, patternOf, PatternEditor, type Day } from "@/app/admin/placements/placement-wizard";
 import { FormField, FormMessage, PasswordInput } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ type Placement = {
   start_date: string;
   planned_end_date: string;
   target_hours: string;
+  break_minutes: string;
   days: Record<number, Day>;
 };
 
@@ -37,8 +38,8 @@ const ROLE_FIELDS = [
 const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3";
 
 function emptyPlacement(): Placement {
-  const { supervisor_id, university, course, start_date, planned_end_date, target_hours, days } = emptyDraft();
-  return { supervisor_id, university, course, start_date, planned_end_date, target_hours, days };
+  const { supervisor_id, university, course, start_date, planned_end_date, target_hours, break_minutes, days } = emptyDraft();
+  return { supervisor_id, university, course, start_date, planned_end_date, target_hours, break_minutes, days };
 }
 
 /** The first thing wrong with the placement part, in the order the fields appear. */
@@ -49,6 +50,7 @@ function placementProblem(p: Placement, targetMinutes: number, days: number) {
   if (p.planned_end_date < p.start_date) return "The end date must be on or after the start date.";
   if (days === 0) return "Pick at least one day they work.";
   if (targetMinutes < 60) return "Set their target hours.";
+  if (breakOf(p.break_minutes) === undefined) return "Set the break between 0 and 120 minutes, or leave it empty for 30.";
   return null;
 }
 
@@ -80,7 +82,7 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
     placement.start_date && placement.planned_end_date && placement.planned_end_date >= placement.start_date
       ? rosterTotal(placement.start_date, placement.planned_end_date, (weekday) => {
           const day = pattern.find((d) => d.weekday === weekday);
-          return day ? plannedMinutes(day.start, day.end) : 0;
+          return day ? plannedMinutes(day.start, day.end, breakOf(placement.break_minutes) ?? 30) : 0;
         })
       : null;
 
@@ -115,6 +117,7 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
           start_date: placement.start_date,
           planned_end_date: placement.planned_end_date,
           target_minutes: targetMinutes,
+          break_minutes: breakOf(placement.break_minutes) ?? null,
           pattern,
         },
         allow_extra: allowExtra,
@@ -274,6 +277,7 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
                 </div>
               )}
             </FormField>
+            <BreakField id="person-break" value={placement.break_minutes} onChange={(value) => set("break_minutes", value)} />
             {needExtra ? (
               <label className="flex min-h-11 items-center gap-2">
                 <input

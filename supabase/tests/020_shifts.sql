@@ -75,7 +75,9 @@ select results_eq(
   $$values (true, true)$$, 'the auto-closed shift ends at its clock-in');
 select is((tests.day((select b from ids), '2026-10-14')).counted, 0, 'an auto-closed shift counts 0');
 
--- Review §2.7 supervisor-path shifts count 0 until confirmed
+-- Review §2.7 supervisor-path shifts count 0 until confirmed (older punches; the route is gone 5 Oct)
+insert into public.daymark_work_logs (placement_id, work_date, summary)
+values (tests.placement((select c from ids)), '2026-10-19', 'Worked on the test tasks for the day.');
 select tests.shift((select c from ids), '2026-10-19 09:00', '2026-10-19 17:00', 'supervisor');
 select ok((select bool_and(unverified) from public.daymark_shifts where placement_id = tests.placement((select c from ids))
            and work_date = '2026-10-19'), 'an unconfirmed supervisor-path shift is unverified');

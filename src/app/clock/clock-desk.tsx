@@ -2,12 +2,10 @@
 
 import { use, useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { LogIn, LogOut, WifiOff } from "lucide-react";
+import { Coffee, LogIn, LogOut, WifiOff } from "lucide-react";
 import { toast } from "sonner";
-import { PrivacyCard } from "@/app/clock/privacy-card";
+import { ClockSheet } from "@/app/clock/clock-sheet";
 import { Avatar } from "@/components/avatar";
-import { SelfieCamera } from "@/app/clock/selfie-camera";
 import { CatchUpSheet } from "@/components/catch-up-sheet";
 import { EmptyState } from "@/components/empty-state";
 import { FormMessage } from "@/components/form-field";
@@ -21,29 +19,15 @@ import { WorkLogSheet } from "@/components/work-log-sheet";
 import { sessionConsent } from "@/lib/browser-session";
 import { canClockWithApp } from "@/lib/consent";
 import { addDays, rollingWeek, type RosterDot } from "@/lib/periods";
-import {
-  loadCatchUp,
-  loadClockStatus,
-  loadInternKpi,
-  loadNotifications,
-  loadScheduledDays,
-  loadTodayBoard,
-} from "@/lib/data";
+import { loadClockStatus, loadInternKpi, loadNotifications, loadScheduledDays, loadTodayBoard } from "@/lib/data";
 import { darwinDateKey, formatDay, formatDayTime, formatTime, formatTimeOfDay, relativeOrDate } from "@/lib/darwin";
-import { EVENT_LABEL, PHOTO_BUCKET, errorText, type ClockChallenge, type EventType, type Profile } from "@/lib/daymark";
+import { ACTION_LABEL, type ClockAction, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { asRecord, owedLabel, type ClockStatus, type InternKpi, type TodayBoard } from "@/lib/placement-ui";
 import { loadPunches, type PunchCard } from "@/lib/punches";
-import { createClient } from "@/lib/supabase/client";
-import { clockState, minutesSince } from "@/lib/time";
+import { clockState, minutesOnDay, minutesSince } from "@/lib/time";
 import { useLoad, useOnline } from "@/lib/use-load";
 import { cn } from "@/lib/utils";
-
-type Phase =
-  | { name: "idle" }
-  | { name: "starting"; eventType: EventType }
-  | { name: "camera"; challenge: ClockChallenge }
-  | { name: "saving"; challenge: ClockChallenge; step: string };
 
 type DeskExtras = {
   status: ClockStatus | null;
@@ -64,31 +48,6 @@ function useMinute() {
   return new Date(minute * 60_000);
 }
 
-function locationMessage(error: GeolocationPositionError) {
-  if (error.code === error.PERMISSION_DENIED) {
-    return "Location is blocked. Allow location for this site in your browser settings, then tap Clock in again.";
-  }
-  if (error.code === error.TIMEOUT) {
-    return "Your location took too long. Step outside or near a window, then tap Clock in again.";
-  }
-  return "Your phone couldn't find your location. Turn on location services, then tap Clock in again.";
-}
-
-/** Read the location once, only after the tap; never a continuous watch (security review §2.4). */
-function readLocation() {
-  return new Promise<GeolocationCoordinates>((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("This browser can't share your location. Try Chrome or Safari on your phone."));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position.coords),
-      (error) => reject(new Error(locationMessage(error))),
-      { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 },
-    );
-  });
-}
-
 function readKpi(value: unknown): InternKpi | null {
   const row = asRecord(value);
   if (!row || typeof row.placement_id !== "string") return null;
@@ -102,11 +61,9 @@ function readBoard(value: unknown): TodayBoard | null {
 }
 
 export function ClockDesk({ profile }: { profile: Profile }) {
-  const router = useRouter();
   const online = useOnline();
   const now = useMinute();
-  const initialConsent = use(sessionConsent());
-  const [consent, setConsent] = useState(initialConsent);
+  const consent = use(sessionConsent());
   const load = useCallback(() => loadPunches({ userId: profile.id, limit: 20 }), [profile.id]);
   const [punches, reload] = useLoad(load);
   const loadExtras = useCallback(async (): Promise<DeskExtras> => {
@@ -127,85 +84,42 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   const extrasData = extras.status === "ready" ? extras.data : null;
   const placementId = extrasData?.status?.placement?.id ?? extrasData?.kpi?.placement_id ?? null;
   const owed = extrasData?.kpi?.owed ?? 0;
-  const loadPlan = useCallback(
-    () => (placementId && owed > 0 ? loadCatchUp(placementId).catch(() => null) : Promise.resolve(null)),
-    [placementId, owed],
-  );
-  const [plan, reloadPlan] = useLoad(loadPlan);
-  const [phase, setPhase] = useState<Phase>({ name: "idle" });
-  const [problem, setProblem] = useState<string | null>(null);
-  const [logOpen, setLogOpen] = useState(false);
+  const [sheet, setSheet] = useState<ClockAction | null>(null);
+  const [logDate, setLogDate] = useState<string | null>(null);
   const [catchUpOpen, setCatchUpOpen] = useState(false);
-  const [asking, setAsking] = useState(false);
 
-  function fail(error: unknown, fallback: string) {
-    setPhase({ name: "idle" });
-    if (typeof error === "object" && error !== null && "hint" in error && error.hint === "consent") {
-      router.push("/consent");
-      return;
-    }
-    setProblem(errorText(error, fallback));
-  }
-
-  async function start(eventType: EventType) {
-    setProblem(null);
-    setPhase({ name: "starting", eventType });
-    const { data, error } = await createClient().rpc("start_clock", { event_type: eventType });
-    if (error) return fail(error, "That didn't start. Try again.");
-    setPhase({ name: "camera", challenge: data as ClockChallenge });
-  }
-
-  async function save(challenge: ClockChallenge, photo: Blob) {
-    const supabase = createClient();
-    try {
-      setPhase({ name: "saving", challenge, step: "Checking your location…" });
-      const coords = await readLocation();
-      setPhase({ name: "saving", challenge, step: "Saving your selfie…" });
-      const { error: uploadError } = await supabase.storage
-        .from(PHOTO_BUCKET)
-        .upload(challenge.photo_path, photo, { contentType: "image/jpeg", upsert: false });
-      if (uploadError) throw uploadError;
-      setPhase({ name: "saving", challenge, step: challenge.event_type === "shift_in" ? "Saving your clock-in…" : "Saving your clock-out…" });
-      const { data, error } = await supabase.rpc("clock_punch", {
-        challenge_id: challenge.challenge_id,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy_m: coords.accuracy,
-        client_reported_at: new Date().toISOString(), // forensics only; the server stamps the time
-      });
-      if (error) throw error;
-      const at = formatTime((data as { occurred_at: string }).occurred_at);
-      toast.success(challenge.event_type === "shift_in" ? `You're clocked in at ${at}.` : `You're clocked out at ${at}.`);
-      setPhase({ name: "idle" });
-      reload();
-      reloadExtras();
-    } catch (error) {
-      fail(error, "That didn't save. Tap the button to try again.");
-    }
-  }
-
-  async function askSupervisor(eventType: EventType) {
-    setAsking(true);
-    setProblem(null);
-    const { error } = await createClient().rpc("request_supervisor_confirmation", { event_type: eventType });
-    setAsking(false);
-    if (error) {
-      setProblem(errorText(error, "That request didn't send. Try again."));
-      return;
-    }
-    toast.success(eventType === "shift_in" ? "Asked your supervisor to confirm you're in." : "Asked your supervisor to confirm you left.");
+  function reloadAll() {
+    reload();
     reloadExtras();
   }
 
+  function clocked(action: ClockAction, occurredAt: string) {
+    const at = formatTime(occurredAt);
+    toast.success(
+      action === "shift_in"
+        ? `You're clocked in at ${at}.`
+        : action === "break_start"
+          ? `Your break started at ${at}.`
+          : action === "break_end"
+            ? `Welcome back. Your break ended at ${at}.`
+            : `You're clocked out at ${at}.`,
+    );
+    setSheet(null);
+    reloadAll();
+  }
+
   const firstName = profile.display_name.split(/\s+/)[0];
-  const todayKey = darwinDateKey(now);
   const status = extrasData?.status ?? null;
+  // The server's Darwin date and state win: they're what the clock rules use.
+  const todayKey = status?.today ?? darwinDateKey(now);
   const kpi = extrasData?.kpi ?? null;
   const board = extrasData?.board ?? null;
   const todayPunches = punches.status === "ready" ? punches.data.filter((punch) => darwinDateKey(punch.occurred_at) === todayKey) : [];
-  const logDate = previousShiftDate(punches.status === "ready" ? punches.data : [], todayKey);
-  const catchUp = plan.status === "ready" ? plan.data : null;
   const latestPhoto = punches.status === "ready" ? (punches.data.find((punch) => punch.photoUrl)?.photoUrl ?? null) : null;
+  const clock = punches.status === "ready" ? clockState(punches.data, todayKey) : null;
+  const state: ClockStatus["state"] = status?.state ?? (clock?.clockedIn ? "in" : clock?.onBreak ? "break" : "out");
+  const since = (state === "in" ? status?.open_since : state === "break" ? status?.break_since : null) ?? clock?.since ?? null;
+  const actions = status?.actions ?? {};
 
   return (
     <div className="flex flex-col gap-6">
@@ -251,39 +165,28 @@ export function ClockDesk({ profile }: { profile: Profile }) {
           </div>
         ) : !canClockWithApp(consent) ? (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-lg font-semibold">Your supervisor confirms you&apos;re here</p>
+            <p className="text-lg font-semibold">Allow location and selfie to clock in</p>
             <p className="text-muted-foreground">
-              You chose not to share location or a selfie, so DGK Clock won&apos;t ask for them. Let your supervisor
-              know when you arrive and leave. If you change your mind, you can allow both.
+              DGK Clock takes your location and a live selfie each time you clock in, take a break or clock out. Without
+              both, you can&apos;t clock.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                disabled={asking || !online}
-                onClick={() => void askSupervisor(status?.next_event === "shift_out" ? "shift_out" : "shift_in")}
-              >
-                {asking ? "Asking…" : status?.next_event === "shift_out" ? "Ask supervisor to confirm I left" : "Ask supervisor to confirm I'm in"}
-              </Button>
-              <Link href="/consent" className={buttonVariants({ variant: "secondary" })}>
-                Change my choices
-              </Link>
-            </div>
+            <Link href="/consent" className={buttonVariants()}>
+              Review and allow
+            </Link>
           </div>
         ) : (
           <ClockPanel
-            state={clockState(punches.data)}
+            state={state}
+            since={since}
             now={now}
             todayKey={todayKey}
             punches={punches.data}
             status={status}
-            busy={phase.name !== "idle"}
             online={online}
-            step={phase.name === "starting" ? "Getting ready…" : phase.name === "saving" ? phase.step : null}
-            onStart={start}
-            onWriteLog={() => setLogOpen(true)}
+            onOpen={setSheet}
+            onWriteLog={setLogDate}
           />
         )}
-        {problem ? <FormMessage>{problem}</FormMessage> : null}
       </section>
 
       {extrasData && extrasData.roster.length > 0 && placementId ? <RosterDots days={extrasData.roster} /> : null}
@@ -321,8 +224,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
         <section aria-labelledby="catch-up-title" className="flex flex-col gap-3 rounded-xl bg-card p-6 shadow-card">
           <h2 id="catch-up-title">Catch up</h2>
           <p className="text-muted-foreground">{owedLabel(owed)}</p>
-          <Button type="button" disabled={plan.status !== "ready" || !catchUp} onClick={() => setCatchUpOpen(true)}>
-            Catch up
+          <Button type="button" disabled={!placementId} onClick={() => setCatchUpOpen(true)}>
+            Pick catch-up days
           </Button>
         </section>
       ) : null}
@@ -366,37 +269,24 @@ export function ClockDesk({ profile }: { profile: Profile }) {
         )}
       </section>
 
-      <PrivacyCard consent={consent} onChange={setConsent} />
-
-      {phase.name === "camera" ? (
-        <SelfieCamera
-          gesture={phase.challenge.gesture}
-          onUse={(photo) => void save(phase.challenge, photo)}
-          onCancel={() => setPhase({ name: "idle" })}
+      {sheet ? (
+        <ClockSheet
+          state={state}
+          initial={sheet}
+          actions={actions}
+          site={status?.site ?? null}
+          logDate={status?.open_work_date ?? todayKey}
+          onClose={() => setSheet(null)}
+          onDone={clocked}
         />
       ) : null}
 
-      <WorkLogSheet
-        open={logOpen}
-        onClose={() => setLogOpen(false)}
-        workDate={logDate}
-        onSaved={() => {
-          reload();
-          reloadExtras();
-        }}
-      />
+      {logDate ? (
+        <WorkLogSheet key={logDate} open onClose={() => setLogDate(null)} workDate={logDate} onSaved={reloadAll} />
+      ) : null}
 
-      {catchUp && placementId ? (
-        <CatchUpSheet
-          open={catchUpOpen}
-          onClose={() => setCatchUpOpen(false)}
-          plan={catchUp}
-          placementId={placementId}
-          onDone={() => {
-            reloadExtras();
-            reloadPlan();
-          }}
-        />
+      {catchUpOpen && placementId ? (
+        <CatchUpSheet placementId={placementId} onClose={() => setCatchUpOpen(false)} onDone={reloadExtras} />
       ) : null}
     </div>
   );
@@ -404,101 +294,116 @@ export function ClockDesk({ profile }: { profile: Profile }) {
 
 function ClockPanel({
   state,
+  since,
   now,
   todayKey,
   punches,
   status,
-  busy,
   online,
-  step,
-  onStart,
+  onOpen,
   onWriteLog,
 }: {
-  state: ReturnType<typeof clockState>;
+  state: ClockStatus["state"];
+  since: string | null;
   now: Date;
   todayKey: string;
   punches: PunchCard[];
   status: ClockStatus | null;
-  busy: boolean;
   online: boolean;
-  step: string | null;
-  onStart: (eventType: EventType) => void;
-  onWriteLog: () => void;
+  onOpen: (action: ClockAction) => void;
+  onWriteLog: (date: string) => void;
 }) {
-  const counted = countedToday(punches, todayKey);
-  const done = !state.clockedIn && counted !== null;
-  const blocked = !state.clockedIn && !done ? status?.blocked : null;
-  const blockCode = blocked ? status?.block_code : null;
+  const actions = status?.actions ?? {};
+  // Break shows from 10 am to 2 pm (the server says when); Finish is always there (Dilip, 5 Oct).
+  const breakOpen = state === "in" && actions.break_start === null;
+  const sinceText = since ? (darwinDateKey(since) === todayKey ? formatTime(since) : formatDayTime(since)) : "";
 
-  if (busy && step) {
-    return (
-      <>
-        <p className="text-lg font-semibold">{step === "Checking your location…" ? "Checking location…" : step}</p>
-        <Button type="button" size="lg" className="w-full" disabled>
-          {state.clockedIn ? EVENT_LABEL.shift_out : EVENT_LABEL.shift_in}
-        </Button>
-      </>
-    );
-  }
-
-  if (state.clockedIn) {
+  if (state === "in") {
     return (
       <>
         <div className="flex flex-col gap-1">
           <p className="flex items-center gap-2 text-lg font-semibold">
             <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ok" />
-            Clocked in since{" "}
-            {darwinDateKey(state.since) === todayKey ? formatTime(state.since) : formatDayTime(state.since)}
+            Clocked in since {sinceText}
           </p>
           <p aria-live="polite" className="text-muted-foreground">
-            {formatMinutes(minutesSince(state.since, now))} so far
+            {formatMinutes(minutesOnDay(punches, todayKey, now))} today
           </p>
         </div>
-        <Button type="button" size="lg" variant="secondary" className="w-full" disabled={busy || !online} onClick={() => onStart("shift_out")}>
-          <LogOut aria-hidden />
-          {EVENT_LABEL.shift_out}
-        </Button>
-        <p role="status" className="text-sm text-muted-foreground">
-          {step ?? "We'll ask for camera and location for this clock-out only."}
-        </p>
+        <div className={cn("grid gap-2", breakOpen && "grid-cols-2")}>
+          {breakOpen ? (
+            <Button type="button" size="lg" disabled={!online} onClick={() => onOpen("break_start")}>
+              <Coffee aria-hidden />
+              {ACTION_LABEL.break_start}
+            </Button>
+          ) : null}
+          <Button type="button" size="lg" variant={breakOpen ? "secondary" : "default"} disabled={!online} onClick={() => onOpen("shift_out")}>
+            <LogOut aria-hidden />
+            {ACTION_LABEL.shift_out}
+          </Button>
+        </div>
       </>
     );
   }
 
-  if (done) {
+  if (state === "break") {
     return (
-      <p className="text-lg font-semibold">Day done · {formatMinutes(counted)} counted</p>
+      <>
+        <div className="flex flex-col gap-1">
+          <p className="flex items-center gap-2 text-lg font-semibold">
+            <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-warn" />
+            On a break since {sinceText}
+          </p>
+          <p aria-live="polite" className="text-muted-foreground">
+            {since ? `${formatMinutes(minutesSince(since, now))} so far` : null}
+          </p>
+        </div>
+        <Button type="button" size="lg" className="w-full" disabled={!online} onClick={() => onOpen("break_end")}>
+          <LogIn aria-hidden />
+          {ACTION_LABEL.break_end}
+        </Button>
+        <Button type="button" variant="ghost" className="w-fit" onClick={() => onWriteLog(todayKey)}>
+          Not coming back today? Write your work log
+        </Button>
+      </>
     );
   }
 
+  const blocked = status?.state === "out" ? status.blocked : null;
   if (blocked) {
     return (
       <div className="flex flex-col items-start gap-3">
         <p className="text-lg font-semibold">{blocked}</p>
-        {blockCode === "work_log" ? (
-          <Button type="button" onClick={onWriteLog}>
+        {status?.block_code === "work_log" ? (
+          <Button type="button" onClick={() => onWriteLog(previousShiftDate(punches, todayKey))}>
             Write log
           </Button>
-        ) : blockCode === "full" ? (
+        ) : status?.block_code === "full" ? (
           <Link href="/clock/schedule" className={buttonVariants()}>
             Request an extra spot
           </Link>
         ) : (
-          <p className="text-muted-foreground">{blockFix(blockCode)}</p>
+          <p className="text-muted-foreground">{blockFix(status?.block_code)}</p>
         )}
       </div>
     );
   }
 
+  const worked = minutesOnDay(punches, todayKey, now);
+  const lastOut = punches.find((punch) => punch.event_type === "shift_out" && darwinDateKey(punch.occurred_at) === todayKey);
   return (
     <>
-      <p className="text-lg font-semibold">You&apos;re not clocked in.</p>
-      <Button type="button" size="lg" className="w-full" disabled={busy || !online} onClick={() => onStart("shift_in")}>
+      <p className="text-lg font-semibold">
+        {lastOut && worked > 0
+          ? `Clocked out at ${formatTime(lastOut.occurred_at)} · ${formatMinutes(worked)} today`
+          : "You're not clocked in."}
+      </p>
+      <Button type="button" size="lg" className="w-full" disabled={!online} onClick={() => onOpen("shift_in")}>
         <LogIn aria-hidden />
-        {EVENT_LABEL.shift_in}
+        {ACTION_LABEL.shift_in}
       </Button>
-      <p role="status" className="text-sm text-muted-foreground">
-        {step ?? "We'll ask for camera and location for this clock-in only."}
+      <p className="text-sm text-muted-foreground">
+        {lastOut ? "Clocked out by mistake? Clock in again any time." : "We'll ask for your location and a selfie each time you clock."}
       </p>
     </>
   );
@@ -583,18 +488,6 @@ function TodayStrip({
 function previousShiftDate(punches: PunchCard[], today: string) {
   const dates = punches.map((punch) => darwinDateKey(punch.occurred_at)).filter((date) => date < today);
   return dates.sort().at(-1) ?? addDays(today, -1);
-}
-
-function countedToday(punches: PunchCard[], todayKey: string) {
-  const day = punches.filter((punch) => darwinDateKey(punch.occurred_at) === todayKey);
-  const inn = day.filter((punch) => punch.event_type === "shift_in").sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at))[0];
-  const out = day
-    .filter((punch) => punch.event_type === "shift_out")
-    .sort((a, b) => Date.parse(a.occurred_at) - Date.parse(b.occurred_at))
-    .at(-1);
-  if (!inn || !out) return null;
-  const raw = Math.max(0, Math.floor((Date.parse(out.occurred_at) - Date.parse(inn.occurred_at)) / 60_000));
-  return raw > 300 ? raw - 30 : raw;
 }
 
 // Clocking is always on (26 Sep, Dilip): no more "weekend"/"closure"/"window" block codes.

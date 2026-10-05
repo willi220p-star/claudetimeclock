@@ -15,11 +15,13 @@ select tests.clock((select i from ids), 'shift_in', '2026-10-05 08:58+09:30');
 select tests.clock((select i from ids), 'shift_out', '2026-10-05 16:58+09:30');
 select tests.at('2026-10-06 07:30+09:30');
 insert into public.daymark_work_logs (placement_id, work_date, summary)
-values (private.current_placement((select i from ids)), '2026-10-05', 'Onboarding and first client brief.');
+values (private.current_placement((select i from ids)), '2026-10-05', 'Onboarding and first client brief.')
+on conflict (placement_id, work_date) do update set summary = excluded.summary;  -- Finish already wrote one
 select tests.clock((select i from ids), 'shift_in', '2026-10-06 09:20+09:30');
 select tests.clock((select i from ids), 'shift_out', '2026-10-06 17:20+09:30');
 insert into public.daymark_work_logs (placement_id, work_date, summary)
-values (private.current_placement((select i from ids)), '2026-10-06', 'Lead list clean-up in the CRM.');
+values (private.current_placement((select i from ids)), '2026-10-06', 'Lead list clean-up in the CRM.')
+on conflict (placement_id, work_date) do update set summary = excluded.summary;  -- Finish already wrote one
 select tests.at('2026-10-07 19:10+09:30');
 select private.job_day_close();
 select tests.at('2026-10-08 10:00+09:30');

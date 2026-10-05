@@ -13,8 +13,8 @@ function clockMinutes(time: string) {
   return hour * 60 + minute;
 }
 
-/** R5.2.4: length minus a 30-minute break when the day is longer than 300 minutes. */
-export function plannedMinutes(start: string, end: string) {
+/** R5.2.4: length minus the intern's break (30 unless set, 5 Oct) when the day is longer than 300 minutes. */
+export function plannedMinutes(start: string, end: string, breakMinutes = 30) {
   const length = clockMinutes(end) - clockMinutes(start);
-  return length > 300 ? length - 30 : length;
+  return length > 300 ? length - breakMinutes : length;
 }

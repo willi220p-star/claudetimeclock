@@ -14,7 +14,7 @@
 | D3 | Auto-close (R5.5.1) | Clock-out at scheduled end, hours count | Clock-out = clock-in (0 min), flagged `auto_closed`; counts only after a punch fix is approved |
 | D4 | Office code / kiosk | — | Not built |
 | D5 | MFA (aal2) | — | Not now; open question and release checklist item |
-| D6 | Consent | — | Full consent pack: collection notice v1.0, append-only consent records, `has_consent` gate, supervisor-confirmation path, `verification_method` on reports |
+| D6 | Consent | — | Full consent pack: collection notice v1.0, append-only consent records, `has_consent` gate, supervisor-confirmation path, `verification_method` on reports. The supervisor-confirmation path was removed on 2026-10-05 (D26) |
 | D7 | Clock window end | 19:00:00 inclusive | Kept (review said 18:59), then superseded by D16 (2026-09-26): no window at all |
 | D8 | Offboarding | Read-only for 30 days | Kept; Auth user removed by `retention-purge` |
 | D9 | Hosting | GitHub Pages | Kept with meta CSP; host move, CAPTCHA, Sydney region, backups, Pro plan go to the release checklist |
@@ -29,10 +29,17 @@
 | D18 | Deleting a person (full wipe) | — | `private.erase_person`, shared by the admin delete (People or Records) and the 30-day purge: the login, profile, every row hanging off it, their consent records and the audit rows about them are deleted. Their actions on other people's records stay, with the actor shown as "Deleted user". One nameless note records that a deletion happened (who deleted, counts, no id, no hash). Collection notice v1.1 says so |
 | D19 | Announcement banners | — | Admins post to everyone, a supervisor to their own interns; sticky or moving text, optional end time, one live banner per author, each viewer can hide it on their device |
 | D20 | Roster changes | Requests only | Admin, or the intern's supervisor, can add, move, re-time or remove a single day, or set a weekly pattern for a date range (the usual days come back after it). Hand-edited days survive a pattern change. Auto-close now happens 12 hours after clock-in (hourly job); shifts that cross midnight belong to the day they started; punch fixes accept any time of day |
+| D21 | Breaks (Dilip, 2026-10-05) | No break punches (R5.1.4) | Start · Break · Finish on one clock screen (drawn office map, live selfie, one big button). A break is a clock-out and clock-in marked `is_break`, each with GPS + selfie; it starts between 10 am and 2 pm, Finish is always available |
+| D22 | Break deduction (R5.4.2) | 30 min on days over 5 h unless a 30-min gap | On days over 5 h the gaps between sessions are the unpaid break, topped up to the intern's assigned break (`placements.break_minutes`, set when adding the intern, default 30). Roster planned minutes use the same break |
+| D23 | Clocking frequency and work log | 60-second rate limit; log before the next day's clock-in | Clock in and out as often as needed (no rate limit; the single-use challenge stops double taps). Finish needs that day's work log first; breaks never do. The next-day check stays for days that ended without Finish |
+| D24 | Staff time edits | Interns request punch fixes | Admin, or the intern's supervisor, edits clock times directly on Timesheets (`staff_edit_times`, reason required, originals kept, audited, intern notified). The edit is the approval: that day's time beyond the roster counts straight away |
+| D25 | Catch-up (§8.7) | Option A longer days / option B extra days | The intern picks free office days (spots under normal capacity) and times; each becomes an extra-day request the supervisor approves. Quick fill, a "back on track by" date and a roster calendar file (.ics) help students plan |
+| D26 | Consent required to clock | Location and selfie optional (supervisor confirms instead) | Both are required to clock; the supervisor-confirmation route is gone. Privacy (withdraw) moved to the Me tab. Collection notice v1.2 says so and covers break selfies |
+| D27 | Staff navigation | One flat list of pages | A tree: main tabs (admin: Home, People, Time, Reports, Settings; supervisor: Today, Time, Approvals, Interns) with sub-tabs. Phones: bottom tabs + sub-tab pills; desktop: grouped sidebar. New Time → Timesheets page |
 
 ## Security overlay (review §5, mapped to daymark names)
 - Clocking goes through `public.start_clock(event_type)` → a `daymark_clock_challenges` row (90 s, single use, random gesture) → selfie uploaded to `daymark-photos/<intern>/<challenge>.jpg` → `public.clock_punch(...)`. The function checks the challenge, that the object exists, is owned by the caller and was created within 3 minutes of issue, and that `accuracy_m ≤ 150`. It stamps `occurred_at := private.clock_now()` and keeps the client time only as `client_reported_at`.
-- One punch per intern per 60 s.
+- ~~One punch per intern per 60 s.~~ Removed 5 Oct (D23): the single-use 90-second challenge stops double taps.
 - Flags: `suspicious_accuracy` (≤ 3 m), `low_accuracy` (> 50 m), `repeat_coords` (same 5-decimal point on an earlier day), `desktop_ua`, `new_device`.
 - No third-party geocoding. `place_name` comes from the site row.
 - Location is read once, on the tap, never with `watchPosition`.
@@ -64,4 +71,5 @@ Still deferred:
 | **CAPTCHA** on sign-in/reset | release checklist | dashboard setting | Turnstile widget + CSP entry |
 | Report ID + data hash stored (`uni_reports`) | security review | not started | a table and an insert when a PDF is generated |
 | Intern report download before approval (item 9) | Dilip, 2026-09-29: skipped | — | a draft watermark on the existing PDF |
-| Punch fix for an overnight shift | D20 | not started | an out-date on the punch-fix payload |
+| Punch fix or staff time edit for an overnight shift | D20, D24 | not started | an out-date on the punch-fix / staff-edit payload |
+| Real street map on the clock screen | D21 (Dilip chose the drawn map) | — | a map library + tile host in the CSP, and a notice change (location sent to the tile server) |

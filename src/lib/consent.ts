@@ -8,7 +8,7 @@ export function needsConsentScreen(consent: Consent) {
   return !consent.notice_acknowledged || consent.location === null || consent.selfie === null;
 }
 
-/** Clocking with GPS and a selfie needs both, granted. Otherwise it's supervisor confirmation. */
+/** Clocking needs both location and selfie, granted (5 Oct): there is no other way to clock. */
 export function canClockWithApp(consent: Consent) {
   return consent.notice_acknowledged && consent.location === "granted" && consent.selfie === "granted";
 }

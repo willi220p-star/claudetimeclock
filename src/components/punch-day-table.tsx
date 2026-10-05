@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import { StatusChip } from "@/components/status-chip";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatDay, formatTime } from "@/lib/darwin";
+import { formatMinutes } from "@/lib/minutes";
 import { errorText, FLAG_LABEL, formatDistance, SOURCE_LABEL } from "@/lib/daymark";
 import { selfieUrl, type PunchCard } from "@/lib/punches";
-import { punchDays } from "@/lib/time";
+import { breakBetween, punchDays } from "@/lib/time";
 
 /** Punches by Darwin day, one clock-in/clock-out pair per row. `detail` adds distance, accuracy and flags. */
 export function PunchDayTable({ punches, detail = false }: { punches: PunchCard[]; detail?: boolean }) {
@@ -28,12 +29,22 @@ export function PunchDayTable({ punches, detail = false }: { punches: PunchCard[
         <section key={day.dateKey} className="flex flex-col gap-2">
           <h3 className="font-semibold">{formatDay(day.dateKey)}</h3>
           <ul className="flex flex-col gap-2">
-            {day.rows.map((row) => (
-              <li key={row.id} className="grid grid-cols-1 gap-4 rounded-lg bg-card p-4 shadow-card sm:grid-cols-2">
-                <PunchCell punch={row.in} label="Clock in" detail={detail} onOpen={openSelfie} />
-                <PunchCell punch={row.out} label="Clock out" detail={detail} onOpen={openSelfie} />
-              </li>
-            ))}
+            {day.rows.map((row, index) => {
+              const pause = breakBetween(row, day.rows[index + 1]);
+              return (
+                <li key={row.id} className="flex flex-col gap-2">
+                  <div className="grid grid-cols-1 gap-4 rounded-lg bg-card p-4 shadow-card sm:grid-cols-2">
+                    <PunchCell punch={row.in} label={row.in?.is_break ? "End break" : "Clock in"} detail={detail} onOpen={openSelfie} />
+                    <PunchCell punch={row.out} label={row.out?.is_break ? "Start break" : "Clock out"} detail={detail} onOpen={openSelfie} />
+                  </div>
+                  {pause !== null ? (
+                    <p className="caption px-4 font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Break {formatMinutes(pause)}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}

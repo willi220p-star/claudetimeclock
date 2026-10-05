@@ -582,6 +582,7 @@ export type Database = {
       }
       daymark_placements: {
         Row: {
+          break_minutes: number
           cohort_id: string | null
           course: string
           created_at: string
@@ -605,6 +606,7 @@ export type Database = {
           university: string
         }
         Insert: {
+          break_minutes?: number
           cohort_id?: string | null
           course: string
           created_at?: string
@@ -628,6 +630,7 @@ export type Database = {
           university: string
         }
         Update: {
+          break_minutes?: number
           cohort_id?: string | null
           course?: string
           created_at?: string
@@ -746,6 +749,7 @@ export type Database = {
           event_type: string
           flags: string[]
           id: string
+          is_break: boolean
           latitude: number | null
           longitude: number | null
           occurred_at: string
@@ -770,6 +774,7 @@ export type Database = {
           event_type: string
           flags?: string[]
           id?: string
+          is_break?: boolean
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
@@ -794,6 +799,7 @@ export type Database = {
           event_type?: string
           flags?: string[]
           id?: string
+          is_break?: boolean
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
@@ -1459,7 +1465,7 @@ export type Database = {
           work_date: string
         }[]
       }
-      catch_up_options: { Args: { placement: string }; Returns: Json }
+      catch_up_slots: { Args: { placement: string }; Returns: Json }
       checkins_due: {
         Args: never
         Returns: {
@@ -1637,10 +1643,6 @@ export type Database = {
         Returns: Json
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
-      request_supervisor_confirmation: {
-        Args: { event_type: string }
-        Returns: Json
-      }
       retention_certificate_removed: {
         Args: { request_id: string }
         Returns: undefined
@@ -1755,6 +1757,18 @@ export type Database = {
         Returns: string
       }
       staff_cancel_day: { Args: { day: string }; Returns: undefined }
+      staff_edit_times: {
+        Args: {
+          clock_in?: string
+          clock_out?: string
+          placement: string
+          reason?: string
+          replaces_in?: string
+          replaces_out?: string
+          work_date: string
+        }
+        Returns: Json
+      }
       staff_move_day: {
         Args: {
           allow_extra?: boolean
@@ -1774,8 +1788,8 @@ export type Database = {
           files: number
         }[]
       }
-      submit_catch_up: {
-        Args: { option: string; placement: string }
+      submit_catch_up_days: {
+        Args: { days: Json; placement: string }
         Returns: Json
       }
       submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }

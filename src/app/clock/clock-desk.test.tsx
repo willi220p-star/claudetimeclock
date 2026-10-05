@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Consent, Profile } from "@/lib/daymark";
 
@@ -39,16 +39,13 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ rpc, storage: { from: () => ({ upload }) } }),
 }));
 vi.mock("@/lib/punches", () => ({ loadPunches: (...args: unknown[]) => loadPunches(...args), selfieUrl: vi.fn() }));
+const loadClockStatus = vi.fn();
 vi.mock("@/lib/data", () => ({
-  loadClockStatus: vi.fn().mockResolvedValue(null),
+  loadClockStatus: (...args: unknown[]) => loadClockStatus(...args),
   loadInternKpi: vi.fn().mockResolvedValue(null),
   loadTodayBoard: vi.fn().mockResolvedValue(null),
   loadNotifications: vi.fn().mockResolvedValue([]),
-  loadCatchUp: vi.fn().mockResolvedValue({
-    owed_minutes: 0,
-    a: { requests: [], covers_minutes: 0, fully_covers: true },
-    b: { requests: [], covers_minutes: 0, fully_covers: true },
-  }),
+  loadScheduledDays: vi.fn().mockResolvedValue([]),
 }));
 vi.mock("@/lib/browser-session", () => ({
   // A settled thenable, so React's use() reads it without suspending.
@@ -82,9 +79,13 @@ const challenge = {
 const getCurrentPosition = vi.fn();
 const getUserMedia = vi.fn();
 
+const site = { name: "Regus Palmerston", latitude: -12.4785082, longitude: 130.9854825, radius_m: 200 };
+const placement = { id: "33333333-3333-3333-3333-333333333333", read_only: false };
+
 beforeEach(() => {
-  consent = { notice_version: "1.0", notice_acknowledged: true, location: "granted", selfie: "granted" };
+  consent = { notice_version: "1.2", notice_acknowledged: true, location: "granted", selfie: "granted" };
   loadPunches.mockResolvedValue([]);
+  loadClockStatus.mockResolvedValue({ state: "out", actions: { shift_in: null }, blocked: null, site, placement });
   rpc.mockImplementation((name: string) => extraRpc(name, { data: null, error: null }));
   upload.mockResolvedValue({ error: null });
   getCurrentPosition.mockImplementation((success: PositionCallback) =>
@@ -108,27 +109,38 @@ afterEach(() => {
   push.mockReset();
 });
 
+async function openSheet(button: string) {
+  fireEvent.click(await screen.findByRole("button", { name: button }));
+  return within(await screen.findByRole("dialog"));
+}
+
 describe("ClockDesk", () => {
-  test("clock in: challenge, live selfie with the gesture, one location read, upload, punch", async () => {
+  test("clock in: the sheet reads the location once, then challenge, live selfie with the gesture, upload, punch", async () => {
     rpc.mockImplementation((name: string) => {
       if (name === "start_clock") return Promise.resolve({ data: challenge, error: null });
       if (name === "clock_punch") return Promise.resolve({ data: { occurred_at: "2026-10-13T23:30:00Z" }, error: null });
-      return extraRpc(name, { data: { occurred_at: "2026-10-13T23:30:00Z" }, error: null });
+      return extraRpc(name, { data: null, error: null });
     });
     render(<ClockDesk profile={intern} />);
 
-    expect(await screen.findByText("We'll ask for camera and location for this clock-in only.")).toBeInTheDocument();
+    expect(await screen.findByText("You're not clocked in.")).toBeInTheDocument();
     expect(getCurrentPosition).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Clock in" }));
+    const sheet = await openSheet("Clock in");
+    expect(await sheet.findByText(/from Regus Palmerston/)).toBeInTheDocument();
+    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(getCurrentPosition.mock.calls[0][2]).toMatchObject({ enableHighAccuracy: true });
+    expect(sheet.getByRole("radio", { name: "Start" })).toHaveAttribute("aria-checked", "true");
+    expect(sheet.getByRole("radio", { name: "Break" })).toBeDisabled();
 
+    await waitFor(() => expect(sheet.getByRole("button", { name: "Clock in" })).toBeEnabled());
+    fireEvent.click(sheet.getByRole("button", { name: "Clock in" }));
     expect(rpc).toHaveBeenCalledWith("start_clock", { event_type: "shift_in" });
-    expect(await screen.findByRole("heading", { name: "Hold up three fingers" })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Take photo" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Use photo" }));
+    expect(await sheet.findByText("Hold up three fingers")).toBeInTheDocument();
+    fireEvent.click(await sheet.findByRole("button", { name: "Take photo" }));
+    fireEvent.click(await sheet.findByRole("button", { name: "Use photo" }));
 
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("clock_punch", expect.anything()));
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
-    expect(getCurrentPosition.mock.calls[0][2]).toMatchObject({ enableHighAccuracy: true });
     expect(upload).toHaveBeenCalledWith(challenge.photo_path, expect.any(Blob), {
       contentType: "image/jpeg",
       upsert: false,
@@ -154,30 +166,78 @@ describe("ClockDesk", () => {
       return extraRpc(name, { data: null, error: null });
     });
     render(<ClockDesk profile={intern} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Clock in" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    const sheet = await openSheet("Clock in");
+    await waitFor(() => expect(sheet.getByRole("button", { name: "Clock in" })).toBeEnabled());
+    fireEvent.click(sheet.getByRole("button", { name: "Clock in" }));
+    expect(await sheet.findByRole("alert")).toHaveTextContent(
       "You've reached your target hours. Your supervisor will confirm what happens next.",
     );
-    expect(getUserMedia).not.toHaveBeenCalled();
   });
 
   test("missing consent goes to the consent screen", async () => {
     rpc.mockImplementation((name: string) => {
       if (name === "start_clock") {
-        return Promise.resolve({ data: null, error: { message: "Choose how you'll clock in first.", hint: "consent" } });
+        return Promise.resolve({ data: null, error: { message: "Allow location and selfie to clock in.", hint: "consent" } });
       }
       return extraRpc(name, { data: null, error: null });
     });
     render(<ClockDesk profile={intern} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Clock in" }));
+    const sheet = await openSheet("Clock in");
+    await waitFor(() => expect(sheet.getByRole("button", { name: "Clock in" })).toBeEnabled());
+    fireEvent.click(sheet.getByRole("button", { name: "Clock in" }));
     await waitFor(() => expect(push).toHaveBeenCalledWith("/consent"));
   });
 
-  test("saying no to location or selfie offers supervisor confirmation instead of the camera", async () => {
+  test("saying no to location or selfie means no clocking, and points back to the consent screen", async () => {
     consent = { ...consent, selfie: "refused" };
     render(<ClockDesk profile={intern} />);
-    expect(await screen.findByText("Your supervisor confirms you're here")).toBeInTheDocument();
+    expect(await screen.findByText("Allow location and selfie to clock in")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review and allow" })).toHaveAttribute("href", "/consent");
     expect(screen.queryByRole("button", { name: "Clock in" })).toBeNull();
+    expect(screen.queryByText(/supervisor/i)).toBeNull();
+  });
+
+  test("clocked in at break time: Start break and Clock out", async () => {
+    loadPunches.mockResolvedValue([
+      { id: "p1", event_type: "shift_in", occurred_at: new Date(Date.now() - 3_600_000).toISOString(), is_break: false, photoUrl: null, flags: [] },
+    ]);
+    loadClockStatus.mockResolvedValue({ state: "in", actions: { break_start: null, shift_out: null }, blocked: null, site, placement });
+    render(<ClockDesk profile={intern} />);
+    expect(await screen.findByRole("button", { name: "Start break" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clock out" })).toBeInTheDocument();
+  });
+
+  test("Finish asks for the day's work log first, then clocks out", async () => {
+    loadPunches.mockResolvedValue([
+      { id: "p1", event_type: "shift_in", occurred_at: new Date(Date.now() - 3_600_000).toISOString(), is_break: false, photoUrl: null, flags: [] },
+    ]);
+    loadClockStatus.mockResolvedValue({
+      state: "in",
+      actions: { break_start: "Breaks start between 10 am and 2 pm.", shift_out: "Write your work log for Mon 12 Oct to clock out." },
+      open_work_date: "2026-10-12",
+      blocked: null,
+      site,
+      placement,
+    });
+    rpc.mockImplementation((name: string) => {
+      if (name === "start_clock") return Promise.resolve({ data: { ...challenge, event_type: "shift_out" }, error: null });
+      return extraRpc(name, { data: {}, error: null });
+    });
+    render(<ClockDesk profile={intern} />);
+    expect(screen.queryByRole("button", { name: "Start break" })).toBeNull();
+    const sheet = await openSheet("Clock out");
+    expect(sheet.getByRole("radio", { name: "Break" })).toBeDisabled();
+    expect(sheet.getByText("Breaks start between 10 am and 2 pm.")).toBeInTheDocument();
+    await waitFor(() => expect(sheet.getByRole("button", { name: "Clock out" })).toBeEnabled());
+    fireEvent.click(sheet.getByRole("button", { name: "Clock out" }));
+    fireEvent.change(await sheet.findByLabelText("Work log for Mon 12 Oct"), {
+      target: { value: "Built the weekly enquiries dashboard." },
+    });
+    fireEvent.click(sheet.getByRole("button", { name: "Save log and clock out" }));
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("save_work_log", { work_date: "2026-10-12", summary: "Built the weekly enquiries dashboard." }),
+    );
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("start_clock", { event_type: "shift_out" }));
   });
 
   test("offline: a banner, and the button waits for a connection", async () => {

@@ -39,6 +39,8 @@ export type WizardDraft = {
   start_date: string;
   planned_end_date: string;
   target_hours: string;
+  /** Unpaid break on days over 5 hours, in minutes; empty means the default 30 (Dilip, 5 Oct). */
+  break_minutes: string;
   days: Record<number, Day>;
 };
 
@@ -54,6 +56,7 @@ export function emptyDraft(): WizardDraft {
     start_date: "",
     planned_end_date: "",
     target_hours: "",
+    break_minutes: "",
     days: Object.fromEntries(WEEKDAYS.map(({ n }) => [n, { ...DEFAULT_DAY, on: n === 1 || n === 3 || n === 5 }])),
   };
 }
@@ -68,6 +71,7 @@ export function draftFromPlacement(args: {
   start_date: string;
   planned_end_date: string;
   target_minutes: number;
+  break_minutes: number;
   pattern: PatternDay[];
 }): WizardDraft {
   const days = emptyDraft().days;
@@ -85,8 +89,27 @@ export function draftFromPlacement(args: {
     start_date: args.start_date,
     planned_end_date: args.planned_end_date,
     target_hours: String(args.target_minutes / 60),
+    break_minutes: String(args.break_minutes),
     days,
   };
+}
+
+/** The break in minutes: null (empty: the default 30), a whole 0–120, or undefined when invalid. */
+export function breakOf(value: string): number | null | undefined {
+  if (value.trim() === "") return null;
+  const minutes = Number(value);
+  return Number.isInteger(minutes) && minutes >= 0 && minutes <= 120 ? minutes : undefined;
+}
+
+/** The intern's unpaid break on long days (Dilip, 5 Oct). Empty means 30 minutes. */
+export function BreakField({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <FormField id={id} label="Break (minutes)" hint="Unpaid on days over 5 hours. Leave empty for 30.">
+      {(field) => (
+        <Input {...field} type="number" inputMode="numeric" min={0} max={120} step={5} placeholder="30" value={value} onChange={(e) => onChange(e.target.value)} />
+      )}
+    </FormField>
+  );
 }
 
 export function patternOf(days: Record<number, Day>): PatternDay[] {
@@ -125,7 +148,8 @@ export function PlacementWizard({
   const [allowExtra, setAllowExtra] = useState(false);
   const [needExtra, setNeedExtra] = useState(false);
   const pattern = useMemo(() => patternOf(draft.days), [draft.days]);
-  const weekMinutes = pattern.reduce((sum, day) => sum + plannedMinutes(day.start, day.end), 0);
+  const breakMinutes = breakOf(draft.break_minutes);
+  const weekMinutes = pattern.reduce((sum, day) => sum + plannedMinutes(day.start, day.end, breakMinutes ?? 30), 0);
   const hours = Number(draft.target_hours);
   const targetMinutes = Number.isFinite(hours) ? Math.round(hours * 60) : 0;
 
@@ -145,6 +169,11 @@ export function PlacementWizard({
       setStep(2);
       return;
     }
+    if (breakMinutes === undefined) {
+      setError("Set the break between 0 and 120 minutes, or leave it empty for 30.");
+      setStep(2);
+      return;
+    }
     if (pattern.length === 0) {
       setError("Pick at least one usual day.");
       setStep(3);
@@ -161,6 +190,7 @@ export function PlacementWizard({
       start_date: draft.start_date,
       planned_end_date: draft.planned_end_date,
       target_minutes: targetMinutes,
+      break_minutes: breakMinutes,
       pattern,
     };
     const { data, error: fail } = await createClient().rpc("save_placement", { p, allow_extra: allowExtra });
@@ -284,6 +314,7 @@ export function PlacementWizard({
             )}
           </FormField>
           {targetMinutes >= 60 ? <p className="text-sm text-muted-foreground">{formatMinutes(targetMinutes)} target</p> : null}
+          <BreakField id="wiz-break" value={draft.break_minutes} onChange={(value) => set("break_minutes", value)} />
         </div>
       ) : null}
       {step === 3 ? (
@@ -325,6 +356,10 @@ export function PlacementWizard({
             <div>
               <dt className="text-muted-foreground">Target</dt>
               <dd>{targetMinutes >= 60 ? formatMinutes(targetMinutes) : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Break</dt>
+              <dd>{formatMinutes(breakMinutes ?? 30)} on days over 5 hours</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-muted-foreground">Pattern</dt>

@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(18);
 
 create temp table ids as
 select tests.create_intern('cr.a@test.dev') as a,
@@ -7,9 +7,14 @@ select tests.create_intern('cr.a@test.dev') as a,
 grant select on ids to authenticated;
 select tests.consent_all(a) from ids;
 
--- R5.1.6 the work log for the previous shift date comes before the next clock-in
+-- Finish needs that day's work log (Dilip, 5 Oct)
 select tests.clock((select a from ids), 'shift_in', '2026-10-12 09:00+09:30');
-select tests.clock((select a from ids), 'shift_out', '2026-10-12 17:00+09:30');
+select throws_ok($$select tests.clock((select a from ids), 'shift_out', '2026-10-12 17:00+09:30', p_log => false)$$,
+  'P0001', 'Write your work log for Mon 12 Oct to clock out.', 'no work log, no Finish');
+
+-- R5.1.6 a day that ended without Finish (auto-closed here) still needs its log before the next clock-in
+insert into public.daymark_punches (user_id, event_type, source, occurred_at)
+values ((select a from ids), 'shift_out', 'auto_close', '2026-10-12 09:00+09:30');
 select throws_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-13 09:00+09:30')$$,
   'P0001', 'Write your work log for Mon 12 Oct to clock in.', 'R5.1.6 no log for Monday, no clock-in on Tuesday');
 
@@ -32,8 +37,10 @@ select tests.clock((select a from ids), 'shift_out', '2026-10-13 12:00+09:30');
 select lives_ok($$select tests.clock((select a from ids), 'shift_in', '2026-10-13 13:00+09:30')$$,
   'a second shift the same day does not need that day''s log yet');
 delete from public.daymark_work_logs where placement_id = tests.placement((select a from ids));
+select throws_ok($$select tests.clock((select a from ids), 'shift_out', '2026-10-13 17:00+09:30', p_log => false)$$,
+  'P0001', 'Write your work log for Tue 13 Oct to clock out.', 'a later Finish the same day needs the log too');
 select lives_ok($$select tests.clock((select a from ids), 'shift_out', '2026-10-13 17:00+09:30')$$,
-  'R5.1.6 a clock-out is never blocked');
+  'with the log written, Finish works');
 
 -- Only interns write logs, and only on a live placement
 select tests.as_person(tests.supervisor());

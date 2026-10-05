@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(15);
 select tests.without_seed();
 
 insert into public.daymark_sites (id, name, address, latitude, longitude)
@@ -40,21 +40,8 @@ insert into out values ('staff', public.preview_request(jsonb_build_object('id',
 reset role;
 select is((select v #>> '{capacity,0,label}' from out where k = 'staff'), 'office 3/3 → 4/3 (extra spot)', 'staff see the extra spot');
 
--- Review §2.7 supervisor confirmation
-select tests.at('2026-10-05 09:05+09:30');
-select tests.as_person((select a from ids));
-insert into out values ('att', public.request_supervisor_confirmation('shift_in'));
-reset role;
-select is((select source || '/' || coalesce(confirmed_at::text, 'unconfirmed') from public.daymark_punches
-           where id = (select (v ->> 'punch_id')::uuid from out where k = 'att')), 'supervisor/unconfirmed',
-  'the punch waits for the supervisor');
-select ok(exists (select 1 from public.daymark_notifications where person_id = tests.supervisor() and kind = 'attendance'),
-  'the supervisor is asked to confirm');
-select tests.as_person(tests.supervisor());
-select public.decide_request((select (v #>> '{request,id}')::uuid from out where k = 'att'), 'approve', null, null);
-reset role;
-select ok((select confirmed_at is not null and confirmed_by = tests.supervisor() from public.daymark_punches
-           where id = (select (v ->> 'punch_id')::uuid from out where k = 'att')), 'confirmed the same day');
+-- The supervisor-confirmation route is gone (Dilip, 5 Oct): location and selfie are required.
+select hasnt_function('public', 'request_supervisor_confirmation', array['text'], 'interns can''t ask a supervisor to clock them');
 
 -- §8.10 escalation after 72 h, once
 select tests.at('2026-10-08 09:59+09:30');

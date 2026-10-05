@@ -24,7 +24,8 @@ select tests.shift((select a from ids), '2026-10-06 09:20', '2026-10-06 17:00');
 select tests.shift((select a from ids), '2026-10-08 09:00', '2026-10-08 18:00');
 select tests.shift((select a from ids), '2026-10-09 09:00', '2026-10-09 17:00');
 insert into public.daymark_work_logs (placement_id, work_date, summary)
-select tests.placement(a), x.d, 'Client research and notes.' from ids, unnest('{2026-10-05,2026-10-06}'::date[]) x(d);
+select tests.placement(a), x.d, 'Client research and notes.' from ids, unnest('{2026-10-05,2026-10-06}'::date[]) x(d)
+on conflict (placement_id, work_date) do nothing;  -- tests.clock wrote one at Finish
 select private.job_reconcile();
 select private.job_day_close();
 
@@ -138,7 +139,8 @@ select tests.clock((select d from ids), 'shift_in', '2026-10-12 09:10+09:30');
 select is((select count(*)::int from public.daymark_notifications where person_id = tests.supervisor() and kind = 'late'), 0, 'within the grace: no alert');
 select tests.clock((select d from ids), 'shift_out', '2026-10-12 17:00+09:30');
 insert into public.daymark_work_logs (placement_id, work_date, summary)
-select tests.placement(d), '2026-10-12', 'Set up the reporting sheet.' from ids;
+select tests.placement(d), '2026-10-12', 'Set up the reporting sheet.' from ids
+on conflict (placement_id, work_date) do update set summary = excluded.summary;  -- Finish already wrote one
 select tests.clock((select d from ids), 'shift_in', '2026-10-13 09:22+09:30');
 select results_eq($$select person_id, title, link from public.daymark_notifications where person_id = tests.supervisor() and kind = 'late'$$,
   $$select tests.supervisor(), 'ca.d clocked in late at 9:22 am', '/supervisor/intern?id=' || tests.placement(d) from ids$$,

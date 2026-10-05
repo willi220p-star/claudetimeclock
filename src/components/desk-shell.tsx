@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { CalendarDays, ChartPie, CircleUserRound, Clock, Inbox, type LucideIcon } from "lucide-react";
+import { CalendarDays, ChartPie, CircleUserRound, Clock, House, Inbox, Settings, Users, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -19,30 +19,84 @@ const INTERN_TABS = [
   { href: "/clock/me", label: "Me", icon: CircleUserRound, match: (path: string) => path.startsWith("/clock/me") },
 ] as const;
 
-const SUPERVISOR_NAV = [
-  { href: "/supervisor", label: "Today", match: (path: string) => path === "/supervisor" || path === "/supervisor/" },
-  { href: "/supervisor/approvals", label: "Approvals", match: (path: string) => path.startsWith("/supervisor/approvals") },
-  { href: "/supervisor/interns", label: "Interns", match: (path: string) => path.startsWith("/supervisor/intern") },
-  { href: "/supervisor/roster", label: "Roster", match: (path: string) => path.startsWith("/supervisor/roster") },
-  { href: "/supervisor/summary", label: "Summary", match: (path: string) => path.startsWith("/supervisor/summary") },
-  { href: "/supervisor/records", label: "Records", match: (path: string) => path.startsWith("/supervisor/records") },
-] as const;
+const exact = (href: string) => (path: string) => path === href || path === `${href}/`;
+const prefix = (href: string) => (path: string) => path.startsWith(href);
 
-const ADMIN_NAV = [
-  { href: "/admin", label: "Overview", match: (path: string) => path === "/admin" || path === "/admin/" },
-  { href: "/admin/placements", label: "Placements", match: (path: string) => path.startsWith("/admin/placement") },
-  { href: "/admin/roster", label: "Roster", match: (path: string) => path.startsWith("/admin/roster") },
-  { href: "/admin/people", label: "People", match: (path: string) => path.startsWith("/admin/people") },
-  { href: "/admin/cohorts", label: "Cohorts", match: (path: string) => path.startsWith("/admin/cohorts") },
-  { href: "/admin/import", label: "Import", match: (path: string) => path.startsWith("/admin/import") },
-  { href: "/admin/requests", label: "Requests", match: (path: string) => path.startsWith("/admin/requests") },
-  { href: "/admin/sites", label: "Sites", match: (path: string) => path.startsWith("/admin/sites") },
-  { href: "/admin/closures", label: "Closures", match: (path: string) => path.startsWith("/admin/closures") },
-  { href: "/admin/settings", label: "Settings", match: (path: string) => path.startsWith("/admin/settings") },
-  { href: "/admin/reports", label: "Reports", match: (path: string) => path.startsWith("/admin/reports") },
-  { href: "/admin/records", label: "Records", match: (path: string) => path.startsWith("/admin/records") },
-  { href: "/admin/audit", label: "Audit", match: (path: string) => path.startsWith("/admin/audit") },
-] as const;
+type NavPage = { href: string; label: string; match: (path: string) => boolean };
+type NavGroup = { label: string; icon: LucideIcon; pages: NavPage[] };
+
+// Staff navigation as a tree (Dilip, 5 Oct): a few main tabs, each with its related pages as sub-tabs.
+export const SUPERVISOR_GROUPS: NavGroup[] = [
+  { label: "Today", icon: House, pages: [{ href: "/supervisor", label: "Today", match: exact("/supervisor") }] },
+  {
+    label: "Time",
+    icon: Clock,
+    pages: [
+      { href: "/supervisor/roster", label: "Roster", match: prefix("/supervisor/roster") },
+      { href: "/supervisor/timesheets", label: "Timesheets", match: prefix("/supervisor/timesheets") },
+    ],
+  },
+  {
+    label: "Approvals",
+    icon: Inbox,
+    pages: [{ href: "/supervisor/approvals", label: "Approvals", match: prefix("/supervisor/approvals") }],
+  },
+  {
+    label: "Interns",
+    icon: Users,
+    pages: [
+      { href: "/supervisor/interns", label: "Interns", match: prefix("/supervisor/intern") },
+      { href: "/supervisor/summary", label: "Summary", match: prefix("/supervisor/summary") },
+      { href: "/supervisor/records", label: "Records", match: prefix("/supervisor/records") },
+    ],
+  },
+];
+
+export const ADMIN_GROUPS: NavGroup[] = [
+  { label: "Home", icon: House, pages: [{ href: "/admin", label: "Overview", match: exact("/admin") }] },
+  {
+    label: "People",
+    icon: Users,
+    pages: [
+      { href: "/admin/people", label: "People", match: prefix("/admin/people") },
+      { href: "/admin/placements", label: "Placements", match: prefix("/admin/placement") },
+      { href: "/admin/cohorts", label: "Cohorts", match: prefix("/admin/cohorts") },
+      { href: "/admin/import", label: "Import", match: prefix("/admin/import") },
+    ],
+  },
+  {
+    label: "Time",
+    icon: Clock,
+    pages: [
+      { href: "/admin/roster", label: "Roster", match: prefix("/admin/roster") },
+      { href: "/admin/timesheets", label: "Timesheets", match: prefix("/admin/timesheets") },
+      { href: "/admin/requests", label: "Requests", match: prefix("/admin/requests") },
+      { href: "/admin/closures", label: "Closures", match: prefix("/admin/closures") },
+    ],
+  },
+  {
+    label: "Reports",
+    icon: ChartPie,
+    pages: [
+      { href: "/admin/reports", label: "Reports", match: prefix("/admin/reports") },
+      { href: "/admin/records", label: "Records", match: prefix("/admin/records") },
+      { href: "/admin/audit", label: "Audit", match: prefix("/admin/audit") },
+    ],
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    pages: [
+      { href: "/admin/settings", label: "Settings", match: prefix("/admin/settings") },
+      { href: "/admin/sites", label: "Sites", match: prefix("/admin/sites") },
+    ],
+  },
+];
+
+/** The group a path belongs to, for the bottom tabs and the sub-tabs. */
+export function currentGroup(groups: NavGroup[], path: string) {
+  return groups.find((group) => group.pages.some((page) => page.match(path))) ?? null;
+}
 
 type NavItem = { href: string; label: string; icon?: LucideIcon; match: (path: string) => boolean };
 
@@ -145,18 +199,37 @@ export function StaffShell({
   title: string;
   children: ReactNode;
 }) {
-  const items = role === "admin" ? ADMIN_NAV : SUPERVISOR_NAV;
+  const path = usePathname() ?? "";
+  const groups = role === "admin" ? ADMIN_GROUPS : SUPERVISOR_GROUPS;
+  const group = currentGroup(groups, path);
+  const tabs: NavItem[] = groups.map((item) => ({
+    href: item.pages[0].href,
+    label: item.label,
+    icon: item.icon,
+    match: (current: string) => item.pages.some((page) => page.match(current)),
+  }));
   return (
     <>
       <AppHeader profile={profile} role={role} title={title} />
-      <div className="mx-auto flex w-full max-w-[1200px] gap-6 px-4 py-6">
+      <div className="mx-auto flex w-full max-w-[1200px] gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6">
         <nav aria-label={role === "admin" ? "Admin" : "Supervisor"} className="hidden w-52 shrink-0 lg:block print:hidden">
-          <NavLinks items={items} orientation="side" />
+          <ul className="flex flex-col gap-4">
+            {groups.map((item) => (
+              <li key={item.label} className="flex flex-col gap-1">
+                {item.pages.length > 1 ? (
+                  <p className="px-4 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">{item.label}</p>
+                ) : null}
+                <NavLinks items={item.pages} orientation="side" />
+              </li>
+            ))}
+          </ul>
         </nav>
         <div className="min-w-0 flex-1">
-          <nav aria-label="Sections" className="mb-4 overflow-x-auto lg:hidden print:hidden">
-            <NavLinks items={items} orientation="tabs" />
-          </nav>
+          {group && group.pages.length > 1 ? (
+            <nav aria-label={`${group.label} pages`} className="mb-4 overflow-x-auto lg:hidden print:hidden">
+              <NavLinks items={group.pages} orientation="tabs" />
+            </nav>
+          ) : null}
           <main className="flex flex-col gap-6">{children}</main>
           <div className="mt-10 flex flex-wrap justify-end gap-2 border-t border-black/5 pt-4">
             <Link href="/set-password" className={buttonVariants({ variant: "ghost" })}>
@@ -166,6 +239,14 @@ export function StaffShell({
           </div>
         </div>
       </div>
+      <nav
+        aria-label={role === "admin" ? "Admin sections" : "Supervisor sections"}
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden print:hidden"
+      >
+        <div className="mx-auto max-w-[720px] px-2">
+          <TabBar items={tabs} />
+        </div>
+      </nav>
     </>
   );
 }
