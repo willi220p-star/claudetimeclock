@@ -20,13 +20,13 @@ test("dashboards click through; profile timesheet filters; Progress charts on ev
 
   await page.goto("/supervisor/progress");
   await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible();
-  await expect(page.getByText("Show the numbers").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hours owed" })).toBeVisible();
   await signOut(page);
 
   await signIn(page, SEED.admin);
   await page.goto("/admin/progress");
   await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible();
-  await expect(page.getByText("Show the numbers").first()).toBeVisible();
+  await expect(page.getByText("Progress to target").first()).toBeVisible();
   await signOut(page);
 
   await signIn(page, SEED.interns[0]);
