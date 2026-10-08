@@ -1989,6 +1989,16 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_offline_typed: {
+        Args: {
+          at: string
+          day_kind?: string
+          event: string
+          note?: string
+          offline_id: string
+        }
+        Returns: Json
+      }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {

@@ -40,8 +40,8 @@ select throws_ok($$select public.submit_offline_punch((select other_photo from i
 select throws_ok($$select public.submit_offline_punch(gen_random_uuid(), 'break_end', '2026-10-12 13:30+09:30',
   -12.4785, 130.9855, 12, null, null)$$, '22023', 'That clock''s time is in the future. Check your phone''s clock.',
   'no clocks from the future');
-select throws_ok($$select public.submit_offline_punch(gen_random_uuid(), 'shift_in', '2026-10-10 09:00+09:30',
-  -12.4785, 130.9855, 12, null, 'full_day')$$, '22023', null, 'nothing more than 2 days old');
+select throws_ok($$select public.submit_offline_punch(gen_random_uuid(), 'shift_in', '2026-10-05 09:00+09:30',
+  -12.4785, 130.9855, 12, null, 'full_day')$$, '22023', null, 'nothing more than 7 days old');
 reset role;
 
 select is((select count(*)::int from public.daymark_punches where user_id = (select a from ids)), 2, 'two clocks saved, once each');
@@ -50,7 +50,8 @@ select is((select string_agg(verification_method || '/' || source || '/' || coal
   'offline/supervisor/waiting,offline/supervisor/waiting', 'both wait for the supervisor');
 select is((select kind from public.daymark_day_kinds where placement_id = tests.placement((select a from ids))), 'full_day',
   'the day''s kind came with the clock-in');
-select ok((select reason from public.daymark_requests where intern_id = (select a from ids) order by created_at limit 1)
+select ok((select r.reason from public.daymark_requests r join public.daymark_punches x on x.id = (r.payload ->> 'punch_id')::uuid
+           where r.intern_id = (select a from ids) order by x.occurred_at limit 1)
   like 'Offline: clocked in offline at 9:02 am (phone time) on Mon 12 Oct, % from %, gesture "Give a thumbs up". Sent 1:00 pm.',
   'the request says when, how far and which gesture');
 select ok(exists (select 1 from public.daymark_notifications where person_id = tests.supervisor() and kind = 'attendance'
