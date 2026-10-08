@@ -276,6 +276,7 @@ export function ClockSheet({
         event: missed,
         atTime: missedAt,
         note: typed.note ?? null,
+        dayKind,
       });
       error = null;
     }

@@ -14,6 +14,14 @@ export function clearSessionCache() {
   profiles.clear();
   consents.clear();
   writeOfflineCopy(null);
+  // A shared phone: the next person mustn't see this one's saved clock state or day type (D35).
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("dgk-clock-status:") || key.startsWith("dgk-day-kind:")) localStorage.removeItem(key);
+    }
+  } catch {
+    // Storage blocked: nothing was saved.
+  }
 }
 
 // The last profile and consent on this phone, so Home opens with no signal (D35). Cleared on sign-out.

@@ -16,12 +16,14 @@ describe("offline queue (D35)", () => {
     expect(applyQueue("out", items)).toBe("break");
     expect(applyQueue("out", [])).toBe("out");
     expect(applyQueue("in", [clock("c", "shift_out", "2026-10-12T07:30:00Z")])).toBe("out");
+    // A refused clock never happened as far as Home is concerned.
+    expect(applyQueue("in", [{ ...clock("d", "shift_out", "2026-10-12T07:30:00Z"), refused: "No." }])).toBe("in");
   });
 
   test("a typed time and a work log go before the clock at the same moment", () => {
     const at = "2026-10-12T07:30:00Z";
     const log: QueuedItem = { id: "l", userId: "u", kind: "log", occurredAt: at, workDate: "2026-10-12", summary: "Did things" };
-    const typed: QueuedItem = { id: "t", userId: "u", kind: "typed", occurredAt: at, event: "break_end", atTime: "13:00", note: null };
+    const typed: QueuedItem = { id: "t", userId: "u", kind: "typed", occurredAt: at, event: "break_end", atTime: "13:00", note: null, dayKind: null };
     const out = clock("o", "shift_out", at);
     expect([out, log, typed].sort(byTime).map((item) => item.id)).toEqual(["t", "l", "o"]);
     expect(applyQueue("break", [out, log, typed])).toBe("out");

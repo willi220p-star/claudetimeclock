@@ -23,18 +23,20 @@ export type QueuedClock = {
 
 export type QueuedLog = { id: string; userId: string; kind: "log"; occurredAt: string; workDate: string; summary: string };
 
-/** A time typed in for a missed step ("when did you get here?"), sent as report_missed_time. */
+/** A time typed in for a missed step ("when did you get here?"), sent as submit_offline_typed. */
 export type QueuedTyped = {
   id: string;
   userId: string;
   kind: "typed";
-  occurredAt: string;
+  occurredAt: string; // the typed Darwin time on the day it was typed: the server files it on that day
   event: "shift_in" | "break_end";
   atTime: string; // HH:MM, Darwin
   note: string | null;
+  dayKind: string | null;
 };
 
-export type QueuedItem = QueuedClock | QueuedLog | QueuedTyped;
+/** `refused`: the server's reason. Kept on the phone (not sent again) until the intern dismisses it. */
+export type QueuedItem = (QueuedClock | QueuedLog | QueuedTyped) & { refused?: string };
 
 type ClockState = "out" | "in" | "break";
 
@@ -54,9 +56,10 @@ export function nextGesture(random = Math.random) {
   return GESTURES[Math.floor(random() * GESTURES.length) % GESTURES.length];
 }
 
-/** Home's state after the clocks still waiting on this phone. */
+/** Home's state after the clocks still waiting on this phone (refused ones don't count). */
 export function applyQueue(state: ClockState, items: QueuedItem[]): ClockState {
-  return [...items]
+  return items
+    .filter((item) => !item.refused)
     .sort(byTime)
     .reduce<ClockState>((current, item) => {
       if (item.kind === "log") return current;

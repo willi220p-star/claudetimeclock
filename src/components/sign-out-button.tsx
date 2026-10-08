@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { LogOut, MonitorSmartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { clearSessionCache } from "@/lib/browser-session";
+import { clearSessionCache, sessionProfile } from "@/lib/browser-session";
+import { listQueue } from "@/lib/offline-queue";
 import { forgetPushSubscription } from "@/lib/push";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +29,17 @@ export function SignOutButton({ compact = false, everywhere = false }: { compact
       aria-label={compact ? label : undefined}
       onClick={async () => {
         if (everywhere && !window.confirm(SIGN_OUT_EVERYWHERE_CONFIRM)) return;
+        // Offline clocks stay on this phone under their owner; say so before a shared phone changes hands.
+        const profile = await sessionProfile().catch(() => null);
+        const waiting = profile ? (await listQueue(profile.id).catch(() => [])).filter((item) => !item.refused).length : 0;
+        if (
+          waiting > 0 &&
+          !window.confirm(
+            `You have ${waiting === 1 ? "1 clock" : `${waiting} clocks`} waiting to send from this phone. Signing out keeps them here until you sign in again. Sign out anyway?`,
+          )
+        ) {
+          return;
+        }
         setPending(true);
         await forgetPushSubscription();
         const { error } = await createClient().auth.signOut({ scope: everywhere ? "global" : "local" });

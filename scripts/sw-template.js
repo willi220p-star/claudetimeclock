@@ -1,7 +1,7 @@
 /* DGK Clock service worker (D34). Built by scripts/sw.mjs into out/sw.js for the Pages export.
  * - The app's own files are cached so DGK Clock opens with no signal.
  * - Supabase (data, sign-in, selfies) is never cached: it isn't same-origin, so this worker ignores it.
- * - Pages are network-first (fresh when online), falling back to the saved copy offline.
+ * - Pages are network-first (fresh when online), falling back to the saved copy offline or after 3 s.
  * ponytail: hand-written instead of Serwist to avoid @swc/core + esbuild for one file; upgrade path is
  * @serwist/turbopack if routing rules grow.
  */
@@ -9,6 +9,7 @@ const VERSION = "__VERSION__";
 const PRECACHE = __PRECACHE__;
 const BASE = "__BASE__";
 const CACHE = `dgk-clock-${VERSION}`;
+const NAV_TIMEOUT_MS = 3000;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
@@ -40,16 +41,26 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Pages and their data: network first, the saved copy when offline.
+  const network = fetch(request).catch(() => null);
+  if (request.mode !== "navigate") {
+    event.respondWith(network.then(async (response) => response || (await saved(request)) || Response.error()));
+    return;
+  }
+  // Weak signal: a page that hasn't answered in 3 s opens from the saved copy (if there is one; else keep waiting).
+  const slow = new Promise((resolve) => setTimeout(resolve, NAV_TIMEOUT_MS)).then(() => saved(request));
   event.respondWith(
-    fetch(request).catch(async () => {
-      const cache = await caches.open(CACHE);
-      const hit = await cache.match(request, { ignoreSearch: true });
-      if (hit) return hit;
-      if (request.mode === "navigate") return (await cache.match(BASE)) || Response.error();
-      return Response.error();
-    }),
+    Promise.race([network, slow]).then(
+      async (first) => first || (await network) || (await saved(request)) || Response.error(),
+    ),
   );
 });
+
+async function saved(request) {
+  const cache = await caches.open(CACHE);
+  const hit = await cache.match(request, { ignoreSearch: true });
+  if (hit) return hit;
+  return request.mode === "navigate" ? (await cache.match(BASE)) || null : null;
+}
 
 // Push reminders (D36): show the notification; a tap opens or focuses DGK Clock on its page.
 self.addEventListener("push", (event) => {
