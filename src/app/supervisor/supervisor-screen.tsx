@@ -63,46 +63,48 @@ function TodayDesk({ isAdmin }: { isAdmin: boolean }) {
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 <MetricCard
+                  href="/supervisor/approvals"
                   label="Approvals waiting"
                   value={String(kpi.approvals_waiting)}
                   sub={kpi.oldest_hours != null ? `Oldest ${kpi.oldest_hours} h` : "None waiting"}
                   tone={kpi.oldest_hours != null && kpi.oldest_hours > 48 ? "warn" : "neutral"}
                 />
                 <MetricCard
+                  href="/supervisor/interns?filter=at_risk"
                   label="At risk"
                   value={String(kpi.at_risk)}
                   tone={kpi.at_risk > 0 ? "warn" : "ok"}
                 />
                 <MetricCard
+                  href="/supervisor/interns"
                   label="Attendance / on time"
                   value={pctText(kpi.attendance_pct)}
                   sub={`On time ${pctText(kpi.on_time_pct)}`}
                 />
                 <MetricCard
+                  href="/supervisor/timesheets"
                   label="Overtime approved"
                   value={formatMinutes(kpi.overtime_approved_minutes)}
                   sub="This fortnight"
                 />
-                <MetricCard label="Work logs" value={pctText(kpi.work_log_pct)} sub="This fortnight" />
-                <Link href="/supervisor/summary" className="rounded-xl">
-                  <MetricCard
-                    label="Check-ins due"
-                    value={String(kpi.checkins_due)}
-                    sub={
-                      kpi.last_checkin.week_start
-                        ? `Last ${formatDay(kpi.last_checkin.week_start)}${
-                            kpi.last_checkin.average != null ? ` · avg ${kpi.last_checkin.average.toFixed(1)}` : ""
-                          }`
-                        : "No check-ins yet"
-                    }
-                    tone={
-                      kpi.checkins_due > 0 || checkinOverdue(kpi.last_checkin.week_start, lastWeekStart(darwinDateKey(new Date())))
-                        ? "warn"
-                        : "ok"
-                    }
-                    className="h-full"
-                  />
-                </Link>
+                <MetricCard href="/supervisor/summary" label="Work logs" value={pctText(kpi.work_log_pct)} sub="This fortnight" />
+                <MetricCard
+                  href="/supervisor/summary"
+                  label="Check-ins due"
+                  value={String(kpi.checkins_due)}
+                  sub={
+                    kpi.last_checkin.week_start
+                      ? `Last ${formatDay(kpi.last_checkin.week_start)}${
+                          kpi.last_checkin.average != null ? ` · avg ${kpi.last_checkin.average.toFixed(1)}` : ""
+                        }`
+                      : "No check-ins yet"
+                  }
+                  tone={
+                    kpi.checkins_due > 0 || checkinOverdue(kpi.last_checkin.week_start, lastWeekStart(darwinDateKey(new Date())))
+                      ? "warn"
+                      : "ok"
+                  }
+                />
               </div>
 
               <section className="flex flex-col gap-3">

@@ -5,12 +5,31 @@ import {
   coversLine,
   dayCellStatus,
   forecastSeries,
+  knownParam,
   overtimeSteps,
   requestTimeline,
   splitEffect,
+  statusMatches,
 } from "@/lib/placement-ui";
 
 describe("placement-ui", () => {
+  test("statusMatches: live covers the Overview's Active statuses", () => {
+    expect(statusMatches("all", "withdrawn")).toBe(true);
+    expect(["active", "extended", "target_reached", "completed"].filter((s) => statusMatches("live", s))).toEqual([
+      "active",
+      "extended",
+      "target_reached",
+    ]);
+    expect(statusMatches("completed", "completed")).toBe(true);
+    expect(statusMatches("completed", "active")).toBe(false);
+  });
+
+  test("knownParam drops unknown query values", () => {
+    expect(knownParam("at_risk", ["at_risk"])).toBe("at_risk");
+    expect(knownParam("bogus", ["at_risk"])).toBe("all");
+    expect(knownParam(null, ["green"], "x")).toBe("x");
+  });
+
   test("splitEffect reads arrows and becomes", () => {
     expect(splitEffect("office 2/3 → 3/3")).toEqual([{ before: "office 2/3", after: "3/3" }]);
     expect(splitEffect("Tue 14 Oct becomes 9:00 am–5:00 pm")).toEqual([

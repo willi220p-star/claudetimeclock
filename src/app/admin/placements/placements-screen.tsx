@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AdminFrame } from "@/app/admin/admin-frame";
 import { PlacementWizard, emptyDraft } from "@/app/admin/placements/placement-wizard";
 import { LoadBlock } from "@/components/load-block";
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { loadCohorts, loadPlacements, loadProfiles, loadProgressAll } from "@/lib/data";
 import { formatDay } from "@/lib/darwin";
 import { formatMinutes } from "@/lib/minutes";
-import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
+import { PLACEMENT_STATUS_LABEL, knownParam, statusMatches } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
 const selectClass = "h-11 rounded-md border border-input bg-card px-3";
@@ -40,9 +40,12 @@ function PlacementsDesk() {
   const [cohorts, reloadCohorts] = useLoad(loadCohorts);
   const [creating, setCreating] = useState(false);
   const [cohort, setCohort] = useState("all");
-  const [status, setStatus] = useState("all");
+  // Overview cards link here with ?status= / ?pace= preset; the selects show and clear them.
+  const params = useSearchParams();
+  const [status, setStatus] = useState(() => knownParam(params.get("status"), ["live", ...Object.keys(PLACEMENT_STATUS_LABEL)]));
   const [supervisor, setSupervisor] = useState("all");
-  const [pace, setPace] = useState("all");
+  const [pace, setPace] = useState(() => knownParam(params.get("pace"), ["green", "amber", "red"]));
+  const anyFilter = cohort !== "all" || status !== "all" || supervisor !== "all" || pace !== "all";
 
   const progressById = useMemo(() => {
     const map = new Map<string, { pace: string; days_late: number | null }>();
@@ -132,6 +135,7 @@ function PlacementsDesk() {
               <Label htmlFor="filter-status">Status</Label>
               <select id="filter-status" className={selectClass} value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="all">All statuses</option>
+                <option value="live">Live (active, extended, target reached)</option>
                 {Object.entries(PLACEMENT_STATUS_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -160,6 +164,21 @@ function PlacementsDesk() {
               </select>
             </div>
           </div>
+          {anyFilter ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="self-start"
+              onClick={() => {
+                setCohort("all");
+                setStatus("all");
+                setSupervisor("all");
+                setPace("all");
+              }}
+            >
+              Clear filters
+            </Button>
+          ) : null}
           <LoadBlock
             state={placements}
             reload={() => {
@@ -176,7 +195,7 @@ function PlacementsDesk() {
             {(rows) => {
               const filtered = rows.filter((row) => {
                 if (cohort !== "all" && row.cohort_id !== cohort) return false;
-                if (status !== "all" && row.status !== status) return false;
+                if (!statusMatches(status, row.status)) return false;
                 if (supervisor !== "all" && row.supervisor_id !== supervisor) return false;
                 const mark = progressById.get(row.id);
                 if (pace !== "all" && mark?.pace !== pace) return false;

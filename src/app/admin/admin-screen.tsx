@@ -140,35 +140,41 @@ function KpiGrid({ kpi }: { kpi: AdminKpi }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <MetricCard
         className="sm:col-span-2 xl:col-span-3"
+        href="/admin/placements?status=live"
         label="% on pace"
         value={pct(kpi.pct_on_pace)}
         sub={`${kpi.active} active placement${kpi.active === 1 ? "" : "s"}`}
         tone={kpi.pct_on_pace == null ? "neutral" : kpi.pct_on_pace >= 70 ? "ok" : kpi.pct_on_pace >= 40 ? "warn" : "bad"}
       />
       <MetricCard
+        href="/admin/placements?status=live"
         label="Active"
         value={String(kpi.active)}
         sub={`${kpi.starting_soon} starting soon · ${kpi.finishing_soon} finishing soon`}
       />
       <MetricCard
+        href="/admin/timesheets"
         label="Counted hours"
         value={formatMinutes(kpi.counted_fortnight)}
         sub={`${formatMinutes(kpi.counted_all_time)} all time`}
       />
-      <MetricCard label="Attendance" value={pct(kpi.attendance_pct)} sub={`${pct(kpi.on_time_pct)} on time`} />
+      <MetricCard href="/admin/reports" label="Attendance" value={pct(kpi.attendance_pct)} sub={`${pct(kpi.on_time_pct)} on time`} />
       <MetricCard
+        href="/admin/timesheets"
         label="No-shows"
         value={String(kpi.no_shows_fortnight)}
         sub={`${kpi.missed_punches_fortnight} missed punch${kpi.missed_punches_fortnight === 1 ? "" : "es"} this fortnight`}
         tone={kpi.no_shows_fortnight > 0 ? "warn" : "ok"}
       />
       <MetricCard
+        href="/admin/roster"
         label="Desk use"
         value={pct(kpi.desk_use_pct)}
         sub={`${kpi.days_at_four} day${kpi.days_at_four === 1 ? "" : "s"} at 4`}
         sparkline={kpi.heatmap.map((day) => day.headcount)}
       />
       <MetricCard
+        href="/admin/reports"
         label="Outcomes"
         value={String(kpi.outcomes.on_time + kpi.outcomes.late + kpi.outcomes.withdrawn)}
         sub={`${kpi.outcomes.on_time} on time · ${kpi.outcomes.late} late · ${kpi.outcomes.withdrawn} withdrawn`}

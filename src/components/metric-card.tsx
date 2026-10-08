@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import type { Tone } from "@/components/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,7 @@ export function MetricCard({
   tone = "neutral",
   sparkline,
   className,
+  href,
 }: {
   label: string;
   value: string;
@@ -38,10 +41,15 @@ export function MetricCard({
   tone?: Tone;
   sparkline?: number[];
   className?: string;
+  /** Makes the whole card a link to the list behind the number; its text is the accessible name. */
+  href?: string;
 }) {
-  return (
-    <section className={cn("flex flex-col gap-1 rounded-xl bg-card p-5 shadow-card", className)}>
-      <h3 className="caption font-semibold text-muted-foreground">{label}</h3>
+  const body = (
+    <>
+      <h3 className="caption flex items-center justify-between gap-2 font-semibold text-muted-foreground">
+        {label}
+        {href ? <ChevronRight aria-hidden className="size-4 shrink-0" /> : null}
+      </h3>
       <div className="flex items-end justify-between gap-3">
         <p className="font-heading text-[30px] leading-tight font-bold tracking-[-0.02em] tabular-nums">{value}</p>
         {sparkline && sparkline.length > 1 ? (
@@ -58,6 +66,14 @@ export function MetricCard({
         ) : null}
       </div>
       {sub ? <p className={cn("text-sm", SUB_TONE[tone])}>{sub}</p> : null}
-    </section>
+    </>
+  );
+  const card = "flex flex-col gap-1 rounded-xl bg-card p-5 shadow-card";
+  return href ? (
+    <Link href={href} className={cn(card, "min-h-11 transition-colors hover:bg-muted", className)}>
+      {body}
+    </Link>
+  ) : (
+    <section className={cn(card, className)}>{body}</section>
   );
 }
