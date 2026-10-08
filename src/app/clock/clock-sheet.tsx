@@ -7,9 +7,11 @@ import { Camera, RotateCcw, X } from "lucide-react";
 import { captureJpeg, useFrontCamera } from "@/app/clock/selfie-camera";
 import { FormField, FormMessage } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
-import { formatDay } from "@/lib/darwin";
+import { darwinDateKey, formatDay } from "@/lib/darwin";
 import { ACTION_LABEL, PHOTO_BUCKET, errorText, formatDistance, type ClockAction, type ClockChallenge } from "@/lib/daymark";
 import type { ClockStatus } from "@/lib/placement-ui";
+import { addToQueue, nextGesture } from "@/lib/offline-queue";
+import { isNetworkError } from "@/lib/offline-sync";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +145,8 @@ export function ClockSheet({
   actions,
   site,
   logDate,
+  userId,
+  dayKind,
   onClose,
   onDone,
 }: {
@@ -151,8 +155,11 @@ export function ClockSheet({
   actions: ClockStatus["actions"];
   site: Site | null;
   logDate: string;
+  userId: string;
+  /** Today's Full day / Work-based pick, queued with an offline clock-in. */
+  dayKind: string | null;
   onClose: () => void;
-  onDone: (action: ClockAction, occurredAt: string) => void;
+  onDone: (action: ClockAction, occurredAt: string, offline: boolean) => void;
 }) {
   const router = useRouter();
   const { videoRef, status: cameraStatus, error: cameraError } = useFrontCamera();
@@ -166,6 +173,8 @@ export function ClockSheet({
   const [missedAt, setMissedAt] = useState("");
   const [missedNote, setMissedNote] = useState("");
   const [typedDone, setTypedDone] = useState(false);
+  // No signal: the phone picks the gesture and keeps the clock until it can send it (D35).
+  const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const plan = segmentPlan(segment, state);
   const action = plan?.action ?? null;
   const missed = typedDone ? null : (plan?.missed ?? null);
@@ -208,10 +217,20 @@ export function ClockSheet({
     setProblem(errorText(error, fallback));
   }
 
+  function beginOffline(chosen: ClockAction) {
+    setOffline(true);
+    setStep({
+      name: "photo",
+      challenge: { challenge_id: crypto.randomUUID(), event_type: chosen, gesture: nextGesture(), expires_at: "", photo_path: "" },
+    });
+  }
+
   async function begin(chosen: ClockAction) {
     setProblem(null);
+    if (offline || !navigator.onLine) return beginOffline(chosen);
     setStep({ name: "starting" });
     const { data, error } = await createClient().rpc("start_clock", { event_type: chosen });
+    if (error && isNetworkError(error)) return beginOffline(chosen);
     if (error && chosen === "shift_out" && error.message.toLowerCase().includes("work log")) {
       setStep({ name: "log" });
       return;
@@ -245,11 +264,21 @@ export function ClockSheet({
     }
     setProblem(null);
     setStep({ name: "saving", label: "Saving the time you entered…" });
-    const { error } = await createClient().rpc("report_missed_time", {
-      event: missed,
-      at_time: missedAt,
-      note: missedNote.trim() || undefined,
-    });
+    const typed = { event: missed, at_time: missedAt, note: missedNote.trim() || undefined };
+    let { error } = offline || !navigator.onLine ? { error: { message: "offline" } } : await createClient().rpc("report_missed_time", typed);
+    if (error && isNetworkError(error)) {
+      setOffline(true);
+      await addToQueue({
+        id: crypto.randomUUID(),
+        userId,
+        kind: "typed",
+        occurredAt: new Date(`${darwinDateKey(new Date())}T${missedAt}:00+09:30`).toISOString(),
+        event: missed,
+        atTime: missedAt,
+        note: typed.note ?? null,
+      });
+      error = null;
+    }
     if (error) {
       setStep({ name: "typed" });
       setProblem(errorText(error, "That time didn't save. Try again."));
@@ -271,7 +300,12 @@ export function ClockSheet({
     }
     setProblem(null);
     setStep({ name: "saving", label: "Saving your work log…" });
-    const { error } = await createClient().rpc("save_work_log", { work_date: logDate, summary });
+    let { error } = offline || !navigator.onLine ? { error: { message: "offline" } } : await createClient().rpc("save_work_log", { work_date: logDate, summary });
+    if (error && isNetworkError(error)) {
+      setOffline(true);
+      await addToQueue({ id: crypto.randomUUID(), userId, kind: "log", occurredAt: new Date().toISOString(), workDate: logDate, summary });
+      error = null;
+    }
     if (error) {
       setStep({ name: "log" });
       setProblem(errorText(error, "That log didn't save. Try again."));
@@ -289,15 +323,35 @@ export function ClockSheet({
     }
   }
 
+  /** Keep the clock on this phone; it's sent and confirmed later. */
+  async function queue(challenge: ClockChallenge, shot: Shot, coords: GeolocationCoordinates) {
+    const occurredAt = new Date().toISOString();
+    await addToQueue({
+      id: challenge.challenge_id,
+      userId,
+      kind: "clock",
+      action: challenge.event_type,
+      occurredAt,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      accuracy: coords.accuracy,
+      gesture: challenge.gesture,
+      photo: shot.blob,
+      dayKind,
+    });
+    onDone(challenge.event_type, occurredAt, true);
+  }
+
   async function save(challenge: ClockChallenge, shot: Shot) {
     const supabase = createClient();
+    let current = fix;
     try {
       setStep({ name: "saving", label: "Checking your location…" });
-      let current = fix;
       if (!current || Date.now() - current.at > FRESH_MS) {
         current = { coords: await readLocation(), at: Date.now() };
         setFix(current);
       }
+      if (offline) return await queue(challenge, shot, current.coords);
       setStep({ name: "saving", label: "Saving your selfie…" });
       const { error: uploadError } = await supabase.storage
         .from(PHOTO_BUCKET)
@@ -312,8 +366,17 @@ export function ClockSheet({
         client_reported_at: new Date().toISOString(), // forensics only; the server stamps the time
       });
       if (error) throw error;
-      onDone(challenge.event_type, (data as { occurred_at: string }).occurred_at);
+      onDone(challenge.event_type, (data as { occurred_at: string }).occurred_at, false);
     } catch (error) {
+      // The signal dropped mid-save: keep this clock on the phone instead of losing it.
+      if (current && isNetworkError(error)) {
+        setOffline(true);
+        try {
+          return await queue(challenge, shot, current.coords);
+        } catch (queueError) {
+          return fail(queueError, "That didn't save on this phone. Try again.");
+        }
+      }
       fail(error, "That didn't save. Try again.");
     }
   }
@@ -403,6 +466,12 @@ export function ClockSheet({
             </>
           ) : null}
         </p>
+
+        {offline ? (
+          <p role="status" className="mx-4 mb-3 rounded-lg bg-warn-bg px-3 py-2 text-sm text-warn">
+            No signal. This clock is saved on your phone and sent when you&apos;re back online; your supervisor confirms it.
+          </p>
+        ) : null}
 
         <div className="flex flex-col gap-3 rounded-t-2xl bg-foreground px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-background">
           <div role="radiogroup" aria-label="What are you clocking?" className="grid grid-cols-3 gap-1 rounded-full bg-background/10 p-1">

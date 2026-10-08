@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loadTimesheet, type Timesheet } from "@/lib/data";
 import { darwinClock, darwinDateKey, formatDay, formatTime } from "@/lib/darwin";
-import { errorText, type Profile } from "@/lib/daymark";
+import { errorText, waitingLabel, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { addDays, mondayOf } from "@/lib/periods";
 import { createClient } from "@/lib/supabase/client";
@@ -238,7 +238,7 @@ function InternDay({
   onEdit: (edit: Edit) => void;
 }) {
   const { placement, punches, result, kind, absent } = entry;
-  const typedIn = punches.some((punch) => punch.source === "supervisor" && !punch.confirmed_at);
+  const waiting = waitingLabel(punches);
   const rows = punchDays(punches)[0]?.rows ?? [];
   const edited = [...new Set(punches.filter((punch) => punch.source === "staff_edit" && punch.confirmed_by).map((punch) => editors[punch.confirmed_by!] ?? "staff"))];
   const open = (inPunch: TimesheetPunch | null, outPunch: TimesheetPunch | null) =>
@@ -254,7 +254,7 @@ function InternDay({
             {result?.auto_closed ? <StatusChip tone="warn" label="Auto-closed" /> : null}
             {result?.unscheduled ? <StatusChip tone="neutral" label="Not rostered" /> : null}
             {absent ? <StatusChip tone="bad" label="Absent" /> : null}
-            {typedIn ? <StatusChip tone="warn" label="Typed in · waiting" /> : null}
+            {waiting ? <StatusChip tone="warn" label={waiting} /> : null}
             {kind?.kind === "work_based" ? (
               <StatusChip
                 tone={kind.status === "approved" ? "ok" : kind.status === "declined" ? "bad" : "warn"}

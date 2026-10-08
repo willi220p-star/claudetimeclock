@@ -437,7 +437,7 @@ function TimesheetTab({
                 <DayStatusBadge status={status} />
                 {day.late ? <StatusChip tone="warn" label="Late" /> : null}
                 {day.edited ? <StatusChip tone="neutral" label="Edited" /> : null}
-                {day.typedIn ? <StatusChip tone="warn" label="Typed in · waiting" /> : null}
+                {day.waiting ? <StatusChip tone="warn" label={day.waiting} /> : null}
                 {day.kind?.kind === "work_based" ? (
                   <StatusChip
                     tone={day.kind.status === "approved" ? "ok" : day.kind.status === "declined" ? "bad" : "warn"}

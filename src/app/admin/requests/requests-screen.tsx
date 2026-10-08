@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { asRecord } from "@/lib/placement-ui";
 import { AdminFrame } from "@/app/admin/admin-frame";
 import { ApproveSheet } from "@/components/approve-sheet";
 import { BulkBar, WorkBasedPanel, decideRequests, useSelection } from "@/components/bulk-decide";
@@ -122,6 +123,8 @@ function RequestsDesk() {
         requestedMinutes={open?.requested_minutes}
         attachmentPath={open?.attachment_path}
         certificateSighted={open?.certificate_sighted}
+        punchId={open?.type === "attendance" ? (asRecord(open.payload)?.punch_id as string | undefined) : null}
+        reason={open?.reason}
         onDone={reload}
       />
     </>

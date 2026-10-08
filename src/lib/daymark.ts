@@ -25,10 +25,18 @@ export const PROFILE_COLUMNS =
 export type Punch = Pick<
   Tables<"daymark_punches">,
   "id" | "user_id" | "occurred_at" | "photo_path" | "place_name" | "source" | "flags" | "distance_m" | "accuracy_m" | "is_break"
+  | "verification_method"
 > & { event_type: EventType };
 
 export const PUNCH_COLUMNS =
-  "id, user_id, event_type, occurred_at, photo_path, place_name, source, flags, distance_m, accuracy_m, is_break";
+  "id, user_id, event_type, occurred_at, photo_path, place_name, source, flags, distance_m, accuracy_m, is_break, verification_method";
+
+/** A typed-in or offline clock still waiting for the supervisor (D29, D35): its chip, or null. */
+export function waitingLabel(punches: { source: string; confirmed_at: string | null; verification_method?: string | null }[]) {
+  const waiting = punches.filter((punch) => punch.source === "supervisor" && !punch.confirmed_at);
+  if (waiting.length === 0) return null;
+  return waiting.some((punch) => punch.verification_method === "offline") ? "Offline · waiting" : "Typed in · waiting";
+}
 
 /** Old break_in/break_out rows stay in the table and are ignored everywhere in the UI. */
 export const SHIFT_EVENTS: EventType[] = ["shift_in", "shift_out"];

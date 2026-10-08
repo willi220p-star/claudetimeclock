@@ -42,8 +42,8 @@ describe("intern profile stats", () => {
     expect(list.map((day) => day.date)).toEqual(["2026-10-07", "2026-10-06", "2026-10-05", "2026-09-29", "2026-09-28"]);
     const oct5 = list.find((day) => day.date === "2026-10-05")!;
     expect(oct5.rows.flatMap((row) => [row.in?.id, row.out?.id])).toEqual(["a", "b", "c", "e"]);
-    expect(oct5).toMatchObject({ came: true, late: true, edited: true, typedIn: false, kind: { kind: "work_based" } });
-    expect(list.find((day) => day.date === "2026-10-07")).toMatchObject({ came: true, typedIn: true });
+    expect(oct5).toMatchObject({ came: true, late: true, edited: true, waiting: null, kind: { kind: "work_based" } });
+    expect(list.find((day) => day.date === "2026-10-07")).toMatchObject({ came: true, waiting: "Typed in · waiting" });
   });
 
   test("clock-in, break, clock-out and session lengths", () => {

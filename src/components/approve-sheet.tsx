@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { EffectPreview } from "@/components/effect-preview";
+import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
 import { FormField, FormMessage } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
   requestLabel,
   type RequestPreview,
 } from "@/lib/placement-ui";
+import { signSelfies } from "@/lib/punches";
 import { createClient } from "@/lib/supabase/client";
 
 const QUICK_DECLINES = ["Not enough notice", "Office is full that day", "Please pick another date"];
@@ -30,6 +32,8 @@ export function ApproveSheet({
   requestedMinutes,
   attachmentPath,
   certificateSighted = false,
+  punchId,
+  reason,
   onDone,
 }: {
   open: boolean;
@@ -41,6 +45,9 @@ export function ApproveSheet({
   requestedMinutes?: number | null;
   attachmentPath?: string | null;
   certificateSighted?: boolean;
+  /** A typed-in or offline clock waiting for confirmation (attendance requests). */
+  punchId?: string | null;
+  reason?: string | null;
   onDone: () => void;
 }) {
   const [note, setNote] = useState("");
@@ -93,6 +100,8 @@ export function ApproveSheet({
         ) : (
           <p className="text-sm text-muted-foreground">Loading the preview…</p>
         )}
+        {type === "attendance" && reason ? <p className="text-sm">{reason}</p> : null}
+        {type === "attendance" && punchId ? <PunchSelfie key={punchId} punchId={punchId} /> : null}
         {type === "leave" ? (
           <CertificateSection
             key={requestId}
@@ -221,4 +230,30 @@ function CertificateSection({
       {error ? <FormMessage>{error}</FormMessage> : null}
     </section>
   );
+}
+
+/** The selfie an offline clock was sent with, to check against its gesture (D35). */
+function PunchSelfie({ punchId }: { punchId: string }) {
+  const [photo, setPhoto] = useState<{ path: string; url: string | null } | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void createClient()
+      .from("daymark_punches")
+      .select("photo_path")
+      .eq("id", punchId)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        const path = data?.photo_path;
+        if (!path || !live) return;
+        const urls = await signSelfies([path]).catch(() => new Map<string, string>());
+        if (live) setPhoto({ path, url: urls.get(path) ?? null });
+      });
+    return () => {
+      live = false;
+    };
+  }, [punchId]);
+
+  if (!photo) return null;
+  return <SelfieImage path={photo.path} url={photo.url} alt="Selfie sent with this clock" className="h-48 w-36 rounded-lg object-cover" />;
 }
