@@ -20,6 +20,7 @@ type Shot = { blob: Blob; url: string };
 type Step =
   | { name: "ready" }
   | { name: "log" }
+  | { name: "typed" }
   | { name: "starting" }
   | { name: "photo"; challenge: ClockChallenge }
   | { name: "review"; challenge: ClockChallenge; shot: Shot }
@@ -41,12 +42,30 @@ const LOG_MIN = 10;
 const LOG_MAX = 500;
 const FRESH_MS = 120_000;
 
-/** Which action a segment means in each state: on a break, Break ends it. */
-function segmentAction(segment: Segment, state: ClockState): ClockAction | null {
-  if (state === "out") return segment === "start" ? "shift_in" : null;
-  if (state === "break") return segment === "break" ? "break_end" : null;
-  return segment === "break" ? "break_start" : segment === "finish" ? "shift_out" : null;
+type Missed = "shift_in" | "break_end";
+export type SegmentPlan = { action: ClockAction; missed: Missed | null } | null;
+
+/**
+ * What a segment means in each state (8 Oct: any segment, any time). Skipping a step first asks
+ * for the missed time: Break or Finish before clocking in asks when you arrived; Finish on a break
+ * asks when the break ended.
+ */
+export function segmentPlan(segment: Segment, state: ClockState): SegmentPlan {
+  if (state === "out") {
+    if (segment === "start") return { action: "shift_in", missed: null };
+    return { action: segment === "break" ? "break_start" : "shift_out", missed: "shift_in" };
+  }
+  if (state === "break") {
+    return segment === "finish" ? { action: "shift_out", missed: "break_end" } : { action: "break_end", missed: null };
+  }
+  if (segment === "start") return null;
+  return { action: segment === "break" ? "break_start" : "shift_out", missed: null };
 }
+
+const MISSED_LABEL: Record<Missed, string> = {
+  shift_in: "What time did you get here?",
+  break_end: "When did your break end?",
+};
 
 function segmentOf(action: ClockAction): Segment {
   return action === "shift_in" ? "start" : action === "shift_out" ? "finish" : "break";
@@ -144,7 +163,12 @@ export function ClockSheet({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [log, setLog] = useState("");
-  const action = segmentAction(segment, state);
+  const [missedAt, setMissedAt] = useState("");
+  const [missedNote, setMissedNote] = useState("");
+  const [typedDone, setTypedDone] = useState(false);
+  const plan = segmentPlan(segment, state);
+  const action = plan?.action ?? null;
+  const missed = typedDone ? null : (plan?.missed ?? null);
   const shotUrl = step.name === "review" ? step.shot.url : null;
 
   function located(read: Promise<GeolocationCoordinates>) {
@@ -188,12 +212,21 @@ export function ClockSheet({
     setProblem(null);
     setStep({ name: "starting" });
     const { data, error } = await createClient().rpc("start_clock", { event_type: chosen });
+    if (error && chosen === "shift_out" && error.message.toLowerCase().includes("work log")) {
+      setStep({ name: "log" });
+      return;
+    }
     if (error) return fail(error, "That didn't start. Try again.");
     setStep({ name: "photo", challenge: data as ClockChallenge });
   }
 
   function go() {
     if (!action) return;
+    if (missed) {
+      setProblem(null);
+      setStep({ name: "typed" });
+      return;
+    }
     // Finish needs the day's work log first (Dilip, 5 Oct).
     if (action === "shift_out" && actions.shift_out?.toLowerCase().includes("work log")) {
       setProblem(null);
@@ -201,6 +234,33 @@ export function ClockSheet({
       return;
     }
     void begin(action);
+  }
+
+  /** The missed time goes to the supervisor as a request and counts once they confirm it. */
+  async function saveMissed() {
+    if (!missed || !action) return;
+    if (!missedAt) {
+      setProblem("Enter the time.");
+      return;
+    }
+    setProblem(null);
+    setStep({ name: "saving", label: "Saving the time you entered…" });
+    const { error } = await createClient().rpc("report_missed_time", {
+      event: missed,
+      at_time: missedAt,
+      note: missedNote.trim() || undefined,
+    });
+    if (error) {
+      setStep({ name: "typed" });
+      setProblem(errorText(error, "That time didn't save. Try again."));
+      return;
+    }
+    setTypedDone(true);
+    if (action === "shift_out" && actions.shift_out?.toLowerCase().includes("work log")) {
+      setStep({ name: "log" });
+      return;
+    }
+    await begin(action);
   }
 
   async function saveLog() {
@@ -264,6 +324,7 @@ export function ClockSheet({
   const busy = step.name === "starting" || step.name === "saving";
   const breakHint = state === "in" && actions.break_start ? actions.break_start : null;
   const title = action ? ACTION_LABEL[action] : "Clock";
+  const asking = step.name === "typed" || (step.name === "saving" && step.label === "Saving the time you entered…");
 
   return (
     <DialogPrimitive.Root open onOpenChange={(open) => (open || busy ? null : onClose())}>
@@ -346,8 +407,15 @@ export function ClockSheet({
         <div className="flex flex-col gap-3 rounded-t-2xl bg-foreground px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-background">
           <div role="radiogroup" aria-label="What are you clocking?" className="grid grid-cols-3 gap-1 rounded-full bg-background/10 p-1">
             {SEGMENTS.map((item) => {
-              const itemAction = segmentAction(item.key, state);
-              const disabled = !itemAction || (itemAction === "break_start" && Boolean(breakHint)) || busy || fullCamera || step.name === "log";
+              const itemAction = segmentPlan(item.key, state)?.action;
+              const disabled =
+                !itemAction ||
+                (itemAction === "break_start" && Boolean(breakHint)) ||
+                busy ||
+                fullCamera ||
+                step.name === "log" ||
+                step.name === "typed" ||
+                typedDone;
               return (
                 <button
                   key={item.key}
@@ -371,6 +439,40 @@ export function ClockSheet({
             })}
           </div>
           {breakHint ? <p className="text-sm text-background/70">{breakHint}</p> : null}
+
+          {missed && !asking && step.name === "ready" ? (
+            <p className="text-sm text-background/70">
+              {missed === "shift_in" ? "You haven't clocked in today." : "You're still on a break."} We&apos;ll ask the time
+              first; your supervisor confirms it.
+            </p>
+          ) : null}
+
+          {asking && missed ? (
+            <div className="flex flex-col gap-3 rounded-xl bg-card p-3 text-foreground">
+              <FormField id="missed-at" label={MISSED_LABEL[missed]} hint="Your supervisor confirms it before it counts.">
+                {(input) => (
+                  <input
+                    {...input}
+                    type="time"
+                    value={missedAt}
+                    onChange={(event) => setMissedAt(event.target.value)}
+                    className="min-h-11 rounded-md border border-input bg-card px-3"
+                  />
+                )}
+              </FormField>
+              <FormField id="missed-note" label="Note (optional)">
+                {(input) => (
+                  <input
+                    {...input}
+                    value={missedNote}
+                    onChange={(event) => setMissedNote(event.target.value)}
+                    maxLength={200}
+                    className="min-h-11 rounded-md border border-input bg-card px-3"
+                  />
+                )}
+              </FormField>
+            </div>
+          ) : null}
 
           {step.name === "log" || (step.name === "saving" && step.label === "Saving your work log…") ? (
             <div className="rounded-xl bg-card p-3 text-foreground">
@@ -413,6 +515,10 @@ export function ClockSheet({
             <Button type="button" size="lg" className="w-full" disabled={cameraStatus !== "live"} onClick={() => void take(step.challenge)}>
               <Camera aria-hidden />
               Take photo
+            </Button>
+          ) : step.name === "typed" ? (
+            <Button type="button" size="lg" className="w-full" onClick={() => void saveMissed()}>
+              Save time and continue
             </Button>
           ) : step.name === "log" ? (
             <Button type="button" size="lg" variant="destructive" className="w-full" onClick={() => void saveLog()}>

@@ -33,6 +33,7 @@ describe("placement-ui", () => {
     expect(coversLine(360, 450)).toBe("Covers 6h of 7h 30m owed");
     expect(dayCellStatus({ workDate: "2026-10-06", today: "2026-10-06", dayStatus: "scheduled" })).toBe("today");
     expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "moved" })).toBe("moved");
+    expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "leave", leaveKind: "absent" })).toBe("absent");
   });
 
   test("forecastSeries accumulates counted hours and projects to the forecast week", () => {

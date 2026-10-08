@@ -110,6 +110,14 @@ begin
     where pl.intern_id = p_person and s.clock_out_at is null
     on conflict (placement_id, work_date) do nothing;
   end if;
+  -- The first clock-in of a day needs the day's kind (8 Oct); tests default to a full day.
+  if p_event = 'shift_in' then
+    insert into public.daymark_day_kinds (placement_id, work_date, kind)
+    select pl.id, (p_at::timestamptz at time zone 'Australia/Darwin')::date, 'full_day'
+    from public.daymark_placements pl
+    where pl.intern_id = p_person and pl.status in ('active', 'extended', 'target_reached')
+    on conflict do nothing;
+  end if;
   perform tests.as_person(p_person);
   challenge := public.start_clock(p_event);
   perform set_config('role', 'postgres', true);

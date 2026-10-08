@@ -101,6 +101,7 @@ reset role;
 -- Challenge and selfie checks (review rules 5 and 7)
 select tests.at('2026-10-14 09:00+09:30');
 select tests.as_person((select d from ids));
+select public.choose_day_kind('full_day');
 create temp table ch as select public.start_clock('shift_in') as j;
 reset role;
 grant select on ch to authenticated;

@@ -150,6 +150,7 @@ function ScheduleDesk() {
               workDate: date,
               today: data.today,
               dayStatus: day?.status,
+              leaveKind: day?.leave_kind,
               counted: result?.counted,
               noShow: result?.no_show,
               closure: closure?.name,

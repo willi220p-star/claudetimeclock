@@ -26,7 +26,7 @@ export const REQUEST_LABEL: Record<RequestType, string> = {
   punch_fix: "Punch fix",
   overtime: "Overtime",
   pattern_change: "Pattern change",
-  attendance: "Attendance",
+  attendance: "Typed-in time",
 };
 
 export const REQUEST_STATUS_LABEL: Record<string, string> = {
@@ -128,13 +128,14 @@ export function dayCellStatus(args: {
   workDate: string;
   today: string;
   dayStatus?: string | null;
+  leaveKind?: string | null;
   counted?: number | null;
   noShow?: boolean | null;
   closure?: string | null;
 }): DayStatus {
   if (args.closure) return "closure";
   if (args.dayStatus === "moved") return "moved";
-  if (args.dayStatus === "leave") return "leave";
+  if (args.dayStatus === "leave") return args.leaveKind === "absent" ? "absent" : "leave";
   if (args.dayStatus === "cancelled") return "cancelled";
   if (args.noShow) return "no_show";
   if ((args.counted ?? 0) > 0) return "worked";

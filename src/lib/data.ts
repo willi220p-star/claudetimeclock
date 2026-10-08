@@ -195,12 +195,14 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
     }))
     .sort((a, b) => a.intern_name.localeCompare(b.intern_name));
   const ids = placements.map((row) => row.id);
-  if (ids.length === 0) return { placements, punches: [], results: [], editors: {} as Record<string, string> };
+  if (ids.length === 0) {
+    return { placements, punches: [], results: [], editors: {} as Record<string, string>, kinds: [], absences: [] };
+  }
 
-  const [punchResult, resultResult] = await Promise.all([
+  const [punchResult, resultResult, kindResult, absentResult] = await Promise.all([
     supabase
       .from("daymark_punches")
-      .select(`${PUNCH_COLUMNS}, placement_id, replaces_punch_id, confirmed_by`)
+      .select(`${PUNCH_COLUMNS}, placement_id, replaces_punch_id, confirmed_by, confirmed_at`)
       .in("placement_id", ids)
       .in("event_type", SHIFT_EVENTS)
       .gte("occurred_at", `${from}T00:00:00+09:30`)
@@ -208,14 +210,27 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
       .order("occurred_at"),
     supabase
       .from("daymark_day_results")
-      .select("placement_id, work_date, counted, scheduled, raw, break, worked, late, auto_closed, unscheduled")
+      .select("placement_id, work_date, counted, scheduled, raw, break, worked, late, auto_closed, unscheduled, unverified")
       .in("placement_id", ids)
       .gte("work_date", from)
       .lte("work_date", to),
+    supabase.from("daymark_day_kinds").select("placement_id, work_date, kind, status").in("placement_id", ids).gte("work_date", from).lte("work_date", to),
+    supabase
+      .from("daymark_scheduled_days")
+      .select("placement_id, work_date, leave_kind")
+      .in("placement_id", ids)
+      .eq("status", "leave")
+      .eq("leave_kind", "absent")
+      .gte("work_date", from)
+      .lte("work_date", to),
   ]);
-  if (punchResult.error) throw punchResult.error;
-  if (resultResult.error) throw resultResult.error;
-  const rows = (punchResult.data ?? []) as (Punch & { placement_id: string; replaces_punch_id: string | null; confirmed_by: string | null })[];
+  for (const result of [punchResult, resultResult, kindResult, absentResult]) if (result.error) throw result.error;
+  const rows = (punchResult.data ?? []) as (Punch & {
+    placement_id: string;
+    replaces_punch_id: string | null;
+    confirmed_by: string | null;
+    confirmed_at: string | null;
+  })[];
   const replaced = new Set(rows.map((row) => row.replaces_punch_id).filter(Boolean));
   const punches = await withPhotoUrls(rows.filter((row) => !replaced.has(row.id)));
 
@@ -225,7 +240,7 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
     const { data: people } = await supabase.from("daymark_profiles").select("id, display_name").in("id", editorIds);
     for (const person of people ?? []) editors[person.id] = person.display_name;
   }
-  return { placements, punches, results: resultResult.data ?? [], editors };
+  return { placements, punches, results: resultResult.data ?? [], editors, kinds: kindResult.data ?? [], absences: absentResult.data ?? [] };
 }
 
 export type Timesheet = Awaited<ReturnType<typeof loadTimesheet>>;

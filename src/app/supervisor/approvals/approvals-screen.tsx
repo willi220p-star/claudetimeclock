@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { InboxPanel } from "@/app/supervisor/inbox-panel";
 import { loadSupervisorInbox } from "@/app/supervisor/supervisor";
+import { WorkBasedPanel } from "@/components/bulk-decide";
 import { DeskGate } from "@/components/desk-gate";
 import { StaffShell } from "@/components/desk-shell";
 import { LoadBlock } from "@/components/load-block";
@@ -40,8 +41,9 @@ function ApprovalsDesk() {
           </div>
         }
       >
-        {(items) => <InboxPanel items={items} onDone={reload} />}
+        {(items) => <InboxPanel items={items} onDone={reload} bulk />}
       </LoadBlock>
+      <WorkBasedPanel />
     </>
   );
 }

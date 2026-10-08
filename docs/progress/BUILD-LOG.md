@@ -349,3 +349,13 @@ Dilip's answers: Break shows 10 am–2 pm and Finish is always there, both in a 
 - Migration `20261005010000_breaks_timesheets_catchup.sql`; pgTAP `110_breaks_staff_edits.sql` (30), rewritten `047_catch_up.sql`, updates to 004, 005, 013, 020, 021, 024, 046, 050, 061, 062, 080; e2e `clock.spec.ts` (break + log before Finish), `catch-up.spec.ts`, new `timesheets-nav.spec.ts`.
 Gates: lint, typecheck, Vitest 166, pgTAP 41 files / 883, Playwright 20 passed / 12 skipped, `GITHUB_PAGES=true` build, brand grep.
 Preview: Regus Palmerston set to 4/5 (audited). Applying the migration timed out twice waiting for approval of its `drop` statements, so the PR (https://github.com/willi220p-star/claudetimeclock/pull/9) waits: apply the migration to preview first, then merge.
+
+### Day type, any-order clocking, staff breaks, absences, bulk decisions, deleting notifications (Dilip, 2026-10-08) — PR 1 of 2
+Dilip's answers: a work-based 5 h day counts as a full day only once a supervisor or admin approves it; typed-in times are requests that count after approval; breaks keep the office distance check; an absent day's hours are owed.
+- Home: required Full day / Work-based choice above Clock in (`choose_day_kind`, `daymark_day_kinds`, D28); `start_clock` refuses a first clock-in without it. `compute_day`: work-based days take no break; approved, `counted` is at least the rostered day.
+- Clock sheet: every segment is selectable (D29). Not clocked in → Break/Finish ask when you arrived; on a break → Finish asks when it ended (`report_missed_time`: a `supervisor`-source punch, unverified until the attendance request — now labelled "Typed-in time" — is approved; supervisor and admins notified). Home on a break also offers Clock out.
+- Timesheets: Add break (`staff_add_break`, D30), break labels in the edit sheet, chips for Absent, Typed in · waiting, Work-based · status.
+- Roster day sheet: Mark absent with a reason (`staff_mark_absent`, D31), past rostered days open too; Absent shows on the roster, the intern's Schedule and their profile.
+- Bulk approve/decline on Supervisor → Approvals and Admin → Requests, plus a Work-based days panel (D32). Removed the unused `approvals-list.tsx`.
+- Notifications: select, Delete selected, Delete all (`delete_my_notifications`, D33).
+- Migration `20261008010000_flexible_clock_absent.sql`; pgTAP `120_flexible_clock_absent.sql` (28), `tests.clock` picks Full day before a first clock-in, 005 picks it explicitly; Vitest `segment-plan.test.ts`, `bulk-decide.test.ts`; e2e `clock.spec.ts` now picks Full day, forgets to end the break, types its end at Finish, then the supervisor bulk-approves and deletes notifications.
