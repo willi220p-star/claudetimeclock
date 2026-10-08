@@ -15,4 +15,4 @@ Design: `docs/superpowers/specs/2026-10-08-offline-push-design.md`.
 - [x] B.1 pgTAP 140 + migration `20261010010000_push_reminders.sql`: subscriptions, outbox + quiet hours, `job_reminders`, cron, `call_send_push`.
 - [x] B.2 Edge Function `send-push` (web-push) + helper tests (Vitest; no Deno here).
 - [x] B.3 Service worker push + click handlers; "Reminders on this phone" on Me and Notifications, with Vitest.
-- [ ] B.4 VAPID keys (public in Pages env, private as Edge secret on preview); docs (D36); gates; preview deploy; PR, merge, deploy; real-phone check.
+- [x] B.4 VAPID keys (public in Pages env, private as Edge secret on preview); docs (D36); gates; preview deploy; PR, merge, deploy; real-phone check.
