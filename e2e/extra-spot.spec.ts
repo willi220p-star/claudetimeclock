@@ -62,7 +62,7 @@ test("a 4th spot needs the supervisor and then the admin", async ({ page }, test
   await page.goto("/admin/requests");
   const adminRow = page.locator("li").filter({ hasText: "Ben" }).filter({ hasText: /extra spot/i });
   await expect(adminRow).toBeVisible();
-  await adminRow.getByRole("button", { name: /^Approve$/ }).click();
+  await adminRow.getByRole("button", { name: /^Review$/ }).click();
   await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
   await expect(page.getByText(/Extra day approved/i)).toBeVisible();
 

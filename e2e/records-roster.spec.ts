@@ -82,7 +82,7 @@ test("admin adds an intern with a roster, sees them on the roster, then edits an
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.getByText(/Nothing that names them is kept/)).toBeVisible();
   await page.getByRole("button", { name: "Delete for good" }).click();
-  await expect(page.getByText("Deleted.")).toBeVisible();
+  await expect(page.getByText("Deleted.").last()).toBeVisible(); // the first delete's toast may still be up
   await expect(page.getByRole("button", { name: new RegExp(name) })).toHaveCount(0);
 
   expect(consoleErrors).toEqual([]);
