@@ -391,14 +391,28 @@ export async function loadWeekHours(placementId: string) {
   return data ?? [];
 }
 
+/** An intern's clock-ins and clock-outs, oldest first, including punches a fix or staff edit replaced. */
 export async function loadPunchesForPlacement(internId: string, from: string, to: string) {
   const { data, error } = await createClient()
     .from("daymark_punches")
-    .select("id, occurred_at, photo_path, event_type, flags")
+    .select(`${PUNCH_COLUMNS}, replaces_punch_id, confirmed_at`)
     .eq("user_id", internId)
+    .in("event_type", SHIFT_EVENTS)
     .gte("occurred_at", from)
     .lte("occurred_at", to)
     .order("occurred_at");
+  if (error) throw error;
+  return (data ?? []) as (Punch & { replaces_punch_id: string | null; confirmed_at: string | null })[];
+}
+
+/** Full day / work-based choices for one placement (8 Oct). */
+export async function loadDayKinds(placementId: string, from: string, to: string) {
+  const { data, error } = await createClient()
+    .from("daymark_day_kinds")
+    .select("work_date, kind, status")
+    .eq("placement_id", placementId)
+    .gte("work_date", from)
+    .lte("work_date", to);
   if (error) throw error;
   return data ?? [];
 }
