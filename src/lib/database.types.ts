@@ -874,6 +874,121 @@ export type Database = {
           },
         ]
       }
+      daymark_push_outbox: {
+        Row: {
+          attempts: number
+          error: string | null
+          id: number
+          notification_id: string
+          person_id: string
+          send_after: string
+          sent_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          error?: string | null
+          id?: never
+          notification_id: string
+          person_id: string
+          send_after: string
+          sent_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          error?: string | null
+          id?: never
+          notification_id?: string
+          person_id?: string
+          send_after?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_push_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_push_outbox_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_ok_at: string | null
+          p256dh: string
+          person_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_ok_at?: string | null
+          p256dh: string
+          person_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_ok_at?: string | null
+          p256dh?: string
+          person_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_push_subscriptions_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_reminders_sent: {
+        Row: {
+          kind: string
+          person_id: string
+          sent_at: string
+          work_date: string
+        }
+        Insert: {
+          kind: string
+          person_id: string
+          sent_at?: string
+          work_date: string
+        }
+        Update: {
+          kind?: string
+          person_id?: string
+          sent_at?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_reminders_sent_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_requests: {
         Row: {
           admin_decided_at: string | null
@@ -1581,6 +1696,10 @@ export type Database = {
         Returns: Json
       }
       delete_my_notifications: { Args: { ids?: string[] }; Returns: number }
+      delete_push_subscription: {
+        Args: { endpoint: string }
+        Returns: undefined
+      }
       delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
       end_banner: { Args: { id: string }; Returns: undefined }
       extend_placement: {
@@ -1667,6 +1786,19 @@ export type Database = {
         Args: { intern: string; objects_deleted?: number }
         Returns: Json
       }
+      push_due: {
+        Args: { max_rows?: number }
+        Returns: {
+          attempts: number
+          auth: string
+          body: string
+          endpoint: string
+          link: string
+          outbox_id: number
+          p256dh: string
+          title: string
+        }[]
+      }
       record_consent: {
         Args: { decision: string; purpose: string; related_id?: string }
         Returns: Json
@@ -1726,6 +1858,10 @@ export type Database = {
       save_placement: {
         Args: { allow_extra?: boolean; p: Json }
         Returns: string
+      }
+      save_push_subscription: {
+        Args: { auth: string; endpoint: string; p256dh: string }
+        Returns: undefined
       }
       save_site: { Args: { site: Json }; Returns: Json }
       save_work_log: {
@@ -1849,6 +1985,16 @@ export type Database = {
           latitude: number
           longitude: number
           occurred_at: string
+          offline_id: string
+        }
+        Returns: Json
+      }
+      submit_offline_typed: {
+        Args: {
+          at: string
+          day_kind?: string
+          event: string
+          note?: string
           offline_id: string
         }
         Returns: Json

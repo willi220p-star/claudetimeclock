@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { clearSessionCache, leaveSignOutNotice } from "@/lib/browser-session";
 import { loadSessionSettings } from "@/lib/data";
+import { forgetPushSubscription } from "@/lib/push";
 import { createClient } from "@/lib/supabase/client";
 
 export const DEFAULT_IDLE_MINUTES = 30;
@@ -68,6 +69,7 @@ export function useIdleSignOut() {
         if (!live) return;
         const minutes = setting && setting > 0 ? setting : DEFAULT_IDLE_MINUTES;
         stop = startIdleTimer(minutes * 60_000, async () => {
+          await forgetPushSubscription();
           await createClient()
             .auth.signOut({ scope: "local" })
             .catch(() => undefined);

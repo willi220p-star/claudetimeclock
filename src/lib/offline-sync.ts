@@ -1,40 +1,64 @@
 "use client";
 
 import { errorText, PHOTO_BUCKET } from "@/lib/daymark";
-import { listQueue, removeFromQueue, type QueuedItem } from "@/lib/offline-queue";
+import { addToQueue, listQueue, removeFromQueue } from "@/lib/offline-queue";
 import { createClient } from "@/lib/supabase/client";
 
-export type SyncResult = { sent: number; refused: { item: QueuedItem; message: string }[]; waiting: number };
+/** `consent`: the server wants the notice acknowledged again before anything more is sent. */
+export type SyncResult = { sent: number; refused: number; waiting: number; consent: boolean };
 
-/** No signal (keep the item and retry) versus the database saying no (drop it and tell the intern). */
+/** No signal: the clock sheet keeps the clock on the phone instead of showing an error. */
 export function isNetworkError(error: unknown) {
   if (typeof navigator !== "undefined" && !navigator.onLine) return true;
   const message = typeof error === "object" && error !== null && "message" in error ? String(error.message) : String(error);
   return /failed to fetch|load failed|network|fetch failed|timed? ?out/i.test(message);
 }
 
-let running: Promise<SyncResult> | null = null;
+// The database's own refusals (raise ... using errcode): sending again won't change the answer.
+const REFUSAL_CODES = new Set(["22023", "42501", "P0001"]);
 
-/** Send this phone's waiting clocks, oldest first; stop at the first network failure. One run at a time. */
+/**
+ * What a failed send means for a waiting item: `refused` is a definite "no" (set it aside and tell the
+ * intern); `consent` stops the whole sync until the notice is acknowledged again; anything else
+ * (no signal, 5xx, a captive portal's HTML, a day-type question) is `retry`: keep it and try later.
+ */
+export function syncVerdict(error: unknown): "refused" | "consent" | "retry" {
+  const { code, hint } = (typeof error === "object" && error !== null ? error : {}) as { code?: unknown; hint?: unknown };
+  if (hint === "consent") return "consent";
+  if (hint === "day_kind" || typeof code !== "string" || !REFUSAL_CODES.has(code)) return "retry";
+  return "refused";
+}
+
+const running = new Map<string, Promise<SyncResult>>();
+
+/** Send this phone's waiting clocks, oldest first; stop at the first one that can't go yet. One run per person. */
 export function syncQueue(userId: string) {
-  running ??= send(userId).finally(() => {
-    running = null;
-  });
-  return running;
+  let run = running.get(userId);
+  if (!run) {
+    run = send(userId).finally(() => running.delete(userId));
+    running.set(userId, run);
+  }
+  return run;
 }
 
 async function send(userId: string): Promise<SyncResult> {
   const supabase = createClient();
-  const items = await listQueue(userId);
-  const result: SyncResult = { sent: 0, refused: [], waiting: 0 };
+  const items = (await listQueue(userId)).filter((item) => !item.refused);
+  const result: SyncResult = { sent: 0, refused: 0, waiting: 0, consent: false };
   for (const [index, item] of items.entries()) {
     try {
       if (item.kind === "log") {
         const { error } = await supabase.rpc("save_work_log", { work_date: item.workDate, summary: item.summary });
         if (error) throw error;
       } else if (item.kind === "typed") {
-        // ponytail: typed times only count for today (report_missed_time); one sent a day late is refused and reported.
-        const { error } = await supabase.rpc("report_missed_time", { event: item.event, at_time: item.atTime, note: item.note ?? undefined });
+        // Filed on the day of `at` (the day it was typed), not the day it reaches the server.
+        const { error } = await supabase.rpc("submit_offline_typed", {
+          offline_id: item.id,
+          event: item.event,
+          at: item.occurredAt,
+          note: item.note ?? undefined,
+          day_kind: item.dayKind ?? undefined,
+        });
         if (error) throw error;
       } else {
         const { error: uploadError } = await supabase.storage
@@ -57,14 +81,15 @@ async function send(userId: string): Promise<SyncResult> {
       await removeFromQueue(item.id);
       result.sent += 1;
     } catch (error) {
-      if (isNetworkError(error)) {
+      const verdict = syncVerdict(error);
+      if (verdict !== "refused") {
         result.waiting = items.length - index;
+        result.consent = verdict === "consent";
         return result;
       }
-      // ponytail: a refused clock is dropped after telling the intern; the supervisor can add the time
-      // on Timesheets. Upgrade path: keep refused items in a "needs attention" list.
-      await removeFromQueue(item.id);
-      result.refused.push({ item, message: errorText(error, "That clock couldn't be saved.") });
+      // Set aside on this phone so Home can say what happened; the supervisor adds the time.
+      await addToQueue({ ...item, refused: errorText(error, "The server refused it.") });
+      result.refused += 1;
     }
   }
   return result;

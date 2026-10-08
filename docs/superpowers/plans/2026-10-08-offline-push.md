@@ -9,10 +9,10 @@ Design: `docs/superpowers/specs/2026-10-08-offline-push-design.md`.
 - [x] A.4 Approve sheet selfie + gesture; "Offline · waiting" chips.
 - [x] A.5 Service worker (hand-written, built over `out/`; Serwist skipped), registration, update toast; install card on Me.
 - [x] A.6 e2e `offline-clock.spec.ts`; served-`out/` service worker check.
-- [ ] A.7 Docs (D34, D35, BUILD-LOG, SECURITY-REVIEW addendum); gates; preview migration; PR, merge, deploy.
+- [x] A.7 Docs (D34, D35, BUILD-LOG, SECURITY-REVIEW addendum); gates; preview migration; PR, merge, deploy.
 
 ## PR B
-- [ ] B.1 pgTAP 140 + migration `20261010010000_push_reminders.sql`: subscriptions, outbox + quiet hours, `job_reminders`, cron, `call_send_push`.
-- [ ] B.2 Edge Function `send-push` (web-push) + Deno test.
-- [ ] B.3 Service worker push + click handlers; Me / staff "Reminders on this phone" toggle with Vitest.
-- [ ] B.4 VAPID keys (public in Pages env, private as Edge secret on preview); docs (D36); gates; preview deploy; PR, merge, deploy; real-phone check.
+- [x] B.1 pgTAP 140 + migration `20261010010000_push_reminders.sql`: subscriptions, outbox + quiet hours, `job_reminders`, cron, `call_send_push`.
+- [x] B.2 Edge Function `send-push` (web-push) + helper tests (Vitest; no Deno here).
+- [x] B.3 Service worker push + click handlers; "Reminders on this phone" on Me and Notifications, with Vitest.
+- [x] B.4 VAPID keys (public in Pages env, private as Edge secret on preview); docs (D36); gates; preview deploy; PR, merge, deploy; real-phone check.

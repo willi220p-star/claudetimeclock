@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PrivacyCard } from "@/app/clock/privacy-card";
 import { InstallCard } from "@/components/install-card";
+import { PushToggle } from "@/components/push-toggle";
 import { Avatar } from "@/components/avatar";
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
@@ -70,6 +71,7 @@ function MeDesk({ profile }: { profile: Profile }) {
           <div className="flex flex-col gap-6">
             <ProfileCard profile={profile} photo={photo} supervisor={supervisor} />
             <InstallCard />
+            <PushToggle />
             <PrivacyCard consent={consent} onChange={setConsent} />
             {!placement ? <EmptyState>No placement on this login yet.</EmptyState> : null}
             <section className="flex flex-col gap-2 rounded-xl bg-card p-6 shadow-card">
