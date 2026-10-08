@@ -46,6 +46,7 @@ export const SUPERVISOR_GROUPS: NavGroup[] = [
     icon: Users,
     pages: [
       { href: "/supervisor/interns", label: "Interns", match: prefix("/supervisor/intern") },
+      { href: "/supervisor/progress", label: "Progress", match: prefix("/supervisor/progress") },
       { href: "/supervisor/summary", label: "Summary", match: prefix("/supervisor/summary") },
       { href: "/supervisor/records", label: "Records", match: prefix("/supervisor/records") },
     ],
@@ -79,6 +80,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
     icon: ChartPie,
     pages: [
       { href: "/admin/reports", label: "Reports", match: prefix("/admin/reports") },
+      { href: "/admin/progress", label: "Progress", match: prefix("/admin/progress") },
       { href: "/admin/records", label: "Records", match: prefix("/admin/records") },
       { href: "/admin/audit", label: "Audit", match: prefix("/admin/audit") },
     ],

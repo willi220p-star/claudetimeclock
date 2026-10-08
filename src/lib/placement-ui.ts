@@ -285,6 +285,8 @@ export type ProgressRow = {
   pace: string;
   attendance_pct?: number | null;
   risk_reasons: string[];
+  fortnight_start?: string;
+  fortnight_end?: string;
 };
 
 export function asRecord(value: unknown): Record<string, unknown> | null {

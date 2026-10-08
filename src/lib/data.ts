@@ -257,8 +257,8 @@ export async function loadDayResults(placementId: string, from: string, to: stri
   return data ?? [];
 }
 
-export async function loadHeadcounts(from: string, to: string) {
-  const { data, error } = await createClient().rpc("site_headcounts", { from_date: from, to_date: to });
+export async function loadHeadcounts(from: string, to: string, site?: string) {
+  const { data, error } = await createClient().rpc("site_headcounts", { from_date: from, to_date: to, ...(site ? { site } : {}) });
   if (error) throw error;
   return data ?? [];
 }
@@ -294,6 +294,14 @@ export async function loadInbox(status?: string) {
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as (Tables<"daymark_requests"> & { daymark_profiles: { display_name: string } | null })[];
+}
+
+/** Status and age of every request the caller can see (admin: all), for the Progress charts. */
+export async function loadRequestStatuses() {
+  // ponytail: two short columns per request; add a date floor once the table runs to thousands.
+  const { data, error } = await createClient().from("daymark_requests").select("status, created_at");
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function loadProgressForSupervisor(): Promise<ProgressRow[]> {
