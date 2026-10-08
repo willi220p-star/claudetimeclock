@@ -3,12 +3,12 @@
 Design: `docs/superpowers/specs/2026-10-08-offline-push-design.md`.
 
 ## PR A
-- [ ] A.1 pgTAP 130 + migration `20261009010000_offline_clock.sql`: `offline_id`, `file_unverified_punch` (shared with `report_missed_time`), `submit_offline_punch`, notice v1.3.
-- [ ] A.2 `src/lib/offline-queue.ts` (IndexedDB + pure `applyQueue`, gestures) with Vitest.
-- [ ] A.3 `src/lib/offline-sync.ts` and the clock sheet's offline mode; Home banner and cached status.
-- [ ] A.4 Approve sheet selfie + gesture; "Offline · waiting" chips.
-- [ ] A.5 Service worker (Serwist inject-manifest over `out/`), registration, update toast; install card on Me.
-- [ ] A.6 e2e `offline-clock.spec.ts`; served-`out/` service worker check.
+- [x] A.1 pgTAP 130 + migration `20261009010000_offline_clock.sql`: `offline_id`, `request_punch_confirmation` + `save_day_kind` (shared with `report_missed_time` and `choose_day_kind`), `submit_offline_punch`, notice v1.3.
+- [x] A.2 `src/lib/offline-queue.ts` (IndexedDB + pure `applyQueue`, gestures) with Vitest.
+- [x] A.3 `src/lib/offline-sync.ts` and the clock sheet's offline mode; Home banner and cached status.
+- [x] A.4 Approve sheet selfie + gesture; "Offline · waiting" chips.
+- [x] A.5 Service worker (hand-written, built over `out/`; Serwist skipped), registration, update toast; install card on Me.
+- [x] A.6 e2e `offline-clock.spec.ts`; served-`out/` service worker check.
 - [ ] A.7 Docs (D34, D35, BUILD-LOG, SECURITY-REVIEW addendum); gates; preview migration; PR, merge, deploy.
 
 ## PR B

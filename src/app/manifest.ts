@@ -4,7 +4,7 @@ import { BASE_PATH, PAGE_BACKGROUND } from "@/lib/brand";
 // Rendered to a file at build time for the static export.
 export const dynamic = "force-static";
 
-/** §11.5 PWA: manifest and icons only, no service worker. Icons come from scripts/icons.mjs. */
+/** PWA manifest (§11.5; D34 adds the service worker, scripts/sw.mjs). Icons come from scripts/icons.mjs. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "DGK Clock",
