@@ -68,8 +68,7 @@ type DayRow = { work_date: string; status: string; leave_kind: string | null };
 type ResultRow = { work_date: string; counted: number | null; no_show: boolean | null };
 
 /**
- * Attendance breakdown in days. Absent = a no-show, or leave marked 'absent' (ready for that kind;
- * today leave is sick or personal). Leave = any other leave. Moved = a day swapped to another date.
+ * Attendance breakdown in days. Absent = a no-show, or a day staff marked absent (leave kind 'absent'). Leave = any other leave. Moved = a day swapped to another date.
  */
 export function attendanceBreakdown(days: DayRow[], results: ResultRow[]) {
   const absentLeave = days.filter((day) => day.status === "leave" && day.leave_kind === "absent").length;
