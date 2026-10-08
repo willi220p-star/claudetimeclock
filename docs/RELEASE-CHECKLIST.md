@@ -63,8 +63,12 @@ Do steps 18–21 in one sitting so the live app and the database match.
    ```bash
    supabase secrets set CRON_SECRET=<the value from step 6>
    supabase functions deploy retention-purge
+   # Push reminders (D36): a fresh VAPID key pair for live (npx web-push generate-vapid-keys);
+   # the public key also goes in the repository variable NEXT_PUBLIC_VAPID_PUBLIC_KEY.
+   supabase secrets set VAPID_PUBLIC_KEY=<public> VAPID_PRIVATE_KEY=<private> VAPID_SUBJECT=mailto:<admin email>
+   supabase functions deploy send-push --no-verify-jwt
    ```
-   `supabase/config.toml` turns off the JWT check for this function. It checks the `x-cron-secret` header instead.
+   `supabase/config.toml` turns off the JWT check for `retention-purge`; `send-push` is deployed with `--no-verify-jwt`. Both check the `x-cron-secret` header instead.
 20. [ ] **Delete the old `create-staff` function.**
    ```bash
    supabase functions delete create-staff

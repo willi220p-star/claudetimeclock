@@ -1,6 +1,6 @@
 // Runs under Vitest (no Deno here); push.ts is plain TypeScript.
 import { describe, expect, test } from "vitest";
-import { outcome, payload } from "./push";
+import { outcome, payload, rowDone } from "./push";
 
 describe("send-push", () => {
   test("payload carries title, body and a link", () => {
@@ -14,5 +14,12 @@ describe("send-push", () => {
     expect(outcome(404)).toBe("gone");
     expect(outcome(500)).toBe("retry");
     expect(outcome(null)).toBe("retry");
+  });
+
+  test("a gone phone doesn't cancel a live one that failed for now", () => {
+    expect(rowDone(["gone", "retry"])).toBe(false);
+    expect(rowDone(["gone", "sent"])).toBe(true);
+    expect(rowDone(["gone"])).toBe(true);
+    expect(rowDone(["retry"])).toBe(false);
   });
 });

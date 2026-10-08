@@ -3,7 +3,7 @@
 // private key never reaches the app.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
-import { type Due, outcome, payload } from "./push.ts";
+import { type Due, outcome, payload, rowDone } from "./push.ts";
 
 Deno.serve(async (req) => {
   const secret = Deno.env.get("CRON_SECRET");
@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
 
   const rows = (data ?? []) as Due[];
   const report = { sent: 0, gone: 0, retry: 0 };
-  const done = new Set<number>();
+  const results = new Map<number, ReturnType<typeof outcome>[]>();
+  const errors = new Map<number, string>();
   for (const row of rows) {
     let status: number | null = null;
     let message: string | null = null;
@@ -46,14 +47,17 @@ Deno.serve(async (req) => {
     } else if (result === "sent") {
       await admin.from("daymark_push_subscriptions").update({ last_ok_at: new Date().toISOString() }).eq("endpoint", row.endpoint);
     }
-    // One outbox row can fan out to several phones; it's done once any phone took it or none is left.
-    if (result !== "retry") done.add(row.outbox_id);
-    else if (!done.has(row.outbox_id)) {
-      await admin.from("daymark_push_outbox").update({ attempts: row.attempts + 1, error: message ?? `HTTP ${status}` }).eq("id", row.outbox_id);
-    }
+    results.set(row.outbox_id, [...(results.get(row.outbox_id) ?? []), result]);
+    if (result === "retry") errors.set(row.outbox_id, message ?? `HTTP ${status}`);
   }
-  if (done.size > 0) {
-    await admin.from("daymark_push_outbox").update({ sent_at: new Date().toISOString() }).in("id", [...done]);
+  // Attempts are counted by private.call_send_push before each call; here rows are closed or noted.
+  const done = [...results].filter(([, list]) => rowDone(list)).map(([id]) => id);
+  if (done.length > 0) {
+    const { error: doneError } = await admin.from("daymark_push_outbox").update({ sent_at: new Date().toISOString() }).in("id", done);
+    if (doneError) return new Response(doneError.message, { status: 500 });
+  }
+  for (const [id, text] of errors) {
+    if (!done.includes(id)) await admin.from("daymark_push_outbox").update({ error: text }).eq("id", id);
   }
   return Response.json(report);
 });

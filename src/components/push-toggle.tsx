@@ -51,7 +51,16 @@ export function PushToggle() {
     let live = true;
     void navigator.serviceWorker.ready
       .then((registration) => registration.pushManager.getSubscription())
-      .then((existing) => {
+      .then(async (existing) => {
+        // A phone used by someone else before: make it this person's (the save moves it).
+        if (existing) {
+          const json = existing.toJSON();
+          await createClient().rpc("save_push_subscription", {
+            endpoint: existing.endpoint,
+            p256dh: json.keys?.p256dh ?? "",
+            auth: json.keys?.auth ?? "",
+          });
+        }
         if (!live) return;
         setSubscription(existing);
         setChecked(true);

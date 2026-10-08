@@ -22,3 +22,11 @@ export function outcome(status: number | null): "sent" | "gone" | "retry" {
   if (status === 404 || status === 410) return "gone";
   return "retry";
 }
+
+/**
+ * An outbox row fans out to each of the person's phones. It is done when any phone took it, or when
+ * none is worth retrying (all gone); a gone phone never cancels a live one that failed for now.
+ */
+export function rowDone(results: ReturnType<typeof outcome>[]) {
+  return results.includes("sent") || !results.includes("retry");
+}

@@ -6,6 +6,7 @@ import { LogOut, MonitorSmartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearSessionCache } from "@/lib/browser-session";
+import { forgetPushSubscription } from "@/lib/push";
 import { createClient } from "@/lib/supabase/client";
 
 export const SIGN_OUT_EVERYWHERE_CONFIRM = "This signs you out on every phone and computer.";
@@ -28,6 +29,7 @@ export function SignOutButton({ compact = false, everywhere = false }: { compact
       onClick={async () => {
         if (everywhere && !window.confirm(SIGN_OUT_EVERYWHERE_CONFIRM)) return;
         setPending(true);
+        await forgetPushSubscription();
         const { error } = await createClient().auth.signOut({ scope: everywhere ? "global" : "local" });
         // A failed global sign-out still ends this device's session; say the others may not be.
         if (error && everywhere) toast.error("Other devices may still be signed in. Try again once you're back online.");

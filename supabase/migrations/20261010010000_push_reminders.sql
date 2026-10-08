@@ -216,8 +216,15 @@ declare
   url text := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url');
   secret text := (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret');
 begin
-  if not exists (select 1 from public.daymark_push_outbox o
-                 where o.sent_at is null and o.attempts < 3 and o.send_after <= private.clock_now()) then
+  -- Each call counts as an attempt on the rows it is about to send (at most 3), so a function that
+  -- can't send (secrets missing, rejected) stops being called; rows for people without a phone any
+  -- more are closed instead of waiting forever.
+  update public.daymark_push_outbox o set sent_at = private.clock_now(), error = 'no phone'
+  where o.sent_at is null and o.send_after <= private.clock_now()
+    and not exists (select 1 from public.daymark_push_subscriptions s where s.person_id = o.person_id);
+  update public.daymark_push_outbox o set attempts = o.attempts + 1
+  where o.sent_at is null and o.attempts < 3 and o.send_after <= private.clock_now();
+  if not found then
     return null;
   end if;
   if url is null or secret is null then
@@ -245,7 +252,7 @@ as $$
   from public.daymark_push_outbox o
   join public.daymark_notifications n on n.id = o.notification_id
   join public.daymark_push_subscriptions s on s.person_id = o.person_id
-  where o.sent_at is null and o.attempts < 3 and o.send_after <= private.clock_now()
+  where o.sent_at is null and o.attempts between 1 and 3 and o.send_after <= private.clock_now()
   order by o.id
   limit max_rows;
 $$;
