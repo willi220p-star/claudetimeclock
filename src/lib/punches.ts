@@ -30,23 +30,33 @@ export async function loadPunches({
   return withPhotoUrls(data as Punch[]);
 }
 
+/**
+ * 60-second signed links for selfie paths, keyed by path. A path with no link (file removed) is
+ * left out. Links expire, so sign when the photos are about to show and re-sign on an image error
+ * (`SelfieImage` does).
+ */
+export async function signSelfies(paths: string[]) {
+  const urls = new Map<string, string>();
+  if (paths.length === 0) return urls;
+  const { data, error } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
+  if (error) throw error;
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
+  }
+  return urls;
+}
+
 /** Adds a 60-second signed selfie URL to each row that has a photo. */
 export async function withPhotoUrls<T extends { photo_path: string | null }>(rows: T[]): Promise<(T & { photoUrl: string | null })[]> {
-  const paths = rows.map((row) => row.photo_path).filter((path): path is string => Boolean(path));
-  const urls = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: signed } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
-    for (const item of signed ?? []) {
-      if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-    }
-  }
+  const urls = await signSelfies(rows.map((row) => row.photo_path).filter((path): path is string => Boolean(path))).catch(
+    () => new Map<string, string>(),
+  );
   return rows.map((row) => ({ ...row, photoUrl: row.photo_path ? (urls.get(row.photo_path) ?? null) : null }));
 }
 
 /** A fresh 60-second link for opening one selfie full size. */
 export async function selfieUrl(path: string) {
-  const { data, error } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls([path], SIGNED_URL_SECONDS);
-  const url = data?.[0]?.signedUrl;
-  if (error || !url) throw error ?? new Error("That selfie didn't open. Try again.");
+  const url = (await signSelfies([path])).get(path);
+  if (!url) throw new Error("That selfie didn't open. Try again.");
   return url;
 }

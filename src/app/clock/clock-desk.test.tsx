@@ -7,6 +7,13 @@ const upload = vi.fn();
 const push = vi.fn();
 const loadPunches = vi.fn();
 let consent: Consent;
+let dayKind: unknown;
+// Today's Full day / Work-based pick, read straight from the table.
+const dayKindQuery = {
+  select: () => dayKindQuery,
+  eq: () => dayKindQuery,
+  maybeSingle: () => Promise.resolve({ data: dayKind, error: null }),
+};
 
 function extraRpc(name: string, fallback: { data: unknown; error: unknown }) {
   if (name === "clock_status") {
@@ -36,7 +43,7 @@ function extraRpc(name: string, fallback: { data: unknown; error: unknown }) {
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ rpc, storage: { from: () => ({ upload }) } }),
+  createClient: () => ({ rpc, from: () => dayKindQuery, storage: { from: () => ({ upload }) } }),
 }));
 vi.mock("@/lib/punches", () => ({ loadPunches: (...args: unknown[]) => loadPunches(...args), selfieUrl: vi.fn() }));
 const loadClockStatus = vi.fn();
@@ -83,6 +90,7 @@ const site = { name: "Regus Palmerston", latitude: -12.4785082, longitude: 130.9
 const placement = { id: "33333333-3333-3333-3333-333333333333", read_only: false };
 
 beforeEach(() => {
+  dayKind = { kind: "full_day", status: null };
   consent = { notice_version: "1.2", notice_acknowledged: true, location: "granted", selfie: "granted" };
   loadPunches.mockResolvedValue([]);
   loadClockStatus.mockResolvedValue({ state: "out", actions: { shift_in: null }, blocked: null, site, placement });
@@ -130,7 +138,6 @@ describe("ClockDesk", () => {
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
     expect(getCurrentPosition.mock.calls[0][2]).toMatchObject({ enableHighAccuracy: true });
     expect(sheet.getByRole("radio", { name: "Start" })).toHaveAttribute("aria-checked", "true");
-    expect(sheet.getByRole("radio", { name: "Break" })).toBeDisabled();
 
     await waitFor(() => expect(sheet.getByRole("button", { name: "Clock in" })).toBeEnabled());
     fireEvent.click(sheet.getByRole("button", { name: "Clock in" }));

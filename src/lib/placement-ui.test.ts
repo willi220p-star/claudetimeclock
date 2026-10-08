@@ -5,12 +5,31 @@ import {
   coversLine,
   dayCellStatus,
   forecastSeries,
+  knownParam,
   overtimeSteps,
   requestTimeline,
   splitEffect,
+  statusMatches,
 } from "@/lib/placement-ui";
 
 describe("placement-ui", () => {
+  test("statusMatches: live covers the Overview's Active statuses", () => {
+    expect(statusMatches("all", "withdrawn")).toBe(true);
+    expect(["active", "extended", "target_reached", "completed"].filter((s) => statusMatches("live", s))).toEqual([
+      "active",
+      "extended",
+      "target_reached",
+    ]);
+    expect(statusMatches("completed", "completed")).toBe(true);
+    expect(statusMatches("completed", "active")).toBe(false);
+  });
+
+  test("knownParam drops unknown query values", () => {
+    expect(knownParam("at_risk", ["at_risk"])).toBe("at_risk");
+    expect(knownParam("bogus", ["at_risk"])).toBe("all");
+    expect(knownParam(null, ["green"], "x")).toBe("x");
+  });
+
   test("splitEffect reads arrows and becomes", () => {
     expect(splitEffect("office 2/3 → 3/3")).toEqual([{ before: "office 2/3", after: "3/3" }]);
     expect(splitEffect("Tue 14 Oct becomes 9:00 am–5:00 pm")).toEqual([
@@ -33,6 +52,7 @@ describe("placement-ui", () => {
     expect(coversLine(360, 450)).toBe("Covers 6h of 7h 30m owed");
     expect(dayCellStatus({ workDate: "2026-10-06", today: "2026-10-06", dayStatus: "scheduled" })).toBe("today");
     expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "moved" })).toBe("moved");
+    expect(dayCellStatus({ workDate: "2026-10-05", today: "2026-10-06", dayStatus: "leave", leaveKind: "absent" })).toBe("absent");
   });
 
   test("forecastSeries accumulates counted hours and projects to the forecast week", () => {

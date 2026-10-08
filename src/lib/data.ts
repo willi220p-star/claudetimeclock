@@ -195,12 +195,14 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
     }))
     .sort((a, b) => a.intern_name.localeCompare(b.intern_name));
   const ids = placements.map((row) => row.id);
-  if (ids.length === 0) return { placements, punches: [], results: [], editors: {} as Record<string, string> };
+  if (ids.length === 0) {
+    return { placements, punches: [], results: [], editors: {} as Record<string, string>, kinds: [], absences: [] };
+  }
 
-  const [punchResult, resultResult] = await Promise.all([
+  const [punchResult, resultResult, kindResult, absentResult] = await Promise.all([
     supabase
       .from("daymark_punches")
-      .select(`${PUNCH_COLUMNS}, placement_id, replaces_punch_id, confirmed_by`)
+      .select(`${PUNCH_COLUMNS}, placement_id, replaces_punch_id, confirmed_by, confirmed_at`)
       .in("placement_id", ids)
       .in("event_type", SHIFT_EVENTS)
       .gte("occurred_at", `${from}T00:00:00+09:30`)
@@ -208,14 +210,27 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
       .order("occurred_at"),
     supabase
       .from("daymark_day_results")
-      .select("placement_id, work_date, counted, scheduled, raw, break, worked, late, auto_closed, unscheduled")
+      .select("placement_id, work_date, counted, scheduled, raw, break, worked, late, auto_closed, unscheduled, unverified")
       .in("placement_id", ids)
       .gte("work_date", from)
       .lte("work_date", to),
+    supabase.from("daymark_day_kinds").select("placement_id, work_date, kind, status").in("placement_id", ids).gte("work_date", from).lte("work_date", to),
+    supabase
+      .from("daymark_scheduled_days")
+      .select("placement_id, work_date, leave_kind")
+      .in("placement_id", ids)
+      .eq("status", "leave")
+      .eq("leave_kind", "absent")
+      .gte("work_date", from)
+      .lte("work_date", to),
   ]);
-  if (punchResult.error) throw punchResult.error;
-  if (resultResult.error) throw resultResult.error;
-  const rows = (punchResult.data ?? []) as (Punch & { placement_id: string; replaces_punch_id: string | null; confirmed_by: string | null })[];
+  for (const result of [punchResult, resultResult, kindResult, absentResult]) if (result.error) throw result.error;
+  const rows = (punchResult.data ?? []) as (Punch & {
+    placement_id: string;
+    replaces_punch_id: string | null;
+    confirmed_by: string | null;
+    confirmed_at: string | null;
+  })[];
   const replaced = new Set(rows.map((row) => row.replaces_punch_id).filter(Boolean));
   const punches = await withPhotoUrls(rows.filter((row) => !replaced.has(row.id)));
 
@@ -225,7 +240,7 @@ export async function loadTimesheet(from: string, to: string, supervisorId?: str
     const { data: people } = await supabase.from("daymark_profiles").select("id, display_name").in("id", editorIds);
     for (const person of people ?? []) editors[person.id] = person.display_name;
   }
-  return { placements, punches, results: resultResult.data ?? [], editors };
+  return { placements, punches, results: resultResult.data ?? [], editors, kinds: kindResult.data ?? [], absences: absentResult.data ?? [] };
 }
 
 export type Timesheet = Awaited<ReturnType<typeof loadTimesheet>>;
@@ -242,8 +257,8 @@ export async function loadDayResults(placementId: string, from: string, to: stri
   return data ?? [];
 }
 
-export async function loadHeadcounts(from: string, to: string) {
-  const { data, error } = await createClient().rpc("site_headcounts", { from_date: from, to_date: to });
+export async function loadHeadcounts(from: string, to: string, site?: string) {
+  const { data, error } = await createClient().rpc("site_headcounts", { from_date: from, to_date: to, ...(site ? { site } : {}) });
   if (error) throw error;
   return data ?? [];
 }
@@ -279,6 +294,14 @@ export async function loadInbox(status?: string) {
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as (Tables<"daymark_requests"> & { daymark_profiles: { display_name: string } | null })[];
+}
+
+/** Status and age of every request the caller can see (admin: all), for the Progress charts. */
+export async function loadRequestStatuses() {
+  // ponytail: two short columns per request; add a date floor once the table runs to thousands.
+  const { data, error } = await createClient().from("daymark_requests").select("status, created_at");
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function loadProgressForSupervisor(): Promise<ProgressRow[]> {
@@ -376,14 +399,28 @@ export async function loadWeekHours(placementId: string) {
   return data ?? [];
 }
 
+/** An intern's clock-ins and clock-outs, oldest first, including punches a fix or staff edit replaced. */
 export async function loadPunchesForPlacement(internId: string, from: string, to: string) {
   const { data, error } = await createClient()
     .from("daymark_punches")
-    .select("id, occurred_at, photo_path, event_type, flags")
+    .select(`${PUNCH_COLUMNS}, replaces_punch_id, confirmed_at`)
     .eq("user_id", internId)
+    .in("event_type", SHIFT_EVENTS)
     .gte("occurred_at", from)
     .lte("occurred_at", to)
     .order("occurred_at");
+  if (error) throw error;
+  return (data ?? []) as (Punch & { replaces_punch_id: string | null; confirmed_at: string | null })[];
+}
+
+/** Full day / work-based choices for one placement (8 Oct). */
+export async function loadDayKinds(placementId: string, from: string, to: string) {
+  const { data, error } = await createClient()
+    .from("daymark_day_kinds")
+    .select("work_date, kind, status")
+    .eq("placement_id", placementId)
+    .gte("work_date", from)
+    .lte("work_date", to);
   if (error) throw error;
   return data ?? [];
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -12,17 +12,21 @@ import { DeskGate } from "@/components/desk-gate";
 import { StaffShell } from "@/components/desk-shell";
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
+import { MetricCard } from "@/components/metric-card";
 import { MinutesText } from "@/components/minutes-text";
 import { PaceChip } from "@/components/pace-chip";
 import { PageHeader } from "@/components/page-header";
 import { ProgressRing } from "@/components/progress-ring";
+import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { darwinDateKey, formatDay, formatTime, formatTimeOfDay } from "@/lib/darwin";
 import {
   loadCheckins,
+  loadDayKinds,
   loadDayResults,
   loadFlaggedEvents,
   loadPlacement,
@@ -32,13 +36,15 @@ import {
   loadScheduledDays,
   loadWorkLogs,
 } from "@/lib/data";
-import { FLAG_LABEL, PHOTO_BUCKET, SIGNED_URL_SECONDS, formatDistance, type Profile } from "@/lib/daymark";
+import { FLAG_LABEL, errorText, formatDistance, type Profile } from "@/lib/daymark";
+import { formatMinutes } from "@/lib/minutes";
 import { addDays } from "@/lib/periods";
 import { PLACEMENT_STATUS_LABEL, REQUEST_STATUS_LABEL, asRecord, dayCellStatus, requestLabel } from "@/lib/placement-ui";
-import { createClient } from "@/lib/supabase/client";
+import { dayTimes, filterDays, profileDays, profileSummary, type ProfileDay, type ProfileFilter } from "@/lib/profile-stats";
+import { selfieUrl, signSelfies } from "@/lib/punches";
 import { useLoad } from "@/lib/use-load";
 
-const TABS = ["Schedule", "Hours", "Requests", "Work logs", "Check-ins", "Flags", "Selfies"] as const;
+const TABS = ["Timesheet", "Schedule", "Hours", "Requests", "Work logs", "Check-ins", "Flags", "Selfies"] as const;
 /** ?tab= values, so a link can open a tab (the Monday summary links to Check-ins). */
 const TAB_PARAM: Record<string, Tab> = { checkins: "Check-ins", flags: "Flags" };
 type Tab = (typeof TABS)[number];
@@ -65,7 +71,6 @@ type PunchThumb = {
   occurred_at: string;
   event_type: string;
   photo_path: string;
-  url: string;
   flags: string[];
 };
 
@@ -98,7 +103,7 @@ async function loadInternDesk(id: string) {
   const from = placement.start_date || today;
   const latest = [placement.planned_end_date, placement.ended_on ?? from, today].reduce((a, b) => (a > b ? a : b));
   const to = addDays(latest, 14);
-  const [progressRows, days, results, requests, logs, punches, checkins, flagged] = await Promise.all([
+  const [progressRows, days, results, requests, logs, punches, checkins, flagged, kinds] = await Promise.all([
     loadProgressForSupervisor(),
     loadScheduledDays(id, from, to),
     loadDayResults(id, from, to),
@@ -107,30 +112,14 @@ async function loadInternDesk(id: string) {
     loadPunchesForPlacement(placement.intern_id, `${from}T00:00:00+09:30`, `${to}T23:59:59+09:30`),
     loadCheckins(id),
     loadFlaggedEvents(addDays(today, -60), today),
+    loadDayKinds(id, from, to),
   ]);
-  const paths = punches.map((punch) => punch.photo_path).filter((path): path is string => Boolean(path));
-  const urls = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls(paths, SIGNED_URL_SECONDS);
-    for (const item of data ?? []) {
-      if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-    }
-  }
-  const thumbs: PunchThumb[] = punches.flatMap((punch) => {
-    if (!punch.photo_path) return [];
-    const url = urls.get(punch.photo_path);
-    if (!url) return [];
-    return [
-      {
-        id: punch.id,
-        occurred_at: punch.occurred_at,
-        event_type: punch.event_type,
-        photo_path: punch.photo_path,
-        url,
-        flags: punch.flags ?? [],
-      },
-    ];
-  });
+  // Selfie links are signed when the Selfies or Flags tab opens: a 60-second link signed here is dead by then.
+  const thumbs: PunchThumb[] = punches.flatMap((punch) =>
+    punch.photo_path
+      ? [{ id: punch.id, occurred_at: punch.occurred_at, event_type: punch.event_type, photo_path: punch.photo_path, flags: punch.flags ?? [] }]
+      : [],
+  );
   return {
     placement,
     progress: progressRows.find((row) => row.placement_id === id) ?? null,
@@ -139,6 +128,8 @@ async function loadInternDesk(id: string) {
     requests,
     logs,
     thumbs,
+    punches,
+    kinds,
     checkins,
     flagged: flagged.filter((row) => row.intern_id === placement.intern_id),
   };
@@ -225,8 +216,8 @@ function InternDetail({
   onDone: () => void;
   initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>(initialTab ?? "Schedule");
-  const { placement, progress, days, results, requests, logs, thumbs, checkins, flagged } = data;
+  const [tab, setTab] = useState<Tab>(initialTab ?? "Timesheet");
+  const { placement, progress, days, results, requests, logs, thumbs, punches, kinds, checkins, flagged } = data;
   const rates = attendanceFromResults(results);
   const attendance = progress?.attendance_pct ?? rates.attendance_pct;
   const onTime = rates.on_time_pct;
@@ -237,6 +228,9 @@ function InternDetail({
       ? profile.display_name
       : (placement.supervisor_name ?? profile.display_name);
   const today = darwinDateKey(new Date());
+  const list = profileDays({ days, results, kinds, punches, today });
+  const summary = profileSummary(list, results, today);
+  const weeks = summary.weeksMet + summary.weeksMissed;
 
   return (
     <>
@@ -267,6 +261,41 @@ function InternDetail({
           ) : null}
         </div>
       </div>
+
+      <section aria-label="Summary" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <MetricCard label="Days worked" value={String(summary.worked)} />
+        <MetricCard
+          label="Days absent"
+          value={String(summary.absent)}
+          sub={summary.absent > 0 ? "Marked absent" : undefined}
+          tone={summary.absent > 0 ? "bad" : "neutral"}
+        />
+        <MetricCard label="Days swapped" value={String(summary.moved)} sub={summary.moved > 0 ? "Moved to another day" : undefined} />
+        <MetricCard
+          label="Days late"
+          value={String(summary.late)}
+          sub={summary.late > 0 ? "Clocked in late" : undefined}
+          tone={summary.late > 0 ? "warn" : "neutral"}
+        />
+        <MetricCard
+          label="Weekly hours met"
+          value={weeks > 0 ? `${summary.weeksMet} of ${weeks}` : "—"}
+          sub={weeks === 0 ? "No full week yet" : summary.weeksMissed > 0 ? `${summary.weeksMissed} short` : "Every week"}
+          tone={summary.weeksMissed > 0 ? "warn" : "ok"}
+        />
+        <MetricCard
+          label="This week"
+          value={formatMinutes(summary.thisWeek.counted)}
+          sub={`of ${formatMinutes(summary.thisWeek.scheduled)} rostered`}
+          tone={summary.thisWeek.scheduled > 0 && summary.thisWeek.counted >= summary.thisWeek.scheduled ? "ok" : "neutral"}
+        />
+        <MetricCard
+          label="Total counted"
+          value={formatMinutes(counted)}
+          sub={`of ${formatMinutes(target)} placement target`}
+          className="col-span-2"
+        />
+      </section>
 
       {placement.report_approved_at ? (
         <p className="rounded-lg bg-ok-bg px-4 py-3 text-ok">
@@ -299,6 +328,7 @@ function InternDetail({
         ))}
       </div>
 
+      {tab === "Timesheet" ? <TimesheetTab list={list} today={today} /> : null}
       {tab === "Schedule" ? <ScheduleTab days={days} results={results} today={today} /> : null}
       {tab === "Hours" ? <HoursTab results={results} /> : null}
       {tab === "Requests" ? <RequestsTab requests={requests} /> : null}
@@ -319,6 +349,110 @@ function InternDetail({
   );
 }
 
+const FILTERS: { value: ProfileFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "worked", label: "Worked" },
+  { value: "absent", label: "Absent" },
+  { value: "moved", label: "Swapped" },
+  { value: "late", label: "Late" },
+];
+
+/** Every day's clock-in, breaks, clock-out, sessions and total, with a filter and a date range (Dilip, 8 Oct). */
+function TimesheetTab({
+  list,
+  today,
+}: {
+  list: ProfileDay<Awaited<ReturnType<typeof loadPunchesForPlacement>>[number]>[];
+  today: string;
+}) {
+  const [filter, setFilter] = useState<ProfileFilter>("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const shown = filterDays(list, filter, from, to);
+  const time = (punch: { occurred_at: string } | null) => (punch ? formatTime(punch.occurred_at) : "—");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <div role="group" aria-label="Show days" className="flex flex-wrap gap-1">
+          {FILTERS.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              aria-pressed={filter === item.value}
+              onClick={() => setFilter(item.value)}
+              className={`inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold ${
+                filter === item.value ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          From
+          <Input type="date" value={from} max={to || today} onChange={(event) => setFrom(event.target.value)} className="w-auto" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          To
+          <Input type="date" value={to} min={from || undefined} max={today} onChange={(event) => setTo(event.target.value)} className="w-auto" />
+        </label>
+      </div>
+      {shown.length === 0 ? (
+        <EmptyState>No days match.</EmptyState>
+      ) : (
+        <StackTable
+          columns={["Date", "Clock in", "Breaks", "Clock out", "Sessions", "Day total", "Status"]}
+          rows={shown.map((day) => {
+            const times = dayTimes(day.rows);
+            const status = dayCellStatus({
+              workDate: day.date,
+              today,
+              dayStatus: day.day?.status,
+              leaveKind: day.day?.leave_kind,
+              counted: day.result?.counted,
+              noShow: day.result?.no_show,
+            });
+            return [
+              formatDay(day.date),
+              time(times.clockIn),
+              times.breaks.length === 0 ? (
+                "—"
+              ) : (
+                <ul key={`${day.date}-breaks`}>
+                  {times.breaks.map((item) => (
+                    <li key={item.start.id} className="whitespace-nowrap">
+                      {time(item.start)} – {item.end ? time(item.end) : "not ended"}
+                      {item.minutes !== null ? <span className="text-muted-foreground"> · {formatMinutes(item.minutes)}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              ),
+              time(times.clockOut),
+              times.sessions.length === 0
+                ? "—"
+                : times.sessions.map((minutes) => (minutes === null ? "open" : formatMinutes(minutes))).join(" + "),
+              day.result ? <MinutesText key={`${day.date}-total`} minutes={day.result.counted} /> : "—",
+              <div key={`${day.date}-status`} className="flex flex-wrap gap-1">
+                <DayStatusBadge status={status} />
+                {day.late ? <StatusChip tone="warn" label="Late" /> : null}
+                {day.edited ? <StatusChip tone="neutral" label="Edited" /> : null}
+                {day.typedIn ? <StatusChip tone="warn" label="Typed in · waiting" /> : null}
+                {day.kind?.kind === "work_based" ? (
+                  <StatusChip
+                    tone={day.kind.status === "approved" ? "ok" : day.kind.status === "declined" ? "bad" : "warn"}
+                    label={`Work-based · ${day.kind.status ?? "pending"}`}
+                  />
+                ) : null}
+              </div>,
+            ];
+          })}
+        />
+      )}
+    </div>
+  );
+}
+
 function ScheduleTab({
   days,
   results,
@@ -336,6 +470,7 @@ function ScheduleTab({
       workDate: day.work_date,
       today,
       dayStatus: day.status,
+      leaveKind: day.leave_kind,
       counted: result?.counted,
       noShow: result?.no_show,
     });
@@ -430,13 +565,15 @@ function FlagsTab({
   flagged: Awaited<ReturnType<typeof loadFlaggedEvents>>;
   thumbs: PunchThumb[];
 }) {
+  const shown = useMemo(() => thumbs.filter((thumb) => flagged.some((row) => row.punch_id === thumb.id)), [thumbs, flagged]);
+  const [state] = useSelfieUrls(shown);
   if (flagged.length === 0) return <EmptyState>No flagged clock-ins in the last 60 days.</EmptyState>;
-  const urls = new Map(thumbs.map((thumb) => [thumb.id, thumb.url]));
+  const paths = new Map(shown.map((thumb) => [thumb.id, thumb.photo_path]));
   return (
     <StackTable
       columns={["When", "Event", "Flags", "Distance", "Accuracy", "Selfie"]}
       rows={flagged.map((row) => {
-        const url = urls.get(row.punch_id);
+        const path = paths.get(row.punch_id);
         return [
           `${formatDay(row.occurred_at)}, ${formatTime(row.occurred_at)}`,
           row.event_type === "shift_in" ? "Clock in" : row.event_type === "shift_out" ? "Clock out" : row.event_type,
@@ -447,12 +584,19 @@ function FlagsTab({
           </div>,
           row.distance_m == null ? "—" : formatDistance(row.distance_m),
           row.accuracy_m == null ? "—" : `± ${Math.round(row.accuracy_m)} m`,
-          url ? (
-            // Signed URLs expire in 60 seconds, so next/image caching doesn't apply.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={`${row.punch_id}-photo`} src={url} alt={`Selfie, ${formatDay(row.occurred_at)}`} className="size-12 rounded-md object-cover" />
-          ) : (
+          !path ? (
             "—"
+          ) : state.status === "loading" ? (
+            <Skeleton key={`${row.punch_id}-photo`} className="size-12 rounded-md" />
+          ) : (
+            <SelfieImage
+              key={`${row.punch_id}-photo`}
+              path={path}
+              url={state.status === "ready" ? (state.data.get(path) ?? null) : null}
+              alt={`Selfie, ${formatDay(row.occurred_at)}`}
+              className="size-12 rounded-md object-cover"
+              compact
+            />
           ),
         ];
       })}
@@ -460,18 +604,24 @@ function FlagsTab({
   );
 }
 
+/** Signs the selfie links when a tab that shows them opens: they only live 60 seconds (§14). */
+function useSelfieUrls(thumbs: PunchThumb[]) {
+  const load = useCallback(() => signSelfies(thumbs.map((thumb) => thumb.photo_path)), [thumbs]);
+  return useLoad(load);
+}
+
 function SelfiesTab({ thumbs }: { thumbs: PunchThumb[] }) {
+  const [state, reload] = useSelfieUrls(thumbs);
   const [photo, setPhoto] = useState<PunchThumb | null>(null);
   const [full, setFull] = useState<string | null>(null);
 
   async function open(thumb: PunchThumb) {
     setPhoto(thumb);
     try {
-      const { data, error } = await createClient().storage.from(PHOTO_BUCKET).createSignedUrls([thumb.photo_path], SIGNED_URL_SECONDS);
-      if (error || !data?.[0]?.signedUrl) throw error ?? new Error("That selfie didn't open. Try again.");
-      setFull(data[0].signedUrl);
+      setFull(await selfieUrl(thumb.photo_path));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "That selfie didn't open. Try again.");
+      setPhoto(null);
+      toast.error(errorText(error, "That selfie didn't open. Try again."));
     }
   }
 
@@ -479,22 +629,34 @@ function SelfiesTab({ thumbs }: { thumbs: PunchThumb[] }) {
 
   return (
     <>
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-        {thumbs.map((thumb) => (
-          <li key={thumb.id}>
-            <button
-              type="button"
-              onClick={() => void open(thumb)}
-              className="aspect-square w-full overflow-hidden rounded-md border border-border"
-              aria-label={`Selfie from ${formatDay(thumb.occurred_at)}, ${formatTime(thumb.occurred_at)}`}
-            >
-              {/* Signed URLs expire in 60 seconds, so next/image caching doesn't apply. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumb.url} alt="" className="size-full object-cover" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <LoadBlock
+        state={state}
+        reload={reload}
+        skeleton={
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+            {thumbs.slice(0, 12).map((thumb) => (
+              <Skeleton key={thumb.id} className="aspect-square w-full rounded-md" />
+            ))}
+          </div>
+        }
+      >
+        {(urls) => (
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+            {thumbs.map((thumb) => (
+              <li key={thumb.id}>
+                <button
+                  type="button"
+                  onClick={() => void open(thumb)}
+                  className="aspect-square w-full overflow-hidden rounded-md border border-border"
+                  aria-label={`Selfie from ${formatDay(thumb.occurred_at)}, ${formatTime(thumb.occurred_at)}`}
+                >
+                  <SelfieImage path={thumb.photo_path} url={urls.get(thumb.photo_path) ?? null} className="size-full object-cover" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </LoadBlock>
       <Dialog
         open={photo !== null}
         onOpenChange={(next) => {

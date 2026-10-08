@@ -18,6 +18,7 @@ test.afterEach(() => clearOfficeClock());
 
 test("a 4th spot needs the supervisor and then the admin", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "golden paths share one seed; run once on mobile");
+  test.setTimeout(90_000); // four sign-ins and two approvals
   const monday = nextMonday();
   const wednesday = addUtcDays(monday, 2);
 
@@ -47,6 +48,8 @@ test("a 4th spot needs the supervisor and then the admin", async ({ page }, test
 
   await signOut(page);
   await signIn(page, "sup1@dgk.test");
+  // Wait for the sign-in redirect to land before navigating, or it can win the race.
+  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible();
   await page.goto("/supervisor/approvals");
   await page
     .getByRole("button")
@@ -62,7 +65,7 @@ test("a 4th spot needs the supervisor and then the admin", async ({ page }, test
   await page.goto("/admin/requests");
   const adminRow = page.locator("li").filter({ hasText: "Ben" }).filter({ hasText: /extra spot/i });
   await expect(adminRow).toBeVisible();
-  await adminRow.getByRole("button", { name: /^Approve$/ }).click();
+  await adminRow.getByRole("button", { name: /^Review$/ }).click();
   await page.getByRole("dialog").getByRole("button", { name: /^Approve$/ }).click();
   await expect(page.getByText(/Extra day approved/i)).toBeVisible();
 

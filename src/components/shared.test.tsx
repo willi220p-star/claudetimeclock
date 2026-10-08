@@ -64,6 +64,12 @@ describe("MetricCard", () => {
     expect(within(card).getByText("of 22h 30m")).toHaveClass("text-warn");
   });
 
+  test("with href the whole card is one link named by its contents", () => {
+    render(<MetricCard href="/supervisor/approvals" label="Approvals waiting" value="6" sub="Oldest 3 h" />);
+    const link = screen.getByRole("link", { name: /Approvals waiting\s*6\s*Oldest 3 h/ });
+    expect(link).toHaveAttribute("href", "/supervisor/approvals");
+  });
+
   test("sparkline points span the box, highest value at the top", () => {
     expect(sparklinePoints([0, 5, 10], 80, 24)).toBe("0,24 40,12 80,0");
     expect(sparklinePoints([3, 3], 80, 24)).toBe("0,12 80,12");

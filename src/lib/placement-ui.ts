@@ -26,7 +26,7 @@ export const REQUEST_LABEL: Record<RequestType, string> = {
   punch_fix: "Punch fix",
   overtime: "Overtime",
   pattern_change: "Pattern change",
-  attendance: "Attendance",
+  attendance: "Typed-in time",
 };
 
 export const REQUEST_STATUS_LABEL: Record<string, string> = {
@@ -63,6 +63,20 @@ export const PLACEMENT_STATUS_LABEL: Record<string, string> = {
   completed: "Completed",
   withdrawn: "Withdrawn",
 };
+
+/** Statuses the Overview counts as "Active". */
+export const LIVE_STATUSES = ["active", "extended", "target_reached"];
+
+/** Placement list status filter: "all", "live" (the Overview's Active) or one exact status. */
+export function statusMatches(filter: string, status: string) {
+  if (filter === "all") return true;
+  return filter === "live" ? LIVE_STATUSES.includes(status) : status === filter;
+}
+
+/** A query-param value when it's one we know, else the fallback: dashboard links set these, but anyone can edit a URL. */
+export function knownParam(value: string | null, allowed: readonly string[], fallback = "all") {
+  return value != null && allowed.includes(value) ? value : fallback;
+}
 
 export const FULL_SPOT_TEXT = "Full — request an extra spot (needs admin approval)";
 
@@ -128,13 +142,14 @@ export function dayCellStatus(args: {
   workDate: string;
   today: string;
   dayStatus?: string | null;
+  leaveKind?: string | null;
   counted?: number | null;
   noShow?: boolean | null;
   closure?: string | null;
 }): DayStatus {
   if (args.closure) return "closure";
   if (args.dayStatus === "moved") return "moved";
-  if (args.dayStatus === "leave") return "leave";
+  if (args.dayStatus === "leave") return args.leaveKind === "absent" ? "absent" : "leave";
   if (args.dayStatus === "cancelled") return "cancelled";
   if (args.noShow) return "no_show";
   if ((args.counted ?? 0) > 0) return "worked";
@@ -270,6 +285,8 @@ export type ProgressRow = {
   pace: string;
   attendance_pct?: number | null;
   risk_reasons: string[];
+  fortnight_start?: string;
+  fortnight_end?: string;
 };
 
 export function asRecord(value: unknown): Record<string, unknown> | null {

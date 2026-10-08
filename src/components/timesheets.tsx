@@ -9,6 +9,7 @@ import { FormField, FormMessage } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { Sheet } from "@/components/roster-edit";
+import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,14 @@ import { cn } from "@/lib/utils";
 
 type StaffRole = "admin" | "supervisor";
 type TimesheetPunch = Timesheet["punches"][number];
-type Edit = { placementId: string; name: string; date: string; inPunch: TimesheetPunch | null; outPunch: TimesheetPunch | null };
+type Edit = {
+  placementId: string;
+  name: string;
+  date: string;
+  inPunch: TimesheetPunch | null;
+  outPunch: TimesheetPunch | null;
+  addBreak?: boolean;
+};
 
 const SOURCE_TAG: Record<string, string> = { staff_edit: "Edited", punch_fix: "Fixed", auto_close: "Auto-closed" };
 const selectClass = "h-11 rounded-md border border-input bg-card px-3";
@@ -104,9 +112,18 @@ function TimesheetsDesk({ role, profile }: { role: StaffRole; profile: Profile }
         {(data) => <Week data={data} intern={intern} onEdit={setEdit} />}
       </LoadBlock>
 
-      {edit ? (
+      {edit?.addBreak ? (
+        <BreakSheet
+          edit={edit}
+          onClose={() => setEdit(null)}
+          onSaved={() => {
+            setEdit(null);
+            reload();
+          }}
+        />
+      ) : edit ? (
         <EditSheet
-          key={`${edit.placementId}-${edit.date}-${edit.inPunch?.id ?? "new"}`}
+          key={`${edit.placementId}-${edit.date}-${edit.inPunch?.id ?? "new"}-${edit.addBreak ? "break" : "times"}`}
           edit={edit}
           onClose={() => setEdit(null)}
           onSaved={() => {
@@ -148,8 +165,10 @@ function Week({
         placement,
         punches: data.punches.filter((punch) => punch.placement_id === placement.id && darwinDateKey(punch.occurred_at) === day),
         result: data.results.find((row) => row.placement_id === placement.id && row.work_date === day) ?? null,
+        kind: data.kinds.find((row) => row.placement_id === placement.id && row.work_date === day) ?? null,
+        absent: data.absences.some((row) => row.placement_id === placement.id && row.work_date === day),
       }))
-      .filter((entry) => entry.punches.length > 0 || (entry.result?.scheduled ?? 0) > 0),
+      .filter((entry) => entry.punches.length > 0 || (entry.result?.scheduled ?? 0) > 0 || entry.absent),
   }));
 
   return (
@@ -208,11 +227,18 @@ function InternDay({
   onEdit,
 }: {
   day: string;
-  entry: { placement: Timesheet["placements"][number]; punches: TimesheetPunch[]; result: Timesheet["results"][number] | null };
+  entry: {
+    placement: Timesheet["placements"][number];
+    punches: TimesheetPunch[];
+    result: Timesheet["results"][number] | null;
+    kind: Timesheet["kinds"][number] | null;
+    absent: boolean;
+  };
   editors: Record<string, string>;
   onEdit: (edit: Edit) => void;
 }) {
-  const { placement, punches, result } = entry;
+  const { placement, punches, result, kind, absent } = entry;
+  const typedIn = punches.some((punch) => punch.source === "supervisor" && !punch.confirmed_at);
   const rows = punchDays(punches)[0]?.rows ?? [];
   const edited = [...new Set(punches.filter((punch) => punch.source === "staff_edit" && punch.confirmed_by).map((punch) => editors[punch.confirmed_by!] ?? "staff"))];
   const open = (inPunch: TimesheetPunch | null, outPunch: TimesheetPunch | null) =>
@@ -227,6 +253,14 @@ function InternDay({
             {result?.late ? <StatusChip tone="warn" label="Late" /> : null}
             {result?.auto_closed ? <StatusChip tone="warn" label="Auto-closed" /> : null}
             {result?.unscheduled ? <StatusChip tone="neutral" label="Not rostered" /> : null}
+            {absent ? <StatusChip tone="bad" label="Absent" /> : null}
+            {typedIn ? <StatusChip tone="warn" label="Typed in · waiting" /> : null}
+            {kind?.kind === "work_based" ? (
+              <StatusChip
+                tone={kind.status === "approved" ? "ok" : kind.status === "declined" ? "bad" : "warn"}
+                label={`Work-based · ${kind.status ?? "pending"}`}
+              />
+            ) : null}
             {edited.map((name) => (
               <StatusChip key={name} tone="neutral" label={`Edited by ${name}`} />
             ))}
@@ -263,10 +297,24 @@ function InternDay({
           );
         })}
       </ol>
-      <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => open(null, null)}>
-        <Plus aria-hidden />
-        Add missing session
-      </Button>
+      <div className="flex flex-wrap gap-1">
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => open(null, null)}>
+          <Plus aria-hidden />
+          Add missing session
+        </Button>
+        {rows.some((row) => row.in && row.out) ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-fit"
+            onClick={() => onEdit({ placementId: placement.id, name: placement.intern_name, date: day, inPunch: null, outPunch: null, addBreak: true })}
+          >
+            <Plus aria-hidden />
+            Add break
+          </Button>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -293,9 +341,8 @@ function TimeButton({
         punch ? "border-border hover:bg-muted" : "border-dashed border-border text-muted-foreground",
       )}
     >
-      {punch?.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={punch.photoUrl} alt="" className="size-7 rounded-full object-cover" />
+      {punch?.photoUrl && punch.photo_path ? (
+        <SelfieImage path={punch.photo_path} url={punch.photoUrl} className="size-7 rounded-full object-cover" compact />
       ) : (
         <span aria-hidden className="size-7 rounded-full bg-muted" />
       )}
@@ -358,9 +405,14 @@ function EditSheet({ edit, onClose, onSaved }: { edit: Edit; onClose: () => void
       {edit.inPunch?.photoUrl || edit.outPunch?.photoUrl ? (
         <div className="grid grid-cols-2 gap-2">
           {[edit.inPunch, edit.outPunch].map((punch, index) =>
-            punch?.photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={punch.id} src={punch.photoUrl} alt={`${index === 0 ? "Clock-in" : "Clock-out"} selfie`} className="h-32 w-full rounded-lg object-cover" />
+            punch?.photoUrl && punch.photo_path ? (
+              <SelfieImage
+                key={punch.id}
+                path={punch.photo_path}
+                url={punch.photoUrl}
+                alt={`${index === 0 ? "Clock-in" : "Clock-out"} selfie`}
+                className="h-32 w-full rounded-lg object-cover"
+              />
             ) : (
               <span key={index} />
             ),
@@ -368,10 +420,10 @@ function EditSheet({ edit, onClose, onSaved }: { edit: Edit; onClose: () => void
         </div>
       ) : null}
       <div className="grid grid-cols-2 gap-3">
-        <FormField id="edit-in" label="Clock in">
+        <FormField id="edit-in" label={edit.inPunch?.is_break ? "Break end" : "Clock in"}>
           {(input) => <Input {...input} type="time" value={clockIn} onChange={(event) => setClockIn(event.target.value)} />}
         </FormField>
-        <FormField id="edit-out" label="Clock out">
+        <FormField id="edit-out" label={edit.outPunch?.is_break ? "Break start" : "Clock out"}>
           {(input) => <Input {...input} type="time" value={clockOut} onChange={(event) => setClockOut(event.target.value)} />}
         </FormField>
       </div>
@@ -390,6 +442,77 @@ function EditSheet({ edit, onClose, onSaved }: { edit: Edit; onClose: () => void
       {error ? <FormMessage>{error}</FormMessage> : null}
       <Button type="button" className="w-full" disabled={busy} onClick={() => void save()}>
         {busy ? "Saving…" : "Save times"}
+      </Button>
+    </Sheet>
+  );
+}
+
+/** Staff add a break inside a closed session (8 Oct): the session splits around it and counts straight away. */
+function BreakSheet({ edit, onClose, onSaved }: { edit: Edit; onClose: () => void; onSaved: () => void }) {
+  const firstName = edit.name.split(/\s+/)[0];
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (!start || !end) {
+      setError("Enter the break start and end.");
+      return;
+    }
+    if (reason.trim().length < 5) {
+      setError("Give a reason of 5 to 200 characters.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error: fail } = await createClient().rpc("staff_add_break", {
+      placement: edit.placementId,
+      work_date: edit.date,
+      break_start: start,
+      break_end: end,
+      reason: reason.trim(),
+    });
+    setBusy(false);
+    if (fail) {
+      setError(errorText(fail, "That break didn't save. Try again."));
+      return;
+    }
+    toast.success(`Break added. ${firstName} is told.`);
+    onSaved();
+  }
+
+  return (
+    <Sheet
+      open
+      title={`Add a break for ${firstName}`}
+      description={`${formatDay(edit.date)}. It has to sit inside a clocked session; it goes in the audit log and counts straight away.`}
+      onClose={onClose}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <FormField id="break-start" label="Break start">
+          {(input) => <Input {...input} type="time" value={start} onChange={(event) => setStart(event.target.value)} />}
+        </FormField>
+        <FormField id="break-end" label="Break end">
+          {(input) => <Input {...input} type="time" value={end} onChange={(event) => setEnd(event.target.value)} />}
+        </FormField>
+      </div>
+      <FormField id="break-reason" label="Reason" hint="5 to 200 characters. The intern sees it.">
+        {(input) => (
+          <textarea
+            {...input}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            rows={2}
+            maxLength={200}
+            className="min-h-16 rounded-md border border-input bg-card px-3 py-2"
+          />
+        )}
+      </FormField>
+      {error ? <FormMessage>{error}</FormMessage> : null}
+      <Button type="button" className="w-full" disabled={busy} onClick={() => void save()}>
+        {busy ? "Saving…" : "Add break"}
       </Button>
     </Sheet>
   );

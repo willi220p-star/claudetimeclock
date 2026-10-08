@@ -21,11 +21,12 @@ import { canClockWithApp } from "@/lib/consent";
 import { addDays, rollingWeek, type RosterDot } from "@/lib/periods";
 import { loadClockStatus, loadInternKpi, loadNotifications, loadScheduledDays, loadTodayBoard } from "@/lib/data";
 import { darwinDateKey, formatDay, formatDayTime, formatTime, formatTimeOfDay, relativeOrDate } from "@/lib/darwin";
-import { ACTION_LABEL, type ClockAction, type Profile } from "@/lib/daymark";
+import { ACTION_LABEL, errorText, type ClockAction, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { asRecord, owedLabel, type ClockStatus, type InternKpi, type TodayBoard } from "@/lib/placement-ui";
 import { loadPunches, type PunchCard } from "@/lib/punches";
 import { clockState, minutesOnDay, minutesSince } from "@/lib/time";
+import { createClient } from "@/lib/supabase/client";
 import { useLoad, useOnline } from "@/lib/use-load";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +36,10 @@ type DeskExtras = {
   board: TodayBoard | null;
   notes: Awaited<ReturnType<typeof loadNotifications>>;
   roster: RosterDot[];
+  dayKind: DayKind | null;
 };
+
+type DayKind = { kind: "full_day" | "work_based"; status: string | null };
 
 const tick = (onChange: () => void) => {
   const timer = window.setInterval(onChange, 15_000);
@@ -76,9 +80,20 @@ export function ClockDesk({ profile }: { profile: Profile }) {
     // Your roster: today and the next six days, from the server's Darwin date.
     const today = status?.today ?? darwinDateKey(new Date());
     const pid = status?.placement?.id ?? readKpi(kpi)?.placement_id ?? null;
-    const days = pid ? await loadScheduledDays(pid, today, addDays(today, 6)).catch(() => []) : [];
+    const [days, dayKind] = await Promise.all([
+      pid ? loadScheduledDays(pid, today, addDays(today, 6)).catch(() => []) : [],
+      pid
+        ? createClient()
+            .from("daymark_day_kinds")
+            .select("kind, status")
+            .eq("placement_id", pid)
+            .eq("work_date", today)
+            .maybeSingle()
+            .then(({ data }) => (data as DayKind | null) ?? null)
+        : null,
+    ]);
     const roster = rollingWeek(today, days.filter((day) => day.status === "scheduled").map((day) => day.work_date));
-    return { status, kpi: readKpi(kpi), board: readBoard(board), notes, roster };
+    return { status, kpi: readKpi(kpi), board: readBoard(board), notes, roster, dayKind };
   }, [profile.id]);
   const [extras, reloadExtras] = useLoad(loadExtras);
   const extrasData = extras.status === "ready" ? extras.data : null;
@@ -183,8 +198,10 @@ export function ClockDesk({ profile }: { profile: Profile }) {
             punches={punches.data}
             status={status}
             online={online}
+            dayKind={extrasData?.dayKind ?? null}
             onOpen={setSheet}
             onWriteLog={setLogDate}
+            onDayKind={reloadExtras}
           />
         )}
       </section>
@@ -276,7 +293,10 @@ export function ClockDesk({ profile }: { profile: Profile }) {
           actions={actions}
           site={status?.site ?? null}
           logDate={status?.open_work_date ?? todayKey}
-          onClose={() => setSheet(null)}
+          onClose={() => {
+            setSheet(null);
+            reloadAll(); // a typed-in time may have saved before the live clock
+          }}
           onDone={clocked}
         />
       ) : null}
@@ -300,8 +320,10 @@ function ClockPanel({
   punches,
   status,
   online,
+  dayKind,
   onOpen,
   onWriteLog,
+  onDayKind,
 }: {
   state: ClockStatus["state"];
   since: string | null;
@@ -311,7 +333,9 @@ function ClockPanel({
   status: ClockStatus | null;
   online: boolean;
   onOpen: (action: ClockAction) => void;
+  dayKind: DayKind | null;
   onWriteLog: (date: string) => void;
+  onDayKind: () => void;
 }) {
   const actions = status?.actions ?? {};
   // Break shows from 10 am to 2 pm (the server says when); Finish is always there (Dilip, 5 Oct).
@@ -362,8 +386,9 @@ function ClockPanel({
           <LogIn aria-hidden />
           {ACTION_LABEL.break_end}
         </Button>
-        <Button type="button" variant="ghost" className="w-fit" onClick={() => onWriteLog(todayKey)}>
-          Not coming back today? Write your work log
+        <Button type="button" size="lg" variant="secondary" className="w-full" disabled={!online} onClick={() => onOpen("shift_out")}>
+          <LogOut aria-hidden />
+          Not coming back? {ACTION_LABEL.shift_out}
         </Button>
       </>
     );
@@ -398,7 +423,8 @@ function ClockPanel({
           ? `Clocked out at ${formatTime(lastOut.occurred_at)} · ${formatMinutes(worked)} today`
           : "You're not clocked in."}
       </p>
-      <Button type="button" size="lg" className="w-full" disabled={!online} onClick={() => onOpen("shift_in")}>
+      <DayKindPicker value={dayKind} disabled={!online} onSaved={onDayKind} />
+      <Button type="button" size="lg" className="w-full" disabled={!online || !dayKind} onClick={() => onOpen("shift_in")}>
         <LogIn aria-hidden />
         {ACTION_LABEL.shift_in}
       </Button>
@@ -406,6 +432,62 @@ function ClockPanel({
         {lastOut ? "Clocked out by mistake? Clock in again any time." : "We'll ask for your location and a selfie each time you clock."}
       </p>
     </>
+  );
+}
+
+const DAY_KINDS = [
+  { kind: "full_day", label: "Full day", hint: "9–5 · 8 h with a break" },
+  { kind: "work_based", label: "Work-based", hint: "5 h · no break · finish your tasks" },
+] as const;
+
+/** Required before the first clock-in of a day (8 Oct): a work-based day counts as full once staff approve it. */
+function DayKindPicker({ value, disabled, onSaved }: { value: DayKind | null; disabled: boolean; onSaved: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const decided = value?.kind === "work_based" && value.status !== null && value.status !== "pending";
+
+  async function choose(kind: DayKind["kind"]) {
+    if (kind === value?.kind) return;
+    setSaving(true);
+    const { error } = await createClient().rpc("choose_day_kind", { kind });
+    setSaving(false);
+    if (error) toast.error(errorText(error, "That didn't save. Try again."));
+    else onSaved();
+  }
+
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 font-semibold">Today is a…</legend>
+      <div role="radiogroup" aria-label="Today is a" className="grid grid-cols-2 gap-2">
+        {DAY_KINDS.map((item) => (
+          <button
+            key={item.kind}
+            type="button"
+            role="radio"
+            aria-checked={value?.kind === item.kind}
+            disabled={disabled || saving || decided}
+            onClick={() => void choose(item.kind)}
+            className={cn(
+              "flex min-h-11 flex-col items-start rounded-lg border-2 p-3 text-left transition-colors",
+              value?.kind === item.kind ? "border-primary bg-primary/10" : "border-border",
+            )}
+          >
+            <span className="font-semibold">{item.label}</span>
+            <span className="text-sm text-muted-foreground">{item.hint}</span>
+          </button>
+        ))}
+      </div>
+      {value?.kind === "work_based" ? (
+        <p className="text-sm text-muted-foreground">
+          {value.status === "approved"
+            ? "Approved: today counts as a full day."
+            : value.status === "declined"
+              ? "Declined: the hours you work count."
+              : "Your supervisor approves it; then it counts as a full day."}
+        </p>
+      ) : !value ? (
+        <p className="text-sm text-muted-foreground">Pick one to clock in.</p>
+      ) : null}
+    </fieldset>
   );
 }
 

@@ -317,13 +317,15 @@ function DayCard({
                   <span className={cn("font-medium", row.status === "leave" && "text-muted-foreground")}>{row.intern_name}</span>
                   <span className="text-sm text-muted-foreground tabular-nums">
                     {row.status === "leave"
-                      ? "On leave"
+                      ? row.leave_kind === "absent"
+                        ? "Absent"
+                        : "On leave"
                       : `${formatTimeOfDay(row.start_time)}–${formatTimeOfDay(row.end_time)}`}
                   </span>
                 </>
               );
-              // Staff change a future scheduled day in place; anything else opens the intern.
-              return row.status === "scheduled" && future && edit.canAdd ? (
+              // Staff change a scheduled day in place (past ones too, to mark absent); anything else opens the intern.
+              return row.status === "scheduled" && edit.canAdd ? (
                 <button type="button" className={className} onClick={() => edit.onEdit(row)} aria-label={`Change ${row.intern_name} on ${formatDay(date)}`}>
                   {content}
                 </button>

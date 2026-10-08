@@ -100,11 +100,12 @@ export function DaySheet({
   const [start, setStart] = useState(day?.start_time.slice(0, 5) ?? "09:00");
   const [end, setEnd] = useState(day?.end_time.slice(0, 5) ?? "17:00");
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [absent, setAbsent] = useState<string | null>(null);
   const { busy, error, extra, run } = useStaffSave(onDone);
   if (!day) return null;
 
   return (
-    <Sheet open title={`${internName} · ${formatDay(day.work_date)}`} description="Move this day, change its times, or remove it." onClose={onClose}>
+    <Sheet open title={`${internName} · ${formatDay(day.work_date)}`} description="Swap it to another date, change its times, mark it absent, or remove it. An absent day's hours stay owed." onClose={onClose}>
       <form
         className="mt-2 flex flex-col gap-4"
         onSubmit={(event) => {
@@ -116,8 +117,8 @@ export function DaySheet({
           );
         }}
       >
-        <FormField id="day-date" label="Date">
-          {(field) => <Input {...field} type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />}
+        <FormField id="day-date" label="Date (pick another to swap)">
+          {(field) => <Input {...field} type="date" min={day.work_date < today ? undefined : today} value={date} onChange={(e) => setDate(e.target.value)} />}
         </FormField>
         <div className="grid grid-cols-2 gap-3">
           <TimeField id="day-start" label="Start" value={start} onChange={setStart} />
@@ -143,10 +144,32 @@ export function DaySheet({
               Remove day
             </Button>
           )}
+          {absent === null ? (
+            <Button type="button" variant="secondary" disabled={busy} onClick={() => setAbsent("")}>
+              Mark absent
+            </Button>
+          ) : null}
           <Link href={internLink} className={buttonVariants({ variant: "ghost" })}>
             Open intern
           </Link>
         </div>
+        {absent !== null ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+            <FormField id="absent-reason" label="Why were they absent?" hint="3 to 200 characters. The intern sees it.">
+              {(field) => <Input {...field} value={absent} maxLength={200} onChange={(e) => setAbsent(e.target.value)} />}
+            </FormField>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={busy || absent.trim().length < 3}
+              onClick={() =>
+                void run(() => createClient().rpc("staff_mark_absent", { day: day.id, reason: absent.trim() }), "Marked absent. The hours stay owed.")
+              }
+            >
+              Mark {formatDay(day.work_date)} absent
+            </Button>
+          </div>
+        ) : null}
       </form>
     </Sheet>
   );

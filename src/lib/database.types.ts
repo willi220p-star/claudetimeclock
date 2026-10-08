@@ -325,6 +325,51 @@ export type Database = {
           },
         ]
       }
+      daymark_day_kinds: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          kind: string
+          placement_id: string
+          status: string | null
+          work_date: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          kind: string
+          placement_id: string
+          status?: string | null
+          work_date: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          kind?: string
+          placement_id?: string
+          status?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_day_kinds_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_day_kinds_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_day_results: {
         Row: {
           approved_ot: number
@@ -1475,6 +1520,7 @@ export type Database = {
           week_start: string
         }[]
       }
+      choose_day_kind: { Args: { kind: string }; Returns: Json }
       cleanup_preview: { Args: { older_than_days: number }; Returns: Json }
       cleanup_run: {
         Args: { kind: string; older_than_days: number }
@@ -1543,6 +1589,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      decide_day_kind: {
+        Args: { decision: string; placement: string; work_date: string }
+        Returns: Json
+      }
       decide_request: {
         Args: {
           approved_minutes?: number
@@ -1552,6 +1602,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_my_notifications: { Args: { ids?: string[] }; Returns: number }
       delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
       end_banner: { Args: { id: string }; Returns: undefined }
       extend_placement: {
@@ -1643,6 +1694,10 @@ export type Database = {
         Returns: Json
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
+      report_missed_time: {
+        Args: { at_time: string; event: string; note?: string }
+        Returns: Json
+      }
       retention_certificate_removed: {
         Args: { request_id: string }
         Returns: undefined
@@ -1746,6 +1801,16 @@ export type Database = {
           work_date: string
         }[]
       }
+      staff_add_break: {
+        Args: {
+          break_end: string
+          break_start: string
+          placement: string
+          reason: string
+          work_date: string
+        }
+        Returns: Json
+      }
       staff_add_day: {
         Args: {
           allow_extra?: boolean
@@ -1768,6 +1833,10 @@ export type Database = {
           work_date: string
         }
         Returns: Json
+      }
+      staff_mark_absent: {
+        Args: { day: string; reason: string }
+        Returns: undefined
       }
       staff_move_day: {
         Args: {

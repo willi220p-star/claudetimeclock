@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ApproveSheet } from "@/components/approve-sheet";
+import { BulkBar, decideRequests, useSelection } from "@/components/bulk-decide";
 import { EmptyState } from "@/components/empty-state";
 import { StatusChip } from "@/components/status-chip";
 import { formatDay } from "@/lib/darwin";
@@ -13,27 +14,57 @@ export function InboxPanel({
   items,
   onDone,
   empty = "No approvals waiting.",
+  bulk = false,
 }: {
   items: InboxItem[];
   onDone: () => void;
   empty?: string;
+  bulk?: boolean;
 }) {
   const [open, setOpen] = useState<InboxItem | null>(null);
+  const selection = useSelection(items.map((row) => row.id));
 
   if (items.length === 0) return <EmptyState>{empty}</EmptyState>;
 
   return (
     <>
+      {bulk ? (
+        <BulkBar
+          total={items.length}
+          count={selection.selected.length}
+          onAll={selection.all}
+          onDecide={async (decision, note) => {
+            await decideRequests(
+              items.filter((row) => selection.has(row.id)),
+              decision,
+              note,
+            );
+            selection.clear();
+            onDone();
+          }}
+        />
+      ) : null}
       <ul className="flex flex-col gap-2">
         {items.map((row) => {
           const hours = ageHours(row.created_at);
           const name = internName(row);
           return (
-            <li key={row.id}>
+            <li key={row.id} className="flex items-stretch gap-2">
+              {bulk ? (
+                <label className="grid min-w-11 place-items-center rounded-lg bg-card shadow-card">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${requestLabel(row.type)} from ${name}`}
+                    className="size-5 accent-primary"
+                    checked={selection.has(row.id)}
+                    onChange={() => selection.toggle(row.id)}
+                  />
+                </label>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setOpen(row)}
-                className="flex w-full flex-col gap-2 rounded-lg bg-card p-4 text-left shadow-card sm:flex-row sm:items-center sm:justify-between"
+                className="flex min-w-0 flex-1 flex-col gap-2 rounded-lg bg-card p-4 text-left shadow-card sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0 flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -47,9 +78,7 @@ export function InboxPanel({
                   </p>
                   <p className="truncate text-sm">{previewLine(row.preview, row.reason)}</p>
                 </div>
-                <span className={cn("shrink-0 tabular-nums text-sm font-semibold", ageClass(hours, row.escalated_at))}>
-                  {hours} h
-                </span>
+                <span className={cn("shrink-0 tabular-nums text-sm font-semibold", ageClass(hours, row.escalated_at))}>{hours} h</span>
               </button>
             </li>
           );
