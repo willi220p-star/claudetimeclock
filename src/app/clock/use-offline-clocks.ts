@@ -14,6 +14,8 @@ const RETRY_MS = 60_000;
  */
 export function useOfflineClocks(userId: string, onSent: () => void) {
   const [queued, setQueued] = useState<QueuedItem[]>([]);
+  // The server wants the notice acknowledged again before it takes more clocks.
+  const [needsConsent, setNeedsConsent] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -28,6 +30,7 @@ export function useOfflineClocks(userId: string, onSent: () => void) {
       if (!navigator.onLine) return;
       void syncQueue(userId)
         .then((result) => {
+          if (live) setNeedsConsent(result.consent);
           if (result.sent > 0) {
             toast.success(
               result.sent === 1
@@ -36,7 +39,6 @@ export function useOfflineClocks(userId: string, onSent: () => void) {
             );
             onSent();
           }
-          for (const refused of result.refused) toast.error(`An offline clock wasn't saved: ${refused.message}`);
         })
         .catch(() => undefined);
     };
@@ -53,7 +55,7 @@ export function useOfflineClocks(userId: string, onSent: () => void) {
     };
   }, [userId, onSent]);
 
-  return queued;
+  return { queued, needsConsent };
 }
 
 // The last clock status and today's day-type pick on this phone, so Home works with no signal.

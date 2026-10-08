@@ -25,7 +25,7 @@ import { darwinDateKey, formatDay, formatDayTime, formatTime, formatTimeOfDay, r
 import { ACTION_LABEL, errorText, type ClockAction, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { asRecord, owedLabel, type ClockStatus, type InternKpi, type TodayBoard } from "@/lib/placement-ui";
-import { applyQueue } from "@/lib/offline-queue";
+import { applyQueue, removeFromQueue } from "@/lib/offline-queue";
 import { isNetworkError } from "@/lib/offline-sync";
 import { loadPunches, type PunchCard } from "@/lib/punches";
 import { clockState, minutesOnDay, minutesSince } from "@/lib/time";
@@ -109,7 +109,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
     reload();
     reloadExtras();
   }, [reload, reloadExtras]);
-  const queued = useOfflineClocks(profile.id, reloadAll);
+  const { queued, needsConsent } = useOfflineClocks(profile.id, reloadAll);
   // With no signal, Home runs on the last status this phone saw plus the clocks waiting to send (D35).
   const [cachedStatus] = useState(() => readCachedStatus(profile.id));
   const [localKind, setLocalKind] = useState(() => readLocalDayKind(profile.id, darwinDateKey(new Date())));
@@ -143,7 +143,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   }
 
   const firstName = profile.display_name.split(/\s+/)[0];
-  const status = extrasData?.status ?? (online ? null : cachedStatus);
+  // Yesterday's saved status would show a shift that's long over: only today's counts.
+  const status = extrasData?.status ?? (online || cachedStatus?.today !== darwinDateKey(now) ? null : cachedStatus);
   // The server's Darwin date and state win: they're what the clock rules use.
   const todayKey = status?.today ?? darwinDateKey(now);
   const kpi = extrasData?.kpi ?? null;
@@ -153,7 +154,9 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   const clock = punches.status === "ready" ? clockState(punches.data, todayKey) : null;
   const state = applyQueue(status?.state ?? (clock?.clockedIn ? "in" : clock?.onBreak ? "break" : "out"), queued);
   const dayKind = extrasData?.dayKind ?? (localKind ? { kind: localKind as DayKind["kind"], status: localKind === "work_based" ? "pending" : null } : null);
-  const waiting = queued.filter((item) => item.kind === "clock").length;
+  const waiting = queued.filter((item) => item.kind === "clock" && !item.refused).length;
+  const refused = queued.filter((item) => item.refused);
+  const refusedWhy = [...new Set(refused.map((item) => item.refused?.replace(/\.$/, "")))].join("; ");
   const since = (state === "in" ? status?.open_since : state === "break" ? status?.break_since : null) ?? clock?.since ?? null;
   const actions = status?.actions ?? {};
 
@@ -169,7 +172,32 @@ export function ClockDesk({ profile }: { profile: Profile }) {
         <p role="status" className="rounded-lg bg-muted px-4 py-3">
           {waiting === 1 ? "1 clock is" : `${waiting} clocks are`} waiting to send from this phone. Your supervisor confirms{" "}
           {waiting === 1 ? "it" : "them"} once sent.
+          {needsConsent ? (
+            <>
+              {" "}
+              <Link href="/consent" className="font-semibold text-primary underline">
+                Review the notice
+              </Link>{" "}
+              first to send {waiting === 1 ? "it" : "them"}.
+            </>
+          ) : null}
         </p>
+      ) : null}
+      {refused.length > 0 ? (
+        <div role="status" className="flex flex-col items-start gap-3 rounded-lg bg-warn-bg px-4 py-3 text-warn">
+          <p>
+            {refused.length === 1 ? "1 clock" : `${refused.length} clocks`} couldn&apos;t be sent: {refusedWhy}. Ask your
+            supervisor to add the time.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => void Promise.all(refused.map((item) => removeFromQueue(item.id))).catch(() => undefined)}
+          >
+            Dismiss
+          </Button>
+        </div>
       ) : null}
 
       {status?.placement?.read_only ? (
