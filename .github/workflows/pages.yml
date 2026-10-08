@@ -30,6 +30,8 @@ jobs:
           # Repository variables pick the database; unset = the dgk-clock-preview test project (mdamqteiccvohjwredzp).
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://mdamqteiccvohjwredzp.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_MHvFQeIl_CiFSWjA9ja8Kg_HEcIy30_' }}
+          # Push reminders (D36): the public half of the VAPID key pair; the private half is an Edge Function secret.
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 'BMNvFUf_-MG08naaVXwqASDhBDQ7KQrci5bK_bVrspCWcdPadFYNDklbDBlUvomXFBwFz5j-B_GSwVDhkF5i7CY' }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

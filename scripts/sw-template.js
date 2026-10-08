@@ -50,3 +50,35 @@ self.addEventListener("fetch", (event) => {
     }),
   );
 });
+
+// Push reminders (D36): show the notification; a tap opens or focuses DGK Clock on its page.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "DGK Clock", body: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "DGK Clock", {
+      body: data.body || "",
+      icon: `${BASE}icons/icon-192.png`,
+      badge: `${BASE}icons/icon-192.png`,
+      data: { link: data.link || "/notifications" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const link = (event.notification.data && event.notification.data.link) || "/notifications";
+  // Only paths inside the app: the link comes from our own notification table.
+  const target = new URL(BASE.replace(/\/$/, "") + (link.startsWith("/") ? link : "/notifications"), self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((client) => client.url.startsWith(self.location.origin + BASE));
+      if (open) return open.focus().then((client) => client.navigate(target));
+      return self.clients.openWindow(target);
+    }),
+  );
+});

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
 import { Opening, useHydrated } from "@/components/desk-gate";
 import { useSelection } from "@/components/bulk-decide";
+import { PushToggle } from "@/components/push-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sessionProfile } from "@/lib/browser-session";
 import { loadNotifications, markNotificationsRead } from "@/lib/data";
@@ -113,6 +114,8 @@ function NotificationsDesk({ profile, home }: { profile: Profile; home: string }
           </div>
         ) : null}
       </div>
+      {/* Staff turn on phone reminders here; interns also have it on Me. */}
+      <PushToggle />
       <LoadBlock
         state={state}
         reload={reload}
