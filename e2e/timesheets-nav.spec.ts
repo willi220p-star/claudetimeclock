@@ -31,8 +31,11 @@ test("a supervisor changes a clock-out on Timesheets", async ({ page, consoleErr
   await page.getByRole("navigation", { name: "Supervisor sections" }).getByRole("link", { name: "Time" }).click();
   await page.getByRole("navigation", { name: "Time pages" }).getByRole("link", { name: "Timesheets" }).click();
   await expect(page.getByRole("heading", { name: "Timesheets", level: 1 })).toBeVisible();
+  const week = page.getByRole("heading", { name: /^Week of / });
+  const thisWeek = (await week.textContent())!;
   await page.getByRole("button", { name: "Previous week" }).click();
-  await expect(page.getByRole("heading", { name: /^Week of / })).toBeVisible();
+  // Read the card only once last week has loaded, or its name comes from this week's list.
+  await expect(week).not.toHaveText(thisWeek);
 
   const card = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /clock-out at/ }) }).first();
   const name = (await card.locator("p.font-semibold").first().textContent())!.trim();

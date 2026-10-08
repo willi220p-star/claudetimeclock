@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useCallback, useState, useSyncExternalStore } from "react";
+import { use, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Coffee, LogIn, LogOut, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { ClockSheet } from "@/app/clock/clock-sheet";
+import { cacheStatus, readCachedStatus, readLocalDayKind, saveLocalDayKind, useOfflineClocks } from "@/app/clock/use-offline-clocks";
 import { Avatar } from "@/components/avatar";
 import { CatchUpSheet } from "@/components/catch-up-sheet";
 import { EmptyState } from "@/components/empty-state";
@@ -24,6 +25,8 @@ import { darwinDateKey, formatDay, formatDayTime, formatTime, formatTimeOfDay, r
 import { ACTION_LABEL, errorText, type ClockAction, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { asRecord, owedLabel, type ClockStatus, type InternKpi, type TodayBoard } from "@/lib/placement-ui";
+import { applyQueue } from "@/lib/offline-queue";
+import { isNetworkError } from "@/lib/offline-sync";
 import { loadPunches, type PunchCard } from "@/lib/punches";
 import { clockState, minutesOnDay, minutesSince } from "@/lib/time";
 import { createClient } from "@/lib/supabase/client";
@@ -102,14 +105,30 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   const [sheet, setSheet] = useState<ClockAction | null>(null);
   const [logDate, setLogDate] = useState<string | null>(null);
   const [catchUpOpen, setCatchUpOpen] = useState(false);
-
-  function reloadAll() {
+  const reloadAll = useCallback(() => {
     reload();
     reloadExtras();
+  }, [reload, reloadExtras]);
+  const queued = useOfflineClocks(profile.id, reloadAll);
+  // With no signal, Home runs on the last status this phone saw plus the clocks waiting to send (D35).
+  const [cachedStatus] = useState(() => readCachedStatus(profile.id));
+  const [localKind, setLocalKind] = useState(() => readLocalDayKind(profile.id, darwinDateKey(new Date())));
+  useEffect(() => {
+    if (extrasData?.status) cacheStatus(profile.id, extrasData.status);
+  }, [extrasData, profile.id]);
+
+  function chooseOffline(kind: DayKind["kind"]) {
+    saveLocalDayKind(profile.id, darwinDateKey(new Date()), kind);
+    setLocalKind(kind);
   }
 
-  function clocked(action: ClockAction, occurredAt: string) {
+  function clocked(action: ClockAction, occurredAt: string, offline: boolean) {
     const at = formatTime(occurredAt);
+    if (offline) {
+      toast.success(`Saved on this phone at ${at}. It sends when you're back online; your supervisor confirms it.`);
+      setSheet(null);
+      return;
+    }
     toast.success(
       action === "shift_in"
         ? `You're clocked in at ${at}.`
@@ -124,7 +143,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   }
 
   const firstName = profile.display_name.split(/\s+/)[0];
-  const status = extrasData?.status ?? null;
+  const status = extrasData?.status ?? (online ? null : cachedStatus);
   // The server's Darwin date and state win: they're what the clock rules use.
   const todayKey = status?.today ?? darwinDateKey(now);
   const kpi = extrasData?.kpi ?? null;
@@ -132,7 +151,9 @@ export function ClockDesk({ profile }: { profile: Profile }) {
   const todayPunches = punches.status === "ready" ? punches.data.filter((punch) => darwinDateKey(punch.occurred_at) === todayKey) : [];
   const latestPhoto = punches.status === "ready" ? (punches.data.find((punch) => punch.photoUrl)?.photoUrl ?? null) : null;
   const clock = punches.status === "ready" ? clockState(punches.data, todayKey) : null;
-  const state: ClockStatus["state"] = status?.state ?? (clock?.clockedIn ? "in" : clock?.onBreak ? "break" : "out");
+  const state = applyQueue(status?.state ?? (clock?.clockedIn ? "in" : clock?.onBreak ? "break" : "out"), queued);
+  const dayKind = extrasData?.dayKind ?? (localKind ? { kind: localKind as DayKind["kind"], status: localKind === "work_based" ? "pending" : null } : null);
+  const waiting = queued.filter((item) => item.kind === "clock").length;
   const since = (state === "in" ? status?.open_since : state === "break" ? status?.break_since : null) ?? clock?.since ?? null;
   const actions = status?.actions ?? {};
 
@@ -141,7 +162,13 @@ export function ClockDesk({ profile }: { profile: Profile }) {
       {!online ? (
         <p role="status" className="flex items-center gap-2 rounded-lg bg-warn-bg px-4 py-3 text-warn">
           <WifiOff aria-hidden className="size-4 shrink-0" />
-          You&apos;re offline — clocking needs a connection
+          You&apos;re offline — you can still clock; it sends when you&apos;re back online
+        </p>
+      ) : null}
+      {waiting > 0 ? (
+        <p role="status" className="rounded-lg bg-muted px-4 py-3">
+          {waiting === 1 ? "1 clock is" : `${waiting} clocks are`} waiting to send from this phone. Your supervisor confirms{" "}
+          {waiting === 1 ? "it" : "them"} once sent.
         </p>
       ) : null}
 
@@ -171,7 +198,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
             <Skeleton className="h-7 w-2/3" />
             <Skeleton className="h-16 w-full rounded-[1584px]" />
           </div>
-        ) : punches.status === "error" ? (
+        ) : punches.status === "error" && online ? (
           <div className="flex flex-col items-start gap-3">
             <FormMessage>{punches.message}</FormMessage>
             <Button type="button" variant="secondary" onClick={reload}>
@@ -195,13 +222,13 @@ export function ClockDesk({ profile }: { profile: Profile }) {
             since={since}
             now={now}
             todayKey={todayKey}
-            punches={punches.data}
+            punches={punches.status === "ready" ? punches.data : []}
             status={status}
-            online={online}
-            dayKind={extrasData?.dayKind ?? null}
+            dayKind={dayKind}
             onOpen={setSheet}
             onWriteLog={setLogDate}
             onDayKind={reloadExtras}
+            onDayKindOffline={chooseOffline}
           />
         )}
       </section>
@@ -293,6 +320,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
           actions={actions}
           site={status?.site ?? null}
           logDate={status?.open_work_date ?? todayKey}
+          userId={profile.id}
+          dayKind={dayKind?.kind ?? null}
           onClose={() => {
             setSheet(null);
             reloadAll(); // a typed-in time may have saved before the live clock
@@ -319,11 +348,11 @@ function ClockPanel({
   todayKey,
   punches,
   status,
-  online,
   dayKind,
   onOpen,
   onWriteLog,
   onDayKind,
+  onDayKindOffline,
 }: {
   state: ClockStatus["state"];
   since: string | null;
@@ -331,11 +360,11 @@ function ClockPanel({
   todayKey: string;
   punches: PunchCard[];
   status: ClockStatus | null;
-  online: boolean;
   onOpen: (action: ClockAction) => void;
   dayKind: DayKind | null;
   onWriteLog: (date: string) => void;
   onDayKind: () => void;
+  onDayKindOffline: (kind: DayKind["kind"]) => void;
 }) {
   const actions = status?.actions ?? {};
   // Break shows from 10 am to 2 pm (the server says when); Finish is always there (Dilip, 5 Oct).
@@ -356,12 +385,12 @@ function ClockPanel({
         </div>
         <div className={cn("grid gap-2", breakOpen && "grid-cols-2")}>
           {breakOpen ? (
-            <Button type="button" size="lg" disabled={!online} onClick={() => onOpen("break_start")}>
+            <Button type="button" size="lg" onClick={() => onOpen("break_start")}>
               <Coffee aria-hidden />
               {ACTION_LABEL.break_start}
             </Button>
           ) : null}
-          <Button type="button" size="lg" variant={breakOpen ? "secondary" : "default"} disabled={!online} onClick={() => onOpen("shift_out")}>
+          <Button type="button" size="lg" variant={breakOpen ? "secondary" : "default"} onClick={() => onOpen("shift_out")}>
             <LogOut aria-hidden />
             {ACTION_LABEL.shift_out}
           </Button>
@@ -382,11 +411,11 @@ function ClockPanel({
             {since ? `${formatMinutes(minutesSince(since, now))} so far` : null}
           </p>
         </div>
-        <Button type="button" size="lg" className="w-full" disabled={!online} onClick={() => onOpen("break_end")}>
+        <Button type="button" size="lg" className="w-full" onClick={() => onOpen("break_end")}>
           <LogIn aria-hidden />
           {ACTION_LABEL.break_end}
         </Button>
-        <Button type="button" size="lg" variant="secondary" className="w-full" disabled={!online} onClick={() => onOpen("shift_out")}>
+        <Button type="button" size="lg" variant="secondary" className="w-full" onClick={() => onOpen("shift_out")}>
           <LogOut aria-hidden />
           Not coming back? {ACTION_LABEL.shift_out}
         </Button>
@@ -423,8 +452,8 @@ function ClockPanel({
           ? `Clocked out at ${formatTime(lastOut.occurred_at)} · ${formatMinutes(worked)} today`
           : "You're not clocked in."}
       </p>
-      <DayKindPicker value={dayKind} disabled={!online} onSaved={onDayKind} />
-      <Button type="button" size="lg" className="w-full" disabled={!online || !dayKind} onClick={() => onOpen("shift_in")}>
+      <DayKindPicker value={dayKind} onSaved={onDayKind} onOffline={onDayKindOffline} />
+      <Button type="button" size="lg" className="w-full" disabled={!dayKind} onClick={() => onOpen("shift_in")}>
         <LogIn aria-hidden />
         {ACTION_LABEL.shift_in}
       </Button>
@@ -441,16 +470,26 @@ const DAY_KINDS = [
 ] as const;
 
 /** Required before the first clock-in of a day (8 Oct): a work-based day counts as full once staff approve it. */
-function DayKindPicker({ value, disabled, onSaved }: { value: DayKind | null; disabled: boolean; onSaved: () => void }) {
+function DayKindPicker({
+  value,
+  onSaved,
+  onOffline,
+}: {
+  value: DayKind | null;
+  onSaved: () => void;
+  onOffline: (kind: DayKind["kind"]) => void;
+}) {
   const [saving, setSaving] = useState(false);
   const decided = value?.kind === "work_based" && value.status !== null && value.status !== "pending";
 
   async function choose(kind: DayKind["kind"]) {
     if (kind === value?.kind) return;
+    if (!navigator.onLine) return onOffline(kind); // sent with the offline clock-in
     setSaving(true);
     const { error } = await createClient().rpc("choose_day_kind", { kind });
     setSaving(false);
-    if (error) toast.error(errorText(error, "That didn't save. Try again."));
+    if (error && isNetworkError(error)) onOffline(kind);
+    else if (error) toast.error(errorText(error, "That didn't save. Try again."));
     else onSaved();
   }
 
@@ -464,7 +503,7 @@ function DayKindPicker({ value, disabled, onSaved }: { value: DayKind | null; di
             type="button"
             role="radio"
             aria-checked={value?.kind === item.kind}
-            disabled={disabled || saving || decided}
+            disabled={saving || decided}
             onClick={() => void choose(item.kind)}
             className={cn(
               "flex min-h-11 flex-col items-start rounded-lg border-2 p-3 text-left transition-colors",

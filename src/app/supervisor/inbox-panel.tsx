@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { asRecord } from "@/lib/placement-ui";
 import { ApproveSheet } from "@/components/approve-sheet";
 import { BulkBar, decideRequests, useSelection } from "@/components/bulk-decide";
 import { EmptyState } from "@/components/empty-state";
@@ -94,6 +95,8 @@ export function InboxPanel({
         requestedMinutes={open?.requested_minutes}
         attachmentPath={open?.attachment_path}
         certificateSighted={open?.certificate_sighted}
+        punchId={open?.type === "attendance" ? (asRecord(open.payload)?.punch_id as string | undefined) : null}
+        reason={open?.reason}
         onDone={onDone}
       />
     </>

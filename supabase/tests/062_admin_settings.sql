@@ -74,24 +74,24 @@ select throws_ok($$select public.publish_notice('1.0', 'How DGK Clock handles yo
   '23505', 'Version 1.0 already exists. Use a new version number.', 'a version is published once');
 select throws_ok($$select public.publish_notice('v 2!', 'T', repeat('x', 60))$$,
   '22023', 'Use a version like 1.1: letters, numbers, dots and dashes, up to 20 characters.', 'the version format is checked');
-select throws_ok($$select public.publish_notice('1.3', ' ', repeat('x', 60))$$,
+select throws_ok($$select public.publish_notice('9.1', ' ', repeat('x', 60))$$,
   '22023', 'Give the notice a title up to 120 characters.', 'a notice needs a title');
-select throws_ok($$select public.publish_notice('1.3', 'T', 'Too short.')$$,
+select throws_ok($$select public.publish_notice('9.1', 'T', 'Too short.')$$,
   '22023', 'Write the full notice, from 50 to 20,000 characters.', 'a notice needs its full text');
 reset role;
 
 -- Publishing forces everyone to re-acknowledge before clocking (private.has_consent)
 select ok(private.has_consent((select intern from ids), 'location'), 'the intern has location consent under the current notice');
 select tests.as_person((select admin from ids));
-insert into res select 'pub', public.publish_notice(' 1.3 ', 'How DGK Clock handles your information',
+insert into res select 'pub', public.publish_notice(' 9.1 ', 'How DGK Clock handles your information',
   'We now also keep your weekly check-in comments. Everything else is the same as version 1.1.');
 reset role;
 select is((select v - 'published_at' from res where k = 'pub'),
-  jsonb_build_object('version', '1.3', 'title', 'How DGK Clock handles your information',
-    'sha256', (select sha256 from public.daymark_notices where version = '1.3'),
+  jsonb_build_object('version', '9.1', 'title', 'How DGK Clock handles your information',
+    'sha256', (select sha256 from public.daymark_notices where version = '9.1'),
     'notified', (select count(*) from public.daymark_profiles where is_intern and active)),
   'publishing returns the new version, its hash and how many interns were told');
-select is((select notice_version from public.daymark_settings), '1.3', 'the new notice is current');
+select is((select notice_version from public.daymark_settings), '9.1', 'the new notice is current');
 select ok(not private.has_consent((select intern from ids), 'location'), 'consent needs the new notice acknowledged');
 select is((select title || ' ' || body || ' ' || link from public.daymark_notifications
            where person_id = (select intern from ids) and kind = 'notice'),
@@ -101,7 +101,7 @@ select ok(not exists (select 1 from public.daymark_notifications
                       where kind = 'notice' and person_id in ((select gone from ids), (select sup from ids), (select admin from ids))),
   'inactive interns, supervisors and admins are not');
 select is((select jsonb_build_array(before, after - 'sha256') from public.daymark_audit_log where action = 'publish_notice'),
-  '[{"notice_version":"1.2"},{"notice_version":"1.3","title":"How DGK Clock handles your information"}]'::jsonb,
+  '[{"notice_version":"1.3"},{"notice_version":"9.1","title":"How DGK Clock handles your information"}]'::jsonb,
   'publishing is audited with before and after');
 select tests.as_person((select intern from ids));
 select public.record_consent('collection_notice', 'acknowledged');

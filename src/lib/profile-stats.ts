@@ -1,6 +1,6 @@
 // The intern profile's timesheet and summary tiles (Dilip, 8 Oct). Pure, so it is tested in isolation.
 import { darwinDateKey } from "@/lib/darwin";
-import type { EventType } from "@/lib/daymark";
+import { waitingLabel, type EventType } from "@/lib/daymark";
 import { mondayOf } from "@/lib/periods";
 import { breakBetween, punchDays, type ShiftRow } from "@/lib/time";
 
@@ -14,6 +14,7 @@ type PunchRow = {
   is_break?: boolean | null;
   source: string;
   confirmed_at: string | null;
+  verification_method?: string | null;
   replaces_punch_id: string | null;
 };
 
@@ -30,7 +31,8 @@ export type ProfileDay<P extends PunchRow> = {
   moved: boolean;
   late: boolean;
   edited: boolean;
-  typedIn: boolean;
+  /** "Typed in · waiting" or "Offline · waiting" while the supervisor hasn't confirmed. */
+  waiting: string | null;
 };
 
 /**
@@ -68,7 +70,7 @@ export function profileDays<P extends PunchRow>(args: {
         moved: day?.status === "moved",
         late: result?.late ?? false,
         edited: punches.some((punch) => punch.source === "staff_edit"),
-        typedIn: punches.some((punch) => punch.source === "supervisor" && !punch.confirmed_at),
+        waiting: waitingLabel(punches),
       };
     });
 }

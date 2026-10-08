@@ -250,6 +250,14 @@ create policy "staff tables require aal2" on public.supervisor_reviews
 
 ---
 
+## 5a. Addendum (8 Oct 2026): service worker and offline clocks (D34, D35)
+
+- **Service worker scope.** `/claudetimeclock/` only. It caches the app's own build files and pages. Supabase (REST, Auth, Storage, Realtime) is cross-origin and never touched by the worker, so no personal data or tokens sit in Cache Storage. Updates wait for the person to tap Reload.
+- **Offline queue.** An offline clock (phone time, GPS, selfie, gesture, and any work log or typed time) is kept in IndexedDB on that phone only until it sends, then deleted. Sign-out clears the cached profile and consent; the queue is keyed by user and only sent with that user's session.
+- **Trust.** The server can't vouch for an offline clock's time or place. It is stored as an unverified punch (counts 0) with the distance and gesture in the request, and only a supervisor's approval makes it count. Older than 2 days, or without its own uploaded selfie, it is refused. Same idempotency id twice returns the first punch.
+- **No face matching.** Unchanged: selfies are for human review only (§3, §5).
+- **Notice.** v1.3 tells interns about the saved app copy, offline clocks and phone reminders.
+
 ## 6. Data breach mini-plan (NDB-aligned, voluntary for DGK)
 
 **Roles:** Dilip (incident lead and decision-maker); one supervisor (deputy); a technical helper on call.

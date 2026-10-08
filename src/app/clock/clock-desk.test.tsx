@@ -247,10 +247,10 @@ describe("ClockDesk", () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("start_clock", { event_type: "shift_out" }));
   });
 
-  test("offline: a banner, and the button waits for a connection", async () => {
+  test("offline: a banner, and clocking still works (it's kept on the phone, D35)", async () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     render(<ClockDesk profile={intern} />);
-    expect(await screen.findByText("You're offline — clocking needs a connection")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Clock in" })).toBeDisabled();
+    expect(await screen.findByText("You're offline — you can still clock; it sends when you're back online")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Clock in" })).toBeEnabled();
   });
 });

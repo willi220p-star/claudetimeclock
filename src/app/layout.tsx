@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { ServiceWorker } from "@/components/service-worker";
 import { Toaster } from "@/components/ui/sonner";
 import { BASE_PATH, PAGE_BACKGROUND } from "@/lib/brand";
 import { contentSecurityPolicy } from "@/lib/csp";
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         {children}
         <Toaster position="top-center" />
+        <ServiceWorker />
       </body>
     </html>
   );
