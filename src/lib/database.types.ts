@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       daymark_audit_log: {
@@ -798,6 +773,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           occurred_at: string
+          offline_id: string | null
           photo_deleted_at: string | null
           photo_path: string | null
           place_name: string | null
@@ -823,6 +799,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
+          offline_id?: string | null
           photo_deleted_at?: string | null
           photo_path?: string | null
           place_name?: string | null
@@ -848,6 +825,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
+          offline_id?: string | null
           photo_deleted_at?: string | null
           photo_path?: string | null
           place_name?: string | null
@@ -1862,6 +1840,19 @@ export type Database = {
         Returns: Json
       }
       submit_exit_feedback: { Args: { answers: Json }; Returns: undefined }
+      submit_offline_punch: {
+        Args: {
+          accuracy_m: number
+          action: string
+          day_kind?: string
+          gesture?: string
+          latitude: number
+          longitude: number
+          occurred_at: string
+          offline_id: string
+        }
+        Returns: Json
+      }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {
@@ -2001,9 +1992,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
