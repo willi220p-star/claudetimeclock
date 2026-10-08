@@ -64,6 +64,20 @@ export const PLACEMENT_STATUS_LABEL: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
+/** Statuses the Overview counts as "Active". */
+export const LIVE_STATUSES = ["active", "extended", "target_reached"];
+
+/** Placement list status filter: "all", "live" (the Overview's Active) or one exact status. */
+export function statusMatches(filter: string, status: string) {
+  if (filter === "all") return true;
+  return filter === "live" ? LIVE_STATUSES.includes(status) : status === filter;
+}
+
+/** A query-param value when it's one we know, else the fallback: dashboard links set these, but anyone can edit a URL. */
+export function knownParam(value: string | null, allowed: readonly string[], fallback = "all") {
+  return value != null && allowed.includes(value) ? value : fallback;
+}
+
 export const FULL_SPOT_TEXT = "Full — request an extra spot (needs admin approval)";
 
 export function requestLabel(type: string) {
