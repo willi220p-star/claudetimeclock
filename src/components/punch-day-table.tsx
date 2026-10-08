@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { formatDay, formatTime } from "@/lib/darwin";
@@ -105,8 +106,7 @@ function PunchCell({
           onClick={() => onOpen(punch, `${label} · ${formatDay(punch.occurred_at)}, ${time}`)}
           aria-label={`Open the ${label.toLowerCase()} selfie from ${time}`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={punch.photoUrl} alt="" className="size-full object-cover" />
+          <SelfieImage path={punch.photo_path!} url={punch.photoUrl} className="size-full object-cover" compact />
         </button>
       ) : null}
       <div className="flex min-w-0 flex-col gap-0.5">

@@ -9,6 +9,7 @@ import { FormField, FormMessage } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { Sheet } from "@/components/roster-edit";
+import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -340,9 +341,8 @@ function TimeButton({
         punch ? "border-border hover:bg-muted" : "border-dashed border-border text-muted-foreground",
       )}
     >
-      {punch?.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={punch.photoUrl} alt="" className="size-7 rounded-full object-cover" />
+      {punch?.photoUrl && punch.photo_path ? (
+        <SelfieImage path={punch.photo_path} url={punch.photoUrl} className="size-7 rounded-full object-cover" compact />
       ) : (
         <span aria-hidden className="size-7 rounded-full bg-muted" />
       )}
@@ -405,9 +405,14 @@ function EditSheet({ edit, onClose, onSaved }: { edit: Edit; onClose: () => void
       {edit.inPunch?.photoUrl || edit.outPunch?.photoUrl ? (
         <div className="grid grid-cols-2 gap-2">
           {[edit.inPunch, edit.outPunch].map((punch, index) =>
-            punch?.photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={punch.id} src={punch.photoUrl} alt={`${index === 0 ? "Clock-in" : "Clock-out"} selfie`} className="h-32 w-full rounded-lg object-cover" />
+            punch?.photoUrl && punch.photo_path ? (
+              <SelfieImage
+                key={punch.id}
+                path={punch.photo_path}
+                url={punch.photoUrl}
+                alt={`${index === 0 ? "Clock-in" : "Clock-out"} selfie`}
+                className="h-32 w-full rounded-lg object-cover"
+              />
             ) : (
               <span key={index} />
             ),
