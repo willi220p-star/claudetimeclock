@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Light theme only (§15). Nothing sets `.dark`, so shadcn's dark: classes never apply. */
+/* Light by default (§15). `.dark` is set on <html> by the Appearance choice (D38) or the phone's setting. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -86,9 +86,47 @@
   --teal-ink: color-mix(in oklab, var(--teal) 60%, var(--foreground));
 }
 
+/* Dark: iOS dark grouped look. Semantic colours keep their meaning with deeper backgrounds. */
+.dark {
+  color-scheme: dark;
+  --background: #000000;
+  --foreground: #f2f2f7;
+  --card: #1c1c1e;
+  --card-foreground: #f2f2f7;
+  --popover: #2c2c2e;
+  --popover-foreground: #f2f2f7;
+  --primary: #6c85ff;
+  --primary-foreground: #000000;
+  --secondary: #1c1c1e;
+  --secondary-foreground: #f2f2f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #aeaeb2;
+  --accent: #2c2c2e;
+  --accent-foreground: #f2f2f7;
+  --border: #38383a;
+  --input: #48484a;
+  --ring: #6c85ff;
+  --destructive: #ff8a80;
+  --ok: #5fd39a;
+  --ok-bg: #0f2a1c;
+  --warn: #ffab70;
+  --warn-bg: #33200f;
+  --bad: #ff8a80;
+  --bad-bg: #351614;
+  --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+/* Bigger text (D38): every size is in rem, so one root size scales the app. */
+html[data-text="large"] {
+  font-size: 112.5%;
+}
+html[data-text="larger"] {
+  font-size: 125%;
+}
+
 /* iOS section header: small, quiet, uppercase. */
 @utility caption {
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.4;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -103,7 +141,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.5;
     font-variant-numeric: tabular-nums;
     -webkit-tap-highlight-color: transparent;
@@ -111,14 +149,14 @@
   /* iOS large title and headline. */
   h1 {
     font-family: var(--font-heading);
-    font-size: 34px;
+    font-size: 2.125rem;
     line-height: 1.15;
     font-weight: 700;
     letter-spacing: -0.02em;
   }
   h2 {
     font-family: var(--font-heading);
-    font-size: 20px;
+    font-size: 1.25rem;
     line-height: 1.3;
     font-weight: 600;
     letter-spacing: -0.01em;

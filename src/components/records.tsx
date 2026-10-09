@@ -131,7 +131,7 @@ function RecordsDesk({ canEdit, profile }: { canEdit: boolean; profile: Profile 
                     <button
                       type="button"
                       onClick={() => setOpen(t)}
-                      className="flex min-h-20 w-full flex-col items-start justify-between gap-1 rounded-xl bg-card p-3 text-left shadow-card hover:bg-black/[0.02]"
+                      className="flex min-h-20 w-full flex-col items-start justify-between gap-1 rounded-xl bg-card p-3 text-left shadow-card hover:bg-muted/50"
                     >
                       <span className="font-semibold">{t.label}</span>
                       <span className="text-sm text-muted-foreground tabular-nums">
@@ -222,7 +222,7 @@ function TableRecords({
                       <button
                         type="button"
                         onClick={() => setPicked(row)}
-                        className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02]"
+                        className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50"
                       >
                         <span className="flex min-w-0 flex-1 flex-col">
                           <span className="truncate font-medium">{def.title(row, names)}</span>
