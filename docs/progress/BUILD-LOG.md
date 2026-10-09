@@ -391,3 +391,8 @@ Dilip's answers: shift reminder 30 minutes before the start; break reminder at t
 ### Dark mode and bigger text (Dilip, 2026-10-09) — D38
 - `src/lib/appearance.ts` (parse/apply/save, head script, Vitest), `AppearanceCard` on Me and Notifications; `.dark` tokens and `html[data-text]` sizes in `globals.css`; hard-coded black hovers moved to tokens.
 - e2e `appearance.spec.ts`. Still to do from Dilip's list: Today at a glance, quick-reply notifications.
+
+### Evening reminder, supervisor digest, admin nav (Dilip, 2026-10-09) — D39
+Dilip's answers: nav grouped by task; digest 8:00 am to each supervisor; evening reminder fixed at 8:00 pm for morning shifts; both get checkboxes.
+- Migration `20261013010000_evening_digest.sql`; pgTAP `160_evening_digest.sql` (12); Notifications page gets "Shift tomorrow morning" and "Morning summary".
+- Admin nav: Import moved to Settings.

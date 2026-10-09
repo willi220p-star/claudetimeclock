@@ -29,6 +29,7 @@ const KIND_GROUPS = [
       ["reminder_shift", "Shift starts in 30 minutes", "30 minutes before a rostered start, if they haven't clocked in."],
       ["reminder_break", "Break is up", "When their break has run its set length (below)."],
       ["reminder_clock_out", "Time to clock out", "At the rostered finish, if they're still clocked in."],
+      ["reminder_tomorrow", "Shift tomorrow morning", "8:00 pm the day before, for a shift that starts before noon."],
     ],
   },
   {
@@ -44,6 +45,7 @@ const KIND_GROUPS = [
     title: "To supervisors",
     note: "Unticked updates still show in the app's notifications, just not on phones.",
     kinds: [
+      ["digest", "Morning summary", "8:00 am: who hasn't clocked in yet and what waits for approval. Admins see everyone."],
       ["attendance", "Times to confirm", "An intern typed in a time or clocked offline."],
       ["work_based", "Work-based days", "A work-based day is waiting for approval."],
       ["escalated", "Escalations", "A request has waited too long."],
