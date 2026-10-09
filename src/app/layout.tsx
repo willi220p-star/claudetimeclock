@@ -1,3 +1,4 @@
+import { APPEARANCE_SCRIPT } from "@/lib/appearance";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ServiceWorker } from "@/components/service-worker";
@@ -42,9 +43,10 @@ const csp = contentSecurityPolicy(
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-AU" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en-AU" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <meta httpEquiv="Content-Security-Policy" content={csp} />
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_SCRIPT }} />
       </head>
       <body className="min-h-full">
         {children}

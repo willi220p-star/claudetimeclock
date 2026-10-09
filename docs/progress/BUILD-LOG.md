@@ -387,3 +387,7 @@ Dilip's answers: shift reminder 30 minutes before the start; break reminder at t
 - Migration `20261012010000_notification_settings.sql`: `daymark_settings.push_kinds` (all ticked by default), `push_worthy` reads it, `save_push_kinds`, `set_break_minutes`, `set_break_for_all` (admin, audited), `job_reminders` rewritten with kinds `reminder_shift` / `reminder_break` / `reminder_clock_out`, each sent only when ticked.
 - Admin → Settings → Notifications (`src/app/admin/notifications/`): checkboxes grouped Reminders / Updates to interns / To supervisors, per-intern break minutes, "Apply to all active interns" with a confirm.
 - Tests: pgTAP `140_push_reminders.sql` moved to the new timings, new `150_notification_settings.sql` (16); e2e `notification-settings.spec.ts`.
+
+### Dark mode and bigger text (Dilip, 2026-10-09) — D38
+- `src/lib/appearance.ts` (parse/apply/save, head script, Vitest), `AppearanceCard` on Me and Notifications; `.dark` tokens and `html[data-text]` sizes in `globals.css`; hard-coded black hovers moved to tokens.
+- e2e `appearance.spec.ts`. Still to do from Dilip's list: Today at a glance, quick-reply notifications.

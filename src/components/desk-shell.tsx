@@ -154,7 +154,7 @@ function NavLinks({ items, orientation }: { items: readonly NavItem[]; orientati
                     : "text-muted-foreground hover:text-foreground"
                   : current
                     ? "bg-primary/10 font-semibold text-primary"
-                    : "text-foreground hover:bg-black/5",
+                    : "text-foreground hover:bg-muted",
               )}
             >
               {item.label}

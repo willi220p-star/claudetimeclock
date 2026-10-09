@@ -20,7 +20,7 @@ export function AppHeader({ profile, role, title }: { profile: Profile; role: Ro
   useIdleSignOut();
   return (
     <div className="sticky top-0 z-30">
-      <header className="h-14 border-b border-black/5 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
+      <header className="h-14 border-b border-border bg-background/80 backdrop-blur-xl backdrop-saturate-150">
         <div className="mx-auto flex h-full w-full max-w-[1200px] items-center justify-between gap-2 px-4">
           <div className="flex min-w-0 items-center gap-2">
             <DgkLogo size={32} className="shrink-0" />
