@@ -90,6 +90,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
     icon: Settings,
     pages: [
       { href: "/admin/settings", label: "Settings", match: prefix("/admin/settings") },
+      { href: "/admin/notifications", label: "Notifications", match: prefix("/admin/notifications") },
       { href: "/admin/sites", label: "Sites", match: prefix("/admin/sites") },
     ],
   },

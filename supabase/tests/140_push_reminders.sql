@@ -27,21 +27,21 @@ select tests.as_person((select c from ids));
 select public.save_push_subscription('https://push.example/c1', 'key-c', 'auth-c');
 reset role;
 
--- Monday 12 Oct, 9:12 am: A and B haven't clocked in, C has.
-select tests.clock((select c from ids), 'shift_in', '2026-10-12 08:55+09:30');
-select tests.at('2026-10-12 09:05+09:30');
-select is(private.job_reminders(), 0, 'nothing before 10 minutes past the start');
-select tests.at('2026-10-12 09:12+09:30');
-select is(private.job_reminders(), 2, 'A and B are reminded to clock in');
+-- Monday 12 Oct, 8:31 am (D37): the 9:00 am shift starts within 30 minutes. A and B haven't clocked in, C has.
+select tests.clock((select c from ids), 'shift_in', '2026-10-12 08:20+09:30');
+select tests.at('2026-10-12 08:25+09:30');
+select is(private.job_reminders(), 0, 'nothing more than 30 minutes before the start');
+select tests.at('2026-10-12 08:31+09:30');
+select is(private.job_reminders(), 2, 'A and B are told their shift starts soon');
 select is(private.job_reminders(), 0, 'once a day');
-select is((select title from public.daymark_notifications where person_id = (select a from ids) and kind = 'reminder'),
-  'Time to clock in', 'in-app too');
+select is((select title from public.daymark_notifications where person_id = (select a from ids) and kind = 'reminder_shift'),
+  'Your shift starts soon', 'in-app too');
 select is((select count(*)::int from public.daymark_push_outbox o where o.person_id = (select a from ids)), 1,
   'A has a phone, so the reminder is queued to push');
 select is((select count(*)::int from public.daymark_push_outbox o where o.person_id = (select b from ids)), 0,
   'B has no phone: in-app only');
 select is((select send_after from public.daymark_push_outbox o where o.person_id = (select a from ids)),
-  '2026-10-12 09:12+09:30'::timestamptz, 'sent straight away in the day');
+  '2026-10-12 08:31+09:30'::timestamptz, 'sent straight away in the day');
 
 -- C takes a break at noon; the 30-minute break is up at 12:30.
 select tests.clock((select c from ids), 'break_start', '2026-10-12 12:00+09:30');
@@ -53,9 +53,9 @@ select is((select body from public.daymark_notifications where person_id = (sele
   'Your 30-minute break is up. Tap End break when you''re back.', 'says how long');
 select tests.clock((select c from ids), 'break_end', '2026-10-12 12:40+09:30');
 
--- 5:16 pm: C is still clocked in after a 5:00 pm finish.
-select tests.at('2026-10-12 17:16+09:30');
-select is(private.job_reminders(), 1, 'forgot to clock out');
+-- 5:00 pm: C is still clocked in at the rostered finish.
+select tests.at('2026-10-12 17:00+09:30');
+select is(private.job_reminders(), 1, 'time to clock out');
 select is((select count(*)::int from public.daymark_reminders_sent where person_id = (select c from ids)), 2, 'C got two reminders today');
 
 -- Quiet hours: a notification at 10 pm waits until 7 am.
