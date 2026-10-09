@@ -10,12 +10,14 @@ import { PersonDialogs, type PersonDialog } from "@/app/admin/person-dialogs";
 import { EmptyState } from "@/components/empty-state";
 import { FormMessage } from "@/components/form-field";
 import { PageHeader } from "@/components/page-header";
+import { ReminderChip } from "@/components/reminder-chip";
 import { PunchDayTable } from "@/components/punch-day-table";
 import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { clearSessionCache } from "@/lib/browser-session";
+import { loadReminderStatus } from "@/lib/data";
 import { darwinAt, darwinDateKey } from "@/lib/darwin";
 import { errorText, PROFILE_COLUMNS, type Profile } from "@/lib/daymark";
 import { addDays } from "@/lib/periods";
@@ -94,6 +96,7 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
     [people],
   );
   const [links, reloadLinks] = useLoad(loadLinks);
+  const [reminders] = useLoad(loadReminderStatus);
   const names = new Map(people.status === "ready" ? people.data.map((p) => [p.id, p.display_name]) : []);
   const supervisorOf = links.status === "ready" ? links.data.supervisorOf : new Map<string, string>();
   const internsOf = links.status === "ready" ? links.data.internsOf : new Map<string, string[]>();
@@ -181,6 +184,9 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
                 </div>
                 <div className="flex flex-wrap gap-1">
                   <StatusChip tone={person.active ? "ok" : "neutral"} label={person.active ? "Active" : "Deactivated"} />
+                  {person.active ? (
+                    <ReminderChip reminders={reminders.status === "ready" ? reminders.data : null} personId={person.id} />
+                  ) : null}
                   {person.must_change_password ? <StatusChip tone="info" label="Password change due" /> : null}
                 </div>
               </div>

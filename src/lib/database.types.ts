@@ -1831,6 +1831,14 @@ export type Database = {
         Args: { decision: string; purpose: string; related_id?: string }
         Returns: Json
       }
+      reminder_status: {
+        Args: never
+        Returns: {
+          device: string
+          last_ok_at: string
+          person_id: string
+        }[]
+      }
       remove_closure_day: { Args: { id: string }; Returns: Json }
       report_missed_time: {
         Args: { at_time: string; event: string; note?: string }

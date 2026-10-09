@@ -396,3 +396,8 @@ Dilip's answers: shift reminder 30 minutes before the start; break reminder at t
 Dilip's answers: nav grouped by task; digest 8:00 am to each supervisor; evening reminder fixed at 8:00 pm for morning shifts; both get checkboxes.
 - Migration `20261013010000_evening_digest.sql`; pgTAP `160_evening_digest.sql` (12); Notifications page gets "Shift tomorrow morning" and "Morning summary".
 - Admin nav: Import moved to Settings.
+
+### Who has reminders on (Dilip, 2026-10-09) — D40
+Dilip's answers: strong reminder plus visibility, never blocking; say the reason plainly.
+- Migration `20261014010000_reminder_status.sql`, pgTAP `170_reminder_status.sql` (6); `ReminderChip` on Admin People and Supervisor Interns; `RemindersNudge` on intern Home; reminders card wording updated to the current reminders.
+- Vitest `reminders-nudge.test.ts`; e2e `reminder-status.spec.ts`.

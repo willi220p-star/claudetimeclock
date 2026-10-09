@@ -7,12 +7,13 @@ import { forecastText, owedText, pctText } from "@/app/supervisor/supervisor";
 import { DeskGate } from "@/components/desk-gate";
 import { StaffShell } from "@/components/desk-shell";
 import { LoadBlock } from "@/components/load-block";
+import { ReminderChip } from "@/components/reminder-chip";
 import { PaceChip } from "@/components/pace-chip";
 import { PageHeader } from "@/components/page-header";
 import { StatusChip } from "@/components/status-chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDay } from "@/lib/darwin";
-import { loadProgressForSupervisor } from "@/lib/data";
+import { loadProgressForSupervisor, loadReminderStatus } from "@/lib/data";
 import { PLACEMENT_STATUS_LABEL, RISK_LABEL, knownParam } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
@@ -31,6 +32,8 @@ export function InternsScreen() {
 function InternsDesk() {
   const load = useCallback(() => loadProgressForSupervisor(), []);
   const [state, reload] = useLoad(load);
+  const [reminders] = useLoad(loadReminderStatus);
+  const phones = reminders.status === "ready" ? reminders.data : null;
   // The Today "At risk" card links here with ?filter=at_risk.
   const atRiskOnly = knownParam(useSearchParams().get("filter"), ["at_risk"]) === "at_risk";
 
@@ -71,6 +74,7 @@ function InternsDesk() {
                       <th className="px-4 py-3 font-semibold">Forecast vs plan</th>
                       <th className="px-4 py-3 font-semibold">Owed</th>
                       <th className="px-4 py-3 font-semibold">Attendance</th>
+                      <th className="px-4 py-3 font-semibold">Reminders</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -88,6 +92,9 @@ function InternsDesk() {
                         <td className="px-4 py-3">{forecastText(row, formatDay)}</td>
                         <td className="px-4 py-3">{owedText(row.owed)}</td>
                         <td className="px-4 py-3">{pctText(row.attendance_pct)}</td>
+                        <td className="px-4 py-3">
+                          <ReminderChip reminders={phones} personId={row.intern_id} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -100,6 +107,9 @@ function InternsDesk() {
                       {row.intern_name}
                     </Link>
                     <PaceChip daysLate={row.days_late} />
+                    <div className="flex">
+                      <ReminderChip reminders={phones} personId={row.intern_id} />
+                    </div>
                     <p className="text-sm">{forecastText(row, formatDay)}</p>
                     <p className="text-sm text-muted-foreground">Owed {owedText(row.owed)}</p>
                     {row.attendance_pct != null ? (
