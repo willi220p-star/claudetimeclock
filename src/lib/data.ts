@@ -466,6 +466,26 @@ export async function loadSettings() {
   return { settings, notice };
 }
 
+/** Settings → Notifications (D37): what goes to phones, and each active intern's break. */
+export async function loadNotificationSettings() {
+  const client = createClient();
+  const [settings, placements] = await Promise.all([
+    client.from("daymark_settings").select("push_kinds").eq("id", 1).maybeSingle(),
+    client
+      .from("daymark_placements")
+      .select("id, break_minutes, intern:daymark_profiles!daymark_placements_intern_id_fkey(display_name)")
+      .in("status", ["active", "extended"]),
+  ]);
+  if (settings.error) throw settings.error;
+  if (placements.error) throw placements.error;
+  return {
+    kinds: settings.data?.push_kinds ?? [],
+    interns: (placements.data ?? [])
+      .map((row) => ({ id: row.id, name: row.intern?.display_name ?? "Intern", breakMinutes: row.break_minutes }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
 export type AuditEntry = {
   id: number;
   at: string;

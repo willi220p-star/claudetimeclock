@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       daymark_audit_log: {
@@ -1241,6 +1266,7 @@ export type Database = {
           punch_fix_days: number
           punch_fix_max_per_fortnight: number
           punch_fix_min_reason: number
+          push_kinds: string[]
           retention_days: number
           sick_backdate_days: number
           updated_at: string
@@ -1261,6 +1287,7 @@ export type Database = {
           punch_fix_days?: number
           punch_fix_max_per_fortnight?: number
           punch_fix_min_reason?: number
+          push_kinds?: string[]
           retention_days?: number
           sick_backdate_days?: number
           updated_at?: string
@@ -1281,6 +1308,7 @@ export type Database = {
           punch_fix_days?: number
           punch_fix_max_per_fortnight?: number
           punch_fix_min_reason?: number
+          push_kinds?: string[]
           retention_days?: number
           sick_backdate_days?: number
           updated_at?: string
@@ -1859,6 +1887,7 @@ export type Database = {
         Args: { allow_extra?: boolean; p: Json }
         Returns: string
       }
+      save_push_kinds: { Args: { kinds: string[] }; Returns: string[] }
       save_push_subscription: {
         Args: { auth: string; endpoint: string; p256dh: string }
         Returns: undefined
@@ -1867,6 +1896,11 @@ export type Database = {
       save_work_log: {
         Args: { summary: string; work_date: string }
         Returns: Json
+      }
+      set_break_for_all: { Args: { minutes: number }; Returns: number }
+      set_break_minutes: {
+        Args: { minutes: number; placement: string }
+        Returns: undefined
       }
       set_pattern: {
         Args: {
@@ -2138,6 +2172,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
