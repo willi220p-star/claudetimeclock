@@ -62,7 +62,6 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { href: "/admin/people", label: "People", match: prefix("/admin/people") },
       { href: "/admin/placements", label: "Placements", match: prefix("/admin/placement") },
       { href: "/admin/cohorts", label: "Cohorts", match: prefix("/admin/cohorts") },
-      { href: "/admin/import", label: "Import", match: prefix("/admin/import") },
     ],
   },
   {
@@ -92,6 +91,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { href: "/admin/settings", label: "Settings", match: prefix("/admin/settings") },
       { href: "/admin/notifications", label: "Notifications", match: prefix("/admin/notifications") },
       { href: "/admin/sites", label: "Sites", match: prefix("/admin/sites") },
+      { href: "/admin/import", label: "Import", match: prefix("/admin/import") },
     ],
   },
 ];
