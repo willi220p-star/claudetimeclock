@@ -41,6 +41,7 @@ function extraRpc(name: string, fallback: { data: unknown; error: unknown }) {
   return Promise.resolve(fallback);
 }
 
+vi.mock("@/components/reminders-nudge", () => ({ RemindersNudge: () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ rpc, from: () => dayKindQuery, storage: { from: () => ({ upload }) } }),

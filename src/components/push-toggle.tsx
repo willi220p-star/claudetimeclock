@@ -128,8 +128,8 @@ export function PushToggle() {
     <section aria-labelledby="push-title" className="flex flex-col gap-3 rounded-xl bg-card p-6 shadow-card">
       <h2 id="push-title">Reminders on this phone</h2>
       <p className="text-muted-foreground">
-        A notification when you haven&apos;t clocked in, your break runs long or you forget to clock out, and for staff,
-        when something needs approving. None between 9 pm and 7 am.
+        A notification before your shift, the evening before a morning shift, when your break is up and when it&apos;s time
+        to clock out, and for staff, when something needs approving. None between 9 pm and 7 am.
       </p>
       {state === "install" ? (
         <p>Install DGK Clock first (Share → Add to Home Screen), then turn reminders on from the installed app.</p>

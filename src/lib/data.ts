@@ -466,6 +466,13 @@ export async function loadSettings() {
   return { settings, notice };
 }
 
+/** Who has reminders on (D40): person id -> device type. A person with no phone isn't in the map. */
+export async function loadReminderStatus() {
+  const { data, error } = await createClient().rpc("reminder_status");
+  if (error) throw error;
+  return new Map((data ?? []).map((row) => [row.person_id, { device: row.device, lastOk: row.last_ok_at }]));
+}
+
 /** Settings → Notifications (D37): what goes to phones, and each active intern's break. */
 export async function loadNotificationSettings() {
   const client = createClient();
