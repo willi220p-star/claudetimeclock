@@ -2146,11 +2146,18 @@ export type Database = {
           read_at: string
         }[]
       }
+      approve_project: {
+        Args: { approve: boolean; id: string; note?: string }
+        Returns: undefined
+      }
       approve_uni_report: {
         Args: { note?: string; placement: string }
         Returns: undefined
       }
       archive_announcement: { Args: { id: string }; Returns: undefined }
+      archive_label: { Args: { id: string }; Returns: undefined }
+      archive_milestone: { Args: { id: string }; Returns: undefined }
+      archive_project: { Args: { id: string }; Returns: undefined }
       archive_task: { Args: { id: string }; Returns: undefined }
       attach_leave_certificate: {
         Args: { path: string; request_id: string }
@@ -2341,6 +2348,14 @@ export type Database = {
       kpi_admin: { Args: never; Returns: Json }
       kpi_intern: { Args: never; Returns: Json }
       kpi_supervisor: { Args: never; Returns: Json }
+      labels: {
+        Args: never
+        Returns: {
+          colour: string
+          id: string
+          name: string
+        }[]
+      }
       log_task_time: {
         Args: { item: string; minutes: number }
         Returns: undefined
@@ -2387,6 +2402,28 @@ export type Database = {
         }[]
       }
       my_consent: { Args: never; Returns: Json }
+      my_projects: {
+        Args: never
+        Returns: {
+          blocked: number
+          client_name: string
+          due_date: string
+          estimate_minutes: number
+          id: string
+          in_review: number
+          lead_name: string
+          name: string
+          next_milestone: string
+          next_milestone_due: string
+          overdue: number
+          spent_minutes: number
+          start_date: string
+          status: string
+          tasks_done: number
+          tasks_total: number
+          waiting: boolean
+        }[]
+      }
       my_tasks: {
         Args: never
         Returns: {
@@ -2400,9 +2437,14 @@ export type Database = {
           due_time: string
           estimate_minutes: number
           item_id: string
+          labels: string[]
           link: string
+          milestone_id: string
+          milestone_name: string
           own: boolean
           priority: string
+          project_id: string
+          project_name: string
           repeat_days: number[]
           review_requested_at: string
           reviewer_id: string
@@ -2463,6 +2505,32 @@ export type Database = {
       preview_request: { Args: { req: Json }; Returns: Json }
       progress_all: { Args: never; Returns: Json[] }
       progress_for_supervisor: { Args: never; Returns: Json[] }
+      project_activity: {
+        Args: { before?: string; id: string }
+        Returns: {
+          actor_name: string
+          created_at: string
+          id: string
+          kind: string
+          text: string
+        }[]
+      }
+      project_detail: { Args: { id: string }; Returns: Json }
+      project_lookup: {
+        Args: { q?: string }
+        Returns: {
+          client_name: string
+          id: string
+          name: string
+        }[]
+      }
+      project_people: {
+        Args: { project?: string }
+        Returns: {
+          display_name: string
+          person_id: string
+        }[]
+      }
       publish_notice: {
         Args: { body: string; title: string; version: string }
         Returns: Json
@@ -2554,8 +2622,34 @@ export type Database = {
         Args: { id: string; name: string; notes?: string; starts_on?: string }
         Returns: string
       }
+      save_label: {
+        Args: { colour: string; id: string; name: string }
+        Returns: string
+      }
+      save_milestone: {
+        Args: { due_date: string; id: string; name: string; project: string }
+        Returns: string
+      }
       save_placement: {
         Args: { allow_extra?: boolean; p: Json }
+        Returns: string
+      }
+      save_project: {
+        Args: {
+          client_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          description: string
+          due_date: string
+          id: string
+          lead: string
+          links: string[]
+          members: string[]
+          name: string
+          start_date: string
+          status: string
+        }
         Returns: string
       }
       save_push_kinds: { Args: { kinds: string[] }; Returns: string[] }
@@ -2574,7 +2668,9 @@ export type Database = {
           estimate_minutes?: number
           id: string
           link: string
+          milestone?: string
           priority: string
+          project?: string
           repeat_days: number[]
           repeat_until: string
           reviewer?: string
@@ -2638,6 +2734,10 @@ export type Database = {
       set_subtask: { Args: { done: boolean; id: string }; Returns: undefined }
       set_task_blocked: {
         Args: { item: string; reason: string }
+        Returns: undefined
+      }
+      set_task_labels: {
+        Args: { labels: string[]; task: string }
         Returns: undefined
       }
       set_task_status: {
@@ -2731,10 +2831,15 @@ export type Database = {
           due_time: string
           estimate_minutes: number
           item_id: string
+          labels: string[]
           link: string
+          milestone_id: string
+          milestone_name: string
           person_id: string
           person_name: string
           priority: string
+          project_id: string
+          project_name: string
           repeat_days: number[]
           repeat_until: string
           review_requested_at: string
@@ -2793,6 +2898,19 @@ export type Database = {
         }[]
       }
       task_thread: { Args: { item: string }; Returns: Json }
+      task_workload: {
+        Args: { week_start: string }
+        Returns: {
+          blocked: number
+          estimate_due_minutes: number
+          in_review: number
+          open_tasks: number
+          overdue: number
+          person_id: string
+          person_name: string
+          rostered_minutes: number
+        }[]
+      }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {

@@ -4,6 +4,7 @@ import { useCallback, useId, useRef, useState, type ReactNode } from "react";
 import { ArrowUp, ListChecks, MessageSquare, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { FormMessage } from "@/components/form-field";
+import { LabelChip } from "@/components/tasks/labels";
 import { MoveMenu, PRIORITY_CHIP, STATUS_PILL } from "@/components/tasks/task-parts";
 import {
   PRIORITY_LABEL,
@@ -273,7 +274,7 @@ export function TaskDetail({
             <Fact label="Estimate" className="border-b">
               {row.estimate_minutes ? formatMinutes(row.estimate_minutes) : "None"}
             </Fact>
-            <div className={cn("col-span-2 flex items-center justify-between gap-2", repeat ? "border-b" : null)}>
+            <div className={cn("col-span-2 flex items-center justify-between gap-2", repeat || row.project_name || row.labels?.length ? "border-b" : null)}>
               <div>
                 <dt className="text-xs text-muted-foreground">Time spent</dt>
                 <dd className="mt-0.5 text-[15px] font-semibold">{formatMinutes(row.spent_minutes)}</dd>
@@ -285,8 +286,23 @@ export function TaskDetail({
               ) : null}
             </div>
             {repeat ? (
-              <Fact label="Repeats" className="col-span-2">
+              <Fact label="Repeats" className={cn("col-span-2", row.project_name || row.labels?.length ? "border-b" : null)}>
                 {repeat}
+              </Fact>
+            ) : null}
+            {row.project_name ? (
+              <Fact label="Project" className={cn("col-span-2", row.labels?.length ? "border-b" : null)}>
+                {row.project_name}
+                {row.milestone_name ? ` · ${row.milestone_name}` : ""}
+              </Fact>
+            ) : null}
+            {row.labels?.length ? (
+              <Fact label="Labels" className="col-span-2">
+                <span className="flex flex-wrap gap-1.5">
+                  {row.labels.map((label) => (
+                    <LabelChip key={label} name={label} />
+                  ))}
+                </span>
               </Fact>
             ) : null}
           </dl>

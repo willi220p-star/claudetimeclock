@@ -36,6 +36,7 @@
   --color-warn-bg: var(--warn-bg);
   --color-bad: var(--bad);
   --color-bad-bg: var(--bad-bg);
+  --color-pink: var(--pink);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
   --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, monospace;
@@ -79,6 +80,7 @@
   --warn-bg: #fff1e6;
   --bad: #b42318;
   --bad-bg: #fdecea;
+  --pink: #c4317a;
   --radius: 14px;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
   /* Teal text on white is 2.2:1 and fails WCAG AA. "Ahead" text uses teal deepened with
@@ -113,6 +115,7 @@
   --warn-bg: #33200f;
   --bad: #ff8a80;
   --bad-bg: #351614;
+  --pink: #ff7ab8;
   --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
 }
 

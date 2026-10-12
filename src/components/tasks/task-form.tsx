@@ -1,9 +1,12 @@
 "use client";
 
-import { useId, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { useCallback, useId, useState } from "react";
+import { Check, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { FormMessage } from "@/components/form-field";
+import { ProjectCombobox, type PickedProject } from "@/components/projects/project-combobox";
+import type { ProjectDetail } from "@/components/projects/project-helpers";
+import { LabelDot, loadLabels } from "@/components/tasks/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +16,7 @@ import { darwinDateKey } from "@/lib/darwin";
 import { errorText } from "@/lib/daymark";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
+import { cn } from "@/lib/utils";
 
 export type TaskDraft = {
   id: string | null;
@@ -28,7 +32,14 @@ export type TaskDraft = {
   reviewer: string | null;
   reviewer_name: string | null;
   estimate_minutes: number | null;
+  project_id: string | null;
+  project_name: string | null;
+  milestone_id: string | null;
+  labels: string[] | null;
 };
+
+/** save_task's "clear the project" value (D49): null on an edit keeps the project. */
+const NO_PROJECT = "00000000-0000-0000-0000-000000000000";
 
 type SaveArgs = Database["public"]["Functions"]["save_task"]["Args"];
 
@@ -37,6 +48,13 @@ async function loadPeople() {
   const [{ data, error }, { data: claims }] = await Promise.all([supabase.rpc("task_people"), supabase.auth.getClaims()]);
   if (error) throw error;
   return { people: data ?? [], me: claims?.claims?.sub ?? null };
+}
+
+async function loadMilestones(project: string | null) {
+  if (!project) return [];
+  const { data, error } = await createClient().rpc("project_detail", { id: project });
+  if (error) throw error;
+  return (data as ProjectDetail | null)?.milestones ?? [];
 }
 
 const field = "flex flex-col gap-1";
@@ -49,11 +67,14 @@ const box = "rounded-md border border-input bg-card px-3 py-2";
 export function TaskForm({
   mode,
   initial,
+  project: preset,
   onSaved,
   onCancel,
 }: {
   mode: "intern" | "staff";
   initial?: TaskDraft;
+  /** "+ Task" on a project page: the project starts picked. */
+  project?: PickedProject;
   onSaved: () => void;
   onCancel?: () => void;
 }) {
@@ -74,6 +95,18 @@ export function TaskForm({
   const [hours, setHours] = useState(initial?.estimate_minutes ? String(Math.floor(initial.estimate_minutes / 60)) : "");
   const [minutes, setMinutes] = useState(initial?.estimate_minutes ? String(initial.estimate_minutes % 60) : "");
   const [subtasks, setSubtasks] = useState<string[] | null>(null);
+  const [project, setProject] = useState<PickedProject | null>(
+    initial?.project_id ? { id: initial.project_id, name: initial.project_name ?? "Project" } : (preset ?? null),
+  );
+  const [milestone, setMilestone] = useState(initial?.milestone_id ?? "");
+  const projectId = project?.id ?? null;
+  const milestonesLoad = useCallback(() => loadMilestones(projectId), [projectId]);
+  const [milestones] = useLoad(milestonesLoad);
+  const [labelState] = useLoad(loadLabels);
+  const labelList = labelState.status === "ready" ? labelState.data : [];
+  // null until touched: then the labels the task already has (by name, from my_tasks/staff_tasks).
+  const [pickedLabels, setPickedLabels] = useState<Set<string> | null>(null);
+  const labelIds = pickedLabels ?? new Set(labelList.filter((label) => initial?.labels?.includes(label.name)).map((label) => label.id));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editing = Boolean(initial?.id);
@@ -129,10 +162,20 @@ export function TaskForm({
       // ponytail: staff_tasks doesn't return a task's starting checklist, so an edit can't show it; null leaves it as is
       // unless they open the subtasks box. Upgrade: return subtask_titles from staff_tasks and prefill.
       subtasks: subtasks === null ? (editing ? null : []) : checklist,
+      project: project ? project.id : initial?.project_id ? NO_PROJECT : null,
+      milestone: project && milestone ? milestone : null,
     } as unknown as SaveArgs;
-    const { error: fail } = await createClient().rpc("save_task", args);
+    const supabase = createClient();
+    const { data: taskId, error: fail } = await supabase.rpc("save_task", args);
+    if (fail) {
+      setBusy(false);
+      return setError(errorText(fail, "The task didn't save. Try again."));
+    }
+    if (pickedLabels && (editing || pickedLabels.size > 0)) {
+      const { error: labelFail } = await supabase.rpc("set_task_labels", { task: taskId ?? initial?.id ?? "", labels: [...pickedLabels] });
+      if (labelFail) toast.error(errorText(labelFail, "The task saved, but its labels didn't. Try again."));
+    }
     setBusy(false);
-    if (fail) return setError(errorText(fail, "The task didn't save. Try again."));
     toast.success(editing ? "Task saved." : mode === "staff" ? "Task added. Each intern gets a notification." : "Task added.");
     if (!editing) {
       setTitle("");
@@ -148,6 +191,9 @@ export function TaskForm({
       setHours("");
       setMinutes("");
       setSubtasks(null);
+      setProject(preset ?? null);
+      setMilestone("");
+      setPickedLabels(null);
     }
     onSaved();
   }
@@ -203,6 +249,64 @@ export function TaskForm({
           <Input id={`${id}-due-time`} type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
         </div>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ProjectCombobox
+          value={project}
+          onChange={(next) => {
+            setProject(next);
+            setMilestone("");
+          }}
+        />
+        {project && milestones.status === "ready" && milestones.data.length > 0 ? (
+          <div className={field}>
+            <Label htmlFor={`${id}-milestone`}>Milestone</Label>
+            <select
+              id={`${id}-milestone`}
+              className="h-12 w-full rounded-md border border-input bg-card px-3"
+              value={milestone}
+              onChange={(e) => setMilestone(e.target.value)}
+            >
+              <option value="">No milestone</option>
+              {milestones.data.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+      </div>
+      {labelList.length > 0 ? (
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-1 text-sm font-medium">Labels</legend>
+          <div className="flex flex-wrap gap-2">
+            {labelList.map((label) => {
+              const on = labelIds.has(label.id);
+              return (
+                <button
+                  key={label.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    const next = new Set(labelIds);
+                    if (on) next.delete(label.id);
+                    else next.add(label.id);
+                    setPickedLabels(next);
+                  }}
+                  className={cn(
+                    "inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-[15px] transition-colors",
+                    on ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:bg-muted",
+                  )}
+                >
+                  <LabelDot colour={label.colour} />
+                  {label.name}
+                  {on ? <Check aria-hidden className="size-4" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      ) : null}
       <div className={field}>
         <Label htmlFor={`${id}-link`}>Link</Label>
         <Input

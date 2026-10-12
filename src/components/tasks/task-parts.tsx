@@ -17,6 +17,7 @@ import {
   type TaskStatus,
   type Viewer,
 } from "@/components/tasks/task-helpers";
+import { LabelChip } from "@/components/tasks/labels";
 import { cn } from "@/lib/utils";
 
 export const PRIORITY_CHIP: Record<string, string> = {
@@ -42,13 +43,26 @@ export function useWide() {
   return useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE).matches, () => false);
 }
 
-export type View = "list" | "board";
+export type View = "list" | "board" | "calendar" | "workload";
+const VIEW_LABEL: Record<View, string> = { list: "List", board: "Board", calendar: "Calendar", workload: "Workload" };
 
-/** List | Board (D48). Calendar comes later. */
-export function ViewSwitch({ view, setView }: { view: View; setView: (view: View) => void }) {
+/** List | Board | Calendar (D48, D49), plus Workload on the staff Tasks pages. */
+export function ViewSwitch({
+  view,
+  setView,
+  views = ["list", "board", "calendar"],
+}: {
+  view: View;
+  setView: (view: View) => void;
+  views?: View[];
+}) {
   return (
-    <div role="group" aria-label="View" className="grid w-full max-w-60 grid-cols-2 rounded-[10px] bg-muted p-0.5">
-      {(["list", "board"] as const).map((item) => (
+    <div
+      role="group"
+      aria-label="View"
+      className={cn("grid w-full rounded-[10px] bg-muted p-0.5", views.length > 3 ? "max-w-96 grid-cols-4" : "max-w-80 grid-cols-3")}
+    >
+      {views.map((item) => (
         <button
           key={item}
           type="button"
@@ -59,7 +73,7 @@ export function ViewSwitch({ view, setView }: { view: View; setView: (view: View
             view === item ? "bg-card font-semibold shadow-card" : "text-foreground hover:bg-card/60",
           )}
         >
-          {item === "list" ? "List" : "Board"}
+          {VIEW_LABEL[item]}
         </button>
       ))}
     </div>
@@ -132,6 +146,13 @@ function MetaLine({ row, time = false }: { row: TaskItem; time?: boolean }) {
       </span>
     ) : null,
     row.comments > 0 ? <span key="comments">{row.comments === 1 ? "1 comment" : `${row.comments} comments`}</span> : null,
+    row.project_name ? (
+      <span key="project">
+        <span className="sr-only">Project </span>
+        {row.project_name}
+      </span>
+    ) : null,
+    ...(row.labels ?? []).map((label) => <LabelChip key={`label-${label}`} name={label} />),
   ].filter(Boolean);
   if (parts.length === 0) return null;
   return <span className="flex flex-wrap gap-x-2.5 gap-y-1 text-[13px] text-muted-foreground">{parts}</span>;

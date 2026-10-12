@@ -53,6 +53,7 @@ export const SUPERVISOR_GROUPS: NavGroup[] = [
       { href: "/supervisor", label: "Today", match: exact("/supervisor") },
       { href: "/supervisor/announcements", label: "Announcements", match: prefix("/supervisor/announcements") },
       { href: "/supervisor/tasks", label: "Tasks", match: prefix("/supervisor/tasks") },
+      { href: "/supervisor/projects", label: "Projects", match: prefix("/supervisor/projects") },
     ],
   },
   {
@@ -88,6 +89,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
       { href: "/admin", label: "Overview", match: exact("/admin") },
       { href: "/admin/announcements", label: "Announcements", match: prefix("/admin/announcements") },
       { href: "/admin/tasks", label: "Tasks", match: prefix("/admin/tasks") },
+      { href: "/admin/projects", label: "Projects", match: prefix("/admin/projects") },
     ],
   },
   {
@@ -125,6 +127,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
     pages: [
       { href: "/admin/settings", label: "Settings", match: prefix("/admin/settings") },
       { href: "/admin/notifications", label: "Notifications", match: prefix("/admin/notifications") },
+      { href: "/admin/labels", label: "Task labels", match: prefix("/admin/labels") },
       { href: "/admin/sites", label: "Sites", match: prefix("/admin/sites") },
       { href: "/admin/import", label: "Import", match: prefix("/admin/import") },
     ],
@@ -204,17 +207,22 @@ function NavLinks({ items, orientation }: { items: readonly NavItem[]; orientati
 export function InternShell({
   profile,
   title,
+  wide = false,
   children,
 }: {
   profile: Profile;
   title: string;
+  /** Pages with a side column at 1024px+ (the project page) get more room there. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   useEffect(() => void relinkPush(profile.id), [profile.id]);
   return (
     <>
       <AppHeader profile={profile} role="intern" title={title} />
-      <main className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</main>
+      <main className={cn("mx-auto w-full max-w-[720px] px-4", wide ? "lg:max-w-[1100px]" : null, "pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]")}>
+        {children}
+      </main>
       <nav
         aria-label="Intern"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150"
