@@ -19,7 +19,7 @@ test("projects: add, approve, file a task, finish it, see progress and activity"
   await sheet.getByLabel("Project name").fill(name);
   await sheet.getByLabel("Client name").fill("Harbour Cafe");
   await sheet.getByLabel("Status").selectOption("active");
-  await sheet.getByLabel("Link 1").fill("https://example.com/brief");
+  await sheet.getByLabel("Link 1", { exact: true }).fill("https://example.com/brief");
   await sheet.getByRole("button", { name: "Add project" }).click();
   await page.waitForURL(/\/clock\/projects\/view\?id=/);
   await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronLeft, Mail, Phone, Plus, Search, X } from "lucide-react";
@@ -313,6 +313,12 @@ export function ProjectPage({ base, staff }: { base: ProjectsBase; staff: boolea
   const tab = knownParam(params.get("tab"), ["tasks", "activity"], "overview") as Tab;
   const load = useCallback(() => (id ? loadProject(id) : Promise.resolve(null)), [id]);
   const [state, reload] = useLoad(load);
+  // Tasks change under the Tasks tab; coming back to Overview shows fresh totals.
+  const lastTab = useRef(tab);
+  useEffect(() => {
+    if (tab === "overview" && lastTab.current !== "overview") reload();
+    lastTab.current = tab;
+  }, [tab, reload]);
   const back = (
     <Link href={base} className="-ml-2 inline-flex min-h-11 w-fit items-center gap-0.5 pr-2 text-[17px] text-primary">
       <ChevronLeft aria-hidden className="size-5" />
