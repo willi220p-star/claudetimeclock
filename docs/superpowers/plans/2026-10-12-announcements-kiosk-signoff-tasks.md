@@ -153,13 +153,13 @@
 - An overdue task shows on the supervisor's morning summary line.
 
 **Tasks:**
-- [ ] **pgTAP 210:** visibility (intern, own supervisor, not another supervisor), ticking a task, assigning one notifies, and an intern can't edit another intern's tasks.
-- [ ] **Migration.**
-- [ ] **UI:**
+- [x] **pgTAP 210:** visibility (intern, own supervisor, not another supervisor), ticking a task, assigning one notifies, and an intern can't edit another intern's tasks.
+- [x] **Migration.**
+- [x] **UI:**
   - A Tasks card on intern Home with add and tick.
   - A Tasks section on the supervisor's intern page with add, assign and due date.
   - The work log sheet offers "Add today's ticked tasks".
-- [ ] **Checks:** e2e, then docs, preview, PR and deploy.
+- [x] **Checks:** e2e, then docs, preview, PR and deploy.
 
 ## Order and sizes
 

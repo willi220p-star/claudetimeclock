@@ -414,3 +414,7 @@ Dilip's answers: front desk, anyone; the tablet stands in for GPS, the live self
 
 ### Weekly sign-off, signed-hours export, pay rates (Dilip, 2026-10-12) — D43, PR 3 of the 12 Oct plan
 Built by three parallel workers against one contract (`docs/superpowers/specs/2026-10-12-signoff-contract.md`): database (migration `20261017010000_signoff.sql`, pgTAP `200_signoff.sql`, 36), export + pay (`src/lib/timesheet-csv.ts`, `timesheet-export.tsx`, placement pay fields), sign-off UI (`week-signoff.tsx`, "Weeks to sign" setting). Merged and verified together; e2e `signoff-export.spec.ts`.
+
+### Built-in tasks (Dilip, 2026-10-12) — D44, PR 4 of the 12 Oct plan
+Dilip's answers: hide done tasks after a month and delete with the intern's data; open tasks stay; due-day reminder; repeats weekly; multi-assign with own copies; interns tag teammates; status, done note, due time, link, priority.
+- Two parallel workers against `docs/superpowers/specs/2026-10-12-tasks-contract.md`: database (migration `20261018010000_tasks.sql`, pgTAP `210_tasks.sql`, 52) and UI (`src/components/tasks/*`, `/admin/tasks`, `/supervisor/tasks`, Home card, intern-page tab, work-log button, settings row). Merged and verified together; e2e `tasks.spec.ts`. Editing can't switch one-off ↔ repeating (form locks it).

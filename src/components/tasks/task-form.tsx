@@ -182,7 +182,14 @@ export function TaskForm({
         />
       </div>
       <label className="flex min-h-11 items-center gap-3">
-        <input type="checkbox" className="size-5 accent-primary" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+        {/* A saved task can't switch between one-off and repeating (the database refuses): archive and add a new one. */}
+        <input
+          type="checkbox"
+          className="size-5 accent-primary"
+          checked={repeat}
+          disabled={Boolean(initial)}
+          onChange={(e) => setRepeat(e.target.checked)}
+        />
         Repeats weekly
       </label>
       {repeat ? (
