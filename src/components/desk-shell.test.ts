@@ -13,6 +13,9 @@ describe("staff navigation tree", () => {
     expect(currentGroup(SUPERVISOR_GROUPS, "/supervisor")?.label).toBe("Today");
     expect(currentGroup(SUPERVISOR_GROUPS, "/supervisor/progress")?.label).toBe("Interns");
     expect(currentGroup(ADMIN_GROUPS, "/admin/progress")?.label).toBe("Reports");
+    expect(currentGroup(ADMIN_GROUPS, "/admin/projects/view")?.label).toBe("Home");
+    expect(currentGroup(ADMIN_GROUPS, "/admin/labels")?.label).toBe("Settings");
+    expect(currentGroup(SUPERVISOR_GROUPS, "/supervisor/projects/view")?.label).toBe("Today");
   });
 
   test("no page sits under two main tabs", () => {

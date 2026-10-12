@@ -2,19 +2,28 @@
 
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
-import { EmptyState } from "@/components/empty-state";
-import { PageHeader } from "@/components/page-header";
+import { ProjectPage, ProjectsList } from "@/components/projects/projects";
 
-/** Projects tab (D46): an empty state until client projects ship. */
+/** Projects tab (D46, D49): the intern's visible projects and "+ Project". */
 export function ProjectsScreen() {
   return (
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Projects">
-          <div className="flex flex-col gap-6">
-            <PageHeader title="Projects" />
-            <EmptyState>Client projects will show here. You&apos;ll be able to add one and file tasks under it.</EmptyState>
-          </div>
+          <ProjectsList base="/clock/projects" staff={false} />
+        </InternShell>
+      )}
+    </DeskGate>
+  );
+}
+
+/** `/clock/projects/view?id=…` (D49). */
+export function ProjectScreen() {
+  return (
+    <DeskGate role="intern">
+      {(profile) => (
+        <InternShell profile={profile} title="Project" wide>
+          <ProjectPage base="/clock/projects" staff={false} />
         </InternShell>
       )}
     </DeskGate>

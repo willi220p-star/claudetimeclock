@@ -62,7 +62,7 @@ select results_eq($$select lead_id, created_by, approved_at, approved_by, status
   $$select a, a, null::timestamptz, null::uuid, 'planning', array['https://acme.test'] from ids$$,
   'an intern''s project waits, led by its creator');
 select ok(exists (select 1 from public.daymark_notifications where person_id = tests.supervisor() and kind = 'request'
-                  and title = 'Project to approve: Website' and link = '/supervisor/tasks?tab=projects')
+                  and title = 'Project to approve: Website' and link = '/supervisor/projects')
           and exists (select 1 from public.daymark_notifications where person_id = (select admin from ids)
                       and title = 'Project to approve: Website')
           and not exists (select 1 from public.daymark_notifications

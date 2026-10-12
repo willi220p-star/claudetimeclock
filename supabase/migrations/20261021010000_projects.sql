@@ -363,8 +363,11 @@ begin
       where pl.intern_id = me and pl.status in ('active', 'extended', 'target_reached')
     loop
       continue when who = me;
+      -- Admins open their own Projects page; a supervisor-only person opens theirs.
       perform private.notify(who, 'request', 'Project to approve: ' || p.name,
-        coalesce((select x.display_name from public.daymark_profiles x where x.id = me), ''), '/supervisor/tasks?tab=projects');
+        coalesce((select x.display_name from public.daymark_profiles x where x.id = me), ''),
+        case when (select x.is_admin from public.daymark_profiles x where x.id = who) then '/admin/projects'
+             else '/supervisor/projects' end);
     end loop;
   end if;
 

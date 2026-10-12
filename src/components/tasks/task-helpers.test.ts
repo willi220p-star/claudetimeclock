@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  agendaDays,
   boardColumns,
+  calendarWeeks,
+  monthTitle,
+  tasksByDay,
+  workloadBar,
   formatMinutes,
   groupTasks,
   moveBlocker,
@@ -66,7 +71,7 @@ const base: MyTask = {
   project_name: null,
   milestone_id: null,
   milestone_name: null,
-  labels: [],
+  labels: null,
 };
 const task = (patch: Partial<MyTask>): MyTask => ({ ...base, ...patch });
 
@@ -246,5 +251,56 @@ describe("taskActions and moveBlocker (who sees which button)", () => {
     expect(moveBlocker(copy({ status: "in_review", reviewer_id: "r" }), person, "in_progress")).toBeNull();
     expect(moveBlocker(copy({}), teammate, "todo")).toBe("Only the person it's for can move it.");
     expect(moveBlocker(copy({}), staff, "todo")).toBeNull();
+  });
+});
+
+describe("calendar (D49)", () => {
+  it("covers October 2026 in Monday-first weeks, marking other months' days", () => {
+    const weeks = calendarWeeks("2026-10-14");
+    expect(weeks).toHaveLength(5);
+    expect(weeks[0][0]).toEqual({ date: "2026-09-28", inMonth: false });
+    expect(weeks[0][3]).toEqual({ date: "2026-10-01", inMonth: true });
+    expect(weeks.at(-1)?.at(-1)).toEqual({ date: "2026-11-01", inMonth: false });
+    expect(weeks.every((week) => week.length === 7)).toBe(true);
+    // February 2027 starts on a Monday and fills exactly four weeks.
+    expect(calendarWeeks("2027-02-01")).toHaveLength(4);
+    expect(monthTitle("2026-10-14")).toBe("October 2026");
+  });
+
+  it("places tasks by due date, sorted, leaving undated tasks out", () => {
+    const days = tasksByDay([
+      task({ title: "low", due_date: "2026-10-15", priority: "low" }),
+      task({ title: "none" }),
+      task({ title: "high", due_date: "2026-10-15", priority: "high" }),
+    ]);
+    expect([...days.keys()]).toEqual(["2026-10-15"]);
+    expect(days.get("2026-10-15")?.map((row) => row.title)).toEqual(["high", "low"]);
+  });
+
+  it("groups the agenda by day in the month, including rostered days without tasks", () => {
+    const agenda = agendaDays(
+      [
+        task({ title: "a", due_date: "2026-10-20" }),
+        task({ title: "b", due_date: "2026-11-02" }),
+        task({ title: "c", due_date: "2026-10-03" }),
+      ],
+      "2026-10-01",
+      ["2026-10-06", "2026-10-20", "2026-09-30"],
+    );
+    expect(agenda.map((day) => [day.date, day.rows.map((row) => row.title)])).toEqual([
+      ["2026-10-03", ["c"]],
+      ["2026-10-06", []],
+      ["2026-10-20", ["a"]],
+    ]);
+  });
+});
+
+describe("workloadBar (D49)", () => {
+  it("is the estimate's share of the rostered time, red when over", () => {
+    expect(workloadBar(600, 1200)).toEqual({ over: false, percent: 50 });
+    expect(workloadBar(1200, 1200)).toEqual({ over: false, percent: 100 });
+    expect(workloadBar(1500, 1200)).toEqual({ over: true, percent: 100 });
+    expect(workloadBar(60, 0)).toEqual({ over: true, percent: 100 });
+    expect(workloadBar(0, 0)).toEqual({ over: false, percent: 0 });
   });
 });
