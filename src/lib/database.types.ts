@@ -766,6 +766,8 @@ export type Database = {
       }
       daymark_placements: {
         Row: {
+          hourly_rate: number | null
+          paid: boolean
           break_minutes: number
           cohort_id: string | null
           course: string
@@ -790,6 +792,8 @@ export type Database = {
           university: string
         }
         Insert: {
+          hourly_rate?: number | null
+          paid?: boolean
           break_minutes?: number
           cohort_id?: string | null
           course: string
@@ -814,6 +818,8 @@ export type Database = {
           university: string
         }
         Update: {
+          hourly_rate?: number | null
+          paid?: boolean
           break_minutes?: number
           cohort_id?: string | null
           course?: string
@@ -2080,6 +2086,39 @@ export type Database = {
           last_ok_at: string
           person_id: string
         }[]
+      }
+      sign_week: { Args: { placement: string; week_start: string }; Returns: Json }
+      week_open_items: {
+        Args: { placement: string; week_start: string }
+        Returns: { kind: string; label: string; work_date: string }[]
+      }
+      week_signoffs: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          counted_minutes: number
+          placement_id: string
+          signed_at: string
+          signed_by_name: string
+          week_start: string
+        }[]
+      }
+      signoff_export: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          amount: number | null
+          break_minutes: number
+          counted_minutes: number
+          hourly_rate: number | null
+          intern_name: string
+          paid: boolean
+          placement_id: string
+          week_start: string
+          work_date: string
+        }[]
+      }
+      set_placement_pay: {
+        Args: { hourly_rate?: number; paid: boolean; placement: string }
+        Returns: undefined
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
       report_missed_time: {
