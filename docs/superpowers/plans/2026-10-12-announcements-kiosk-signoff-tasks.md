@@ -169,3 +169,5 @@
 | 2 | Kiosk | Medium |
 | 3 | Sign-off, export and rates | Medium to large |
 | 4 | Tasks | Medium |
+
+**Feature 4 update (Dilip, 12 Oct):** expanded. Multi-assign, repeats, priority, status, due time, link, done note, "working with" teammates, and the one-month rule. The contract is `docs/superpowers/specs/2026-10-12-tasks-contract.md`, and it replaces the Feature 4 section above. Two parallel workers build it: database and UI.

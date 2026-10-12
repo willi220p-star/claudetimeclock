@@ -2135,6 +2135,72 @@ export type Database = {
           person_id: string
         }[]
       }
+      save_task: {
+        Args: {
+          assignees: string[]
+          collaborators: string[]
+          description: string
+          due_date: string
+          due_time: string
+          id: string
+          link: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          title: string
+        }
+        Returns: string
+      }
+      set_task_status: {
+        Args: { item: string; note?: string; status: string }
+        Returns: undefined
+      }
+      archive_task: { Args: { id: string }; Returns: undefined }
+      my_tasks: {
+        Args: never
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          own: boolean
+          priority: string
+          repeat_days: number[]
+          status: string
+          task_id: string
+          title: string
+          working_with: string[]
+        }[]
+      }
+      staff_tasks: {
+        Args: { intern?: string }
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          person_id: string
+          person_name: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          status: string
+          task_id: string
+          title: string
+        }[]
+      }
+      task_people: {
+        Args: never
+        Returns: { display_name: string; person_id: string }[]
+      }
       remove_closure_day: { Args: { id: string }; Returns: Json }
       report_missed_time: {
         Args: { at_time: string; event: string; note?: string }
