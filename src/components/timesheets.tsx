@@ -11,8 +11,10 @@ import { PageHeader } from "@/components/page-header";
 import { Sheet } from "@/components/roster-edit";
 import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
+import { TimesheetExport } from "@/components/timesheet-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WeekSignoffs } from "@/components/week-signoff";
 import { loadTimesheet, type Timesheet } from "@/lib/data";
 import { darwinClock, darwinDateKey, formatDay, formatTime } from "@/lib/darwin";
 import { errorText, waitingLabel, type Profile } from "@/lib/daymark";
@@ -69,6 +71,7 @@ function TimesheetsDesk({ role, profile }: { role: StaffRole; profile: Profile }
   return (
     <>
       <PageHeader title="Timesheets" description="Every clock-in, break and clock-out, by day. Tap a time to change it." />
+      {role === "admin" ? <TimesheetExport /> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <Button
@@ -198,6 +201,7 @@ function Week({
           </table>
         </section>
       ) : null}
+      <WeekSignoffs weekStart={data.from} today={data.today} placements={totals.map((row) => row.placement)} stamp={data} />
 
       {byDay.map(({ day, entries }) =>
         entries.length === 0 ? null : (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { PrivacyCard } from "@/app/clock/privacy-card";
 import { AppearanceCard } from "@/components/appearance-card";
+import { KioskPinCard } from "@/components/kiosk-pin-card";
 import { InstallCard } from "@/components/install-card";
 import { PushToggle } from "@/components/push-toggle";
 import { Avatar } from "@/components/avatar";
@@ -74,6 +75,7 @@ function MeDesk({ profile }: { profile: Profile }) {
             <InstallCard />
             <PushToggle />
             <AppearanceCard />
+            <KioskPinCard />
             <PrivacyCard consent={consent} onChange={setConsent} />
             {!placement ? <EmptyState>No placement on this login yet.</EmptyState> : null}
             <section className="flex flex-col gap-2 rounded-xl bg-card p-6 shadow-card">

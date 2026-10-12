@@ -87,20 +87,20 @@
 - **Screen:** `/kiosk`. Shows the name grid, then a PIN pad, then Clock in / Break / Finish, then the camera with the gesture, then a "Done, Aisha clocked in at 9:02" screen. It returns to the grid after 10 seconds. It shows no records.
 
 **Tasks:**
-- [ ] **pgTAP 190:**
+- [x] **pgTAP 190:**
   - a kiosk sees names only, at its own site;
   - a wrong PIN, and the lock after 5;
   - the generic error;
   - a punch is recorded with source `kiosk` for the right person and needs the photo;
   - a kiosk can't select punches or profiles;
   - a non-kiosk can't call the kiosk RPCs.
-- [ ] **Migration and storage policy.**
-- [ ] **UI:**
+- [x] **Migration and storage policy.**
+- [x] **UI:**
   - `/kiosk` screen;
   - "Set kiosk PIN" on Me;
   - Add kiosk and Reset PIN in Admin → People;
   - a "Kiosk" chip on Timesheets.
-- [ ] **Checks:** e2e `kiosk.spec.ts` with the fake camera. Then docs, preview, PR and deploy.
+- [x] **Checks:** e2e `kiosk.spec.ts` with the fake camera. Then docs, preview, PR and deploy.
 
 ## Feature 3: Weekly sign-off, export and pay rates (D43). PR 3
 
@@ -125,19 +125,19 @@
   - The CSV is built on the client.
 
 **Tasks:**
-- [ ] **pgTAP 200:**
+- [x] **pgTAP 200:**
   - sign a clean week;
   - refused with open items, listing them;
   - a staff edit reopens it and notifies;
   - the export only includes signed weeks and the amount equals rate times hours;
   - an intern can't sign;
   - a supervisor signs only their own interns.
-- [ ] **Migration.**
-- [ ] **UI:**
+- [x] **Migration.**
+- [x] **UI:**
   - On Timesheets, each week row gets "Sign week" or a "Signed by Priya, Tue 4:10 pm" chip, plus a list of open items with links.
   - "Export CSV" on Admin Timesheets, for a fortnight or a date range.
   - Paid and hourly rate fields on the placement wizard and placement screen.
-- [ ] **Checks:** Vitest for the CSV builder and e2e. Then docs, preview, PR and deploy.
+- [x] **Checks:** Vitest for the CSV builder and e2e. Then docs, preview, PR and deploy.
 
 ## Feature 4: Built-in tasks (D44). PR 4
 

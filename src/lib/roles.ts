@@ -26,8 +26,10 @@ export function rolesOf(profile: Flags): Role[] {
 }
 
 /** Where a signed-in person lands: the password change first, then their highest role's home. */
-export function homeFor(profile: Flags & Pick<Profile, "must_change_password">): string | null {
+export function homeFor(profile: Flags & Pick<Profile, "must_change_password"> & { is_kiosk?: boolean }): string | null {
   if (profile.must_change_password) return "/set-password";
+  if (profile.is_kiosk) return "/kiosk"; // an office tablet (D42) holds no role
+
   const [top] = rolesOf(profile);
   return top ? ROLE_HOME[top] : null;
 }

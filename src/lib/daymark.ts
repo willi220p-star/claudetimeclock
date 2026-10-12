@@ -17,10 +17,11 @@ export type Profile = Pick<
   | "is_admin"
   | "must_change_password"
   | "created_at"
+  | "is_kiosk"
 >;
 
 export const PROFILE_COLUMNS =
-  "id, login_id, display_name, contact_email, active, is_intern, is_supervisor, is_admin, must_change_password, created_at";
+  "id, login_id, display_name, contact_email, active, is_intern, is_supervisor, is_admin, must_change_password, created_at, is_kiosk";
 
 export type Punch = Pick<
   Tables<"daymark_punches">,

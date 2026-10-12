@@ -74,6 +74,7 @@ const intern: Profile = {
   is_supervisor: false,
   is_admin: false,
   must_change_password: false,
+  is_kiosk: false,
   created_at: "2026-09-25T00:00:00Z",
 };
 
