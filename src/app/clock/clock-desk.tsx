@@ -13,6 +13,7 @@ import { FormMessage } from "@/components/form-field";
 import { MinutesText } from "@/components/minutes-text";
 import { AnnouncementCards } from "@/components/announcements";
 import { RemindersNudge } from "@/components/reminders-nudge";
+import { TasksCard } from "@/components/tasks/tasks";
 import { PaceChip } from "@/components/pace-chip";
 import { PunchDayTable } from "@/components/punch-day-table";
 import { StatusChip } from "@/components/status-chip";
@@ -265,6 +266,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
           />
         )}
       </section>
+
+      <TasksCard />
 
       {extrasData && extrasData.roster.length > 0 && placementId ? <RosterDots days={extrasData.roster} /> : null}
 

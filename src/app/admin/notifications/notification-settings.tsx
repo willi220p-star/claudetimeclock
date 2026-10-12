@@ -30,6 +30,7 @@ const KIND_GROUPS = [
       ["reminder_break", "Break is up", "When their break has run its set length (below)."],
       ["reminder_clock_out", "Time to clock out", "At the rostered finish, if they're still clocked in."],
       ["reminder_tomorrow", "Shift tomorrow morning", "8:00 pm the day before, for a shift that starts before noon."],
+      ["task", "Tasks", "New tasks and an 8 am reminder of tasks due today."],
     ],
   },
   {

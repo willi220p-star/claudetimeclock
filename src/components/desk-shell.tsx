@@ -33,6 +33,7 @@ export const SUPERVISOR_GROUPS: NavGroup[] = [
     pages: [
       { href: "/supervisor", label: "Today", match: exact("/supervisor") },
       { href: "/supervisor/announcements", label: "Announcements", match: prefix("/supervisor/announcements") },
+      { href: "/supervisor/tasks", label: "Tasks", match: prefix("/supervisor/tasks") },
     ],
   },
   {
@@ -67,6 +68,7 @@ export const ADMIN_GROUPS: NavGroup[] = [
     pages: [
       { href: "/admin", label: "Overview", match: exact("/admin") },
       { href: "/admin/announcements", label: "Announcements", match: prefix("/admin/announcements") },
+      { href: "/admin/tasks", label: "Tasks", match: prefix("/admin/tasks") },
     ],
   },
   {
