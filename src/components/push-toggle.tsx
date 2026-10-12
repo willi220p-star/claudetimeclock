@@ -6,9 +6,8 @@ import { toast } from "sonner";
 import { isIos, useInstalled } from "@/components/install-card";
 import { Button } from "@/components/ui/button";
 import { errorText } from "@/lib/daymark";
+import { PUSH_LINKED, urlBase64ToUint8Array, VAPID_PUBLIC_KEY } from "@/lib/push";
 import { createClient } from "@/lib/supabase/client";
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 export type PushState = "unsupported" | "install" | "blocked" | "off" | "on";
 
@@ -24,11 +23,6 @@ export function pushState(args: {
   if (!args.supported) return "unsupported";
   if (args.permission === "denied") return "blocked";
   return args.subscribed ? "on" : "off";
-}
-
-function urlBase64ToUint8Array(base64: string) {
-  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
-  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
 }
 
 /**
@@ -49,25 +43,21 @@ export function PushToggle() {
   useEffect(() => {
     if (!supported) return;
     let live = true;
-    void navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then(async (existing) => {
-        // A phone used by someone else before: make it this person's (the save moves it).
-        if (existing) {
-          const json = existing.toJSON();
-          await createClient().rpc("save_push_subscription", {
-            endpoint: existing.endpoint,
-            p256dh: json.keys?.p256dh ?? "",
-            auth: json.keys?.auth ?? "",
-          });
-        }
-        if (!live) return;
-        setSubscription(existing);
-        setChecked(true);
-      })
-      .catch(() => setChecked(true));
+    // The desk shell's relinkPush attaches an existing subscription to this person (D45); this only reads it.
+    const check = () =>
+      void navigator.serviceWorker.ready
+        .then((registration) => registration.pushManager.getSubscription())
+        .then((existing) => {
+          if (!live) return;
+          setSubscription(existing);
+          setChecked(true);
+        })
+        .catch(() => setChecked(true));
+    check();
+    window.addEventListener(PUSH_LINKED, check);
     return () => {
       live = false;
+      window.removeEventListener(PUSH_LINKED, check);
     };
   }, [supported]);
 
