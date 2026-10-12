@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/page-header";
 import { Sheet } from "@/components/roster-edit";
 import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
+import { TimesheetExport } from "@/components/timesheet-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loadTimesheet, type Timesheet } from "@/lib/data";
@@ -69,6 +70,7 @@ function TimesheetsDesk({ role, profile }: { role: StaffRole; profile: Profile }
   return (
     <>
       <PageHeader title="Timesheets" description="Every clock-in, break and clock-out, by day. Tap a time to change it." />
+      {role === "admin" ? <TimesheetExport /> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <Button

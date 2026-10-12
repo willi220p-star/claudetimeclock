@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { AdminFrame } from "@/app/admin/admin-frame";
 import {
   PlacementWizard,
@@ -11,14 +12,17 @@ import {
   type PatternDay,
 } from "@/app/admin/placements/placement-wizard";
 import { EmptyState } from "@/components/empty-state";
+import { FormField, FormMessage } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { PdfDownloads } from "@/components/pdf-downloads";
 import { ChangeDaysSheet } from "@/components/roster-edit";
 import { StatusChip } from "@/components/status-chip";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { loadCohorts, loadPlacement, loadProfiles } from "@/lib/data";
 import { darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
+import { errorText } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
@@ -253,7 +257,12 @@ function PlacementFields({
           <dt className="text-sm text-muted-foreground">Lifecycle</dt>
           <dd>{PLACEMENT_STATUS_LABEL[row.status] ?? row.status}</dd>
         </div>
+        <div>
+          <dt className="text-sm text-muted-foreground">Pay</dt>
+          <dd>{row.paid && row.hourly_rate !== null ? `Paid · $${row.hourly_rate.toFixed(2)}/h` : "Unpaid"}</dd>
+        </div>
       </dl>
+      <PlacementPay row={row} onSaved={onChanged} />
       <section aria-labelledby="pattern-title" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="pattern-title">Weekly pattern</h2>
@@ -310,5 +319,67 @@ function PlacementFields({
         />
       ) : null}
     </>
+  );
+}
+
+/** Admin pay fields (D43): paid placements record an hourly rate only; payroll does tax and super. */
+function PlacementPay({ row, onSaved }: { row: Detail; onSaved: () => void }) {
+  const [paid, setPaid] = useState(row.paid);
+  const [rate, setRate] = useState(row.hourly_rate === null ? "" : row.hourly_rate.toFixed(2));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setError(null);
+    const hourly = Number(rate);
+    if (paid && !(rate.trim() && hourly > 0)) {
+      setError("Set an hourly rate above 0.");
+      return;
+    }
+    setBusy(true);
+    const result = await createClient().rpc("set_placement_pay", {
+      placement: row.id,
+      paid,
+      hourly_rate: paid ? hourly : undefined,
+    });
+    setBusy(false);
+    if (result.error) {
+      setError(errorText(result.error, "Pay didn't save. Try again."));
+      return;
+    }
+    toast.success("Pay saved.");
+    onSaved();
+  }
+
+  return (
+    <section aria-labelledby="pay-title" className="flex flex-col gap-3 rounded-xl bg-card p-6 shadow-card">
+      <h2 id="pay-title">Pay</h2>
+      <label className="flex min-h-11 items-center gap-2">
+        <input type="checkbox" checked={paid} onChange={(event) => setPaid(event.target.checked)} className="size-5 accent-primary" />
+        Paid placement
+      </label>
+      {paid ? (
+        <FormField id="hourly-rate" label="Hourly rate ($)" hint="Before tax and super. Payroll works those out.">
+          {(input) => (
+            <Input
+              {...input}
+              type="number"
+              inputMode="decimal"
+              min="0.01"
+              step="0.01"
+              value={rate}
+              onChange={(event) => setRate(event.target.value)}
+              className="max-w-40"
+            />
+          )}
+        </FormField>
+      ) : null}
+      {error ? <FormMessage>{error}</FormMessage> : null}
+      <div>
+        <Button type="button" variant="secondary" disabled={busy} onClick={() => void save()}>
+          Save pay
+        </Button>
+      </div>
+    </section>
   );
 }
