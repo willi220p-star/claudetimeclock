@@ -42,20 +42,20 @@
 - Schedule gets a **History** tab showing every shift since the placement start, and tapping one opens a pre-filled fix request.
 
 **Tasks:**
-- [ ] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Projects (`/clock/projects`), Schedule, Me.
+- [x] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Projects (`/clock/projects`), Schedule, Me.
     - Until PR E ships, the Projects tab shows an empty state.
     - `/clock/progress` and `/clock/requests` stay as pages, with no bottom tab. Me gets a three-segment switch (Me | Progress | Requests).
     - The segments are links to those pages, so existing links (such as notifications going to `/clock/requests`) keep working.
-- [ ] **`/clock/tasks`** is the "My work" hub (Dilip, 13 Oct). The existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
-    - Top filters: Today, This week, Overdue, To review.
-    - A view switch: List, Board (PR D) or Calendar (PR E).
+- [x] **`/clock/tasks`** is the "My work" hub (Dilip, 13 Oct). The existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
+    - Top filters: Today, This week, Overdue, To review. (PR B ships All, Today, This week, Overdue; To review comes with PR D.)
+    - A view switch: List, Board (PR D) or Calendar (PR E). (Not in PR B.)
     - A big **+ Task** button, plus filters by project, label and priority as they land.
-- [ ] **Schedule:** a segment switch, Roster | History.
+- [x] **Schedule:** a segment switch, Roster | History.
     - **History** lists days newest first: date, day type, clock-in, breaks, clock-out, counted hours, and chips (Missing clock-out, Waiting, Offline, Kiosk, Typed-in, Absent, Leave). It loads by month, with a "Load earlier" button.
     - Tapping a day opens the existing request form as a `punch_fix` for that date, pre-filled with the day's in and out punch ids. The intern picks "Forgot to clock out", "Wrong time" or "Missed break" and writes a reason.
     - A day with a pending request shows "Fix requested", and a second fix can't be sent for it.
     - It reuses the timesheet data the intern already reads (`punch-day-table`, `loadDays`). No new database work, unless a read is missing. If one is, it's an `my_history(from, to)` read in PR C's migration.
-- [ ] **Tests:** Vitest for history row building (chips, missing clock-out) and e2e: open History, tap a day, send a fix, and see it in Requests.
+- [x] **Tests:** Vitest for history row building (chips, missing clock-out) and e2e: open History, tap a day, send a fix, and see it in Requests.
 
 ## PR C: open-ended placements (D47)
 

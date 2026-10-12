@@ -50,6 +50,13 @@ export async function signIn(page: Page, email: string, password: string = SEED.
   await page.waitForURL((url) => url.pathname !== "/");
 }
 
+/** Intern: Me tab, then one of its segments (D46: Progress and Requests live inside Me). */
+export async function openMe(page: Page, segment: "Me" | "Progress" | "Requests") {
+  await page.getByRole("navigation", { name: "Intern" }).getByRole("link", { name: "Me", exact: true }).click();
+  await page.getByRole("navigation", { name: "Me pages" }).getByRole("link", { name: new RegExp(`^${segment}`) }).click();
+  await page.waitForURL(new RegExp(`/clock/${segment.toLowerCase()}`));
+}
+
 /** Signs out from the header (or the Me page) and waits for the sign-in form. */
 export async function signOut(page: Page) {
   await page.getByRole("button", { name: /sign out/i }).first().click();

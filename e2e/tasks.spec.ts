@@ -26,6 +26,10 @@ test("tasks: assign, tick done with a note, staff see progress", async ({ page, 
     "Dev Patel": "intern4@dgk.test", "Eli Brooks": "intern5@dgk.test" } as Record<string, string>;
   test.skip(!login[chosen], `no seed login for ${chosen}`);
   await signIn(page, login[chosen]);
+  // D46: Home links to My work; the tasks live on the Tasks tab.
+  await expect(page.getByRole("link", { name: /tasks? to do/ })).toBeVisible();
+  await page.getByRole("navigation", { name: "Intern" }).getByRole("link", { name: "Tasks", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "My work", level: 1 })).toBeVisible();
   const status = page.getByRole("group", { name: `Status of ${title}` });
   await expect(status).toBeVisible();
   await expect(page.getByText("High priority").first()).toBeVisible();

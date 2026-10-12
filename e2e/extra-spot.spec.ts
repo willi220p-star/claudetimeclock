@@ -4,6 +4,7 @@ import {
   clearOfficeClock,
   expect,
   nextMonday,
+  openMe,
   SEED,
   setOfficeClock,
   signIn,
@@ -39,7 +40,7 @@ test("a 4th spot needs the supervisor and then the admin", async ({ page }, test
   await page.getByRole("button", { name: /^Submit$/ }).click();
   await expect(page.getByText(/Extra day sent/i)).toBeVisible();
 
-  await page.getByRole("link", { name: "Requests" }).click();
+  await openMe(page, "Requests");
   // Catch-up (golden path 4) also leaves extra-day requests for Ben, so pick this one by its date.
   const pending = page.getByRole("listitem").filter({ hasText: "Extra day" }).filter({ hasText: formatDay(wednesday) }).first();
   await expect(pending).toBeVisible();

@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { groupTasks, isOverdue, repeatSummary, sortTasks, workLogLines, type MyTask, type StaffTask } from "@/components/tasks/task-helpers";
+import {
+  groupTasks,
+  isOverdue,
+  matchesTaskFilter,
+  repeatSummary,
+  sortTasks,
+  workLogLines,
+  type MyTask,
+  type StaffTask,
+} from "@/components/tasks/task-helpers";
+
+describe("matchesTaskFilter (My work quick filters)", () => {
+  const now = new Date("2026-10-14T10:00:00+09:30"); // Wednesday, Darwin
+  const due = (due_date: string | null, status = "todo") => ({ status, due_date, due_time: null });
+
+  it("Today, This week (Mon–Sun) and Overdue on open tasks only", () => {
+    expect(matchesTaskFilter(due("2026-10-14"), "today", now)).toBe(true);
+    expect(matchesTaskFilter(due("2026-10-14", "done"), "today", now)).toBe(false);
+    expect(matchesTaskFilter(due("2026-10-12"), "week", now)).toBe(true);
+    expect(matchesTaskFilter(due("2026-10-18"), "week", now)).toBe(true);
+    expect(matchesTaskFilter(due("2026-10-19"), "week", now)).toBe(false);
+    expect(matchesTaskFilter(due("2026-10-13"), "overdue", now)).toBe(true);
+    expect(matchesTaskFilter(due(null), "week", now)).toBe(false);
+    expect(matchesTaskFilter(due(null, "done"), "all", now)).toBe(true);
+  });
+});
 
 const base: MyTask = {
   item_id: "i",

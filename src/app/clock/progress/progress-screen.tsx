@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { BarsChart, ChartCard, ChartTable } from "@/components/bar-chart";
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
+import { MeTabs } from "@/components/segmented-nav";
 import { LoadBlock } from "@/components/load-block";
 import { MinutesText } from "@/components/minutes-text";
 import { PaceChip } from "@/components/pace-chip";
@@ -32,6 +33,7 @@ export function ProgressScreen() {
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Progress">
+          <MeTabs />
           <ProgressDesk profile={profile} />
         </InternShell>
       )}

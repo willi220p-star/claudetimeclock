@@ -3,7 +3,19 @@
 import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { CalendarDays, ChartPie, CircleUserRound, Clock, House, Inbox, Settings, Users, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  ChartPie,
+  CircleUserRound,
+  Clock,
+  Folder,
+  House,
+  Inbox,
+  Settings,
+  SquareCheckBig,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -12,12 +24,18 @@ import type { Profile } from "@/lib/daymark";
 import { relinkPush } from "@/lib/push";
 import type { Role } from "@/lib/roles";
 
-const INTERN_TABS = [
+// Intern tabs (D46): Progress and Requests live inside Me as segments, so Me stays lit on them.
+export const INTERN_TABS = [
   { href: "/clock", label: "Today", icon: Clock, match: (path: string) => path === "/clock" || path === "/clock/" },
+  { href: "/clock/tasks", label: "Tasks", icon: SquareCheckBig, match: (path: string) => path.startsWith("/clock/tasks") },
+  { href: "/clock/projects", label: "Projects", icon: Folder, match: (path: string) => path.startsWith("/clock/projects") },
   { href: "/clock/schedule", label: "Schedule", icon: CalendarDays, match: (path: string) => path.startsWith("/clock/schedule") },
-  { href: "/clock/requests", label: "Requests", icon: Inbox, match: (path: string) => path.startsWith("/clock/requests") },
-  { href: "/clock/progress", label: "Progress", icon: ChartPie, match: (path: string) => path.startsWith("/clock/progress") },
-  { href: "/clock/me", label: "Me", icon: CircleUserRound, match: (path: string) => path.startsWith("/clock/me") },
+  {
+    href: "/clock/me",
+    label: "Me",
+    icon: CircleUserRound,
+    match: (path: string) => ["/clock/me", "/clock/progress", "/clock/requests"].some((page) => path.startsWith(page)),
+  },
 ] as const;
 
 const exact = (href: string) => (path: string) => path === href || path === `${href}/`;

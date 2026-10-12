@@ -424,3 +424,10 @@ Plan: `docs/superpowers/plans/2026-10-13-reminders-nav-openended-tasks-v2.md`. C
 - `src/lib/idle.ts` no longer forgets the subscription; `SignOutButton` keeps it unless "Shared phone?" is confirmed.
 - `src/lib/push.ts`: `shouldRelink` (pure), `relinkPush` (run from `InternShell`/`StaffShell`; saves the existing subscription to the signed-in person, or re-subscribes silently when permission is already granted; fires `dgk-push-linked` so `RemindersNudge` and `PushToggle` show "on"); `urlBase64ToUint8Array` and the VAPID key moved here.
 - Vitest `src/lib/push.test.ts`.
+
+### Intern tabs and shift history (Dilip, 2026-10-13) — D46, PR B of the 13 Oct plan
+Client only (no migration; the intern already reads every row it needs).
+- `desk-shell.tsx`: intern tabs Today, Tasks, Projects, Schedule, Me (Me stays lit on Progress and Requests). `src/components/segmented-nav.tsx`: `SegmentedNav` (links with `aria-current`), `MeTabs` (Me | Progress | Requests, pending-request badge) and `ScheduleTabs` (Roster | History).
+- `/clock/tasks` ("My work": `TasksCard filters`, quick filters All / Today / This week / Overdue via `matchesTaskFilter`); Home shows `TasksLinkCard` instead of the full card. `/clock/projects`: empty state.
+- `/clock/schedule/history`: `src/lib/history.ts` (`historyRows` on top of `profileDays`/`dayTimes`, `historyMonths`, `historyFrom`, `pendingFixDates`); tapping a day opens `RequestForm` as a punch fix with the last session's times and punch ids. `buildRequestPayload` sends a time (and its `replaces_*_punch_id`) only when it changed; `RequestForm` has quick-reason chips for punch fixes. Fix window from `settings.punch_fix_days` (7 if unreadable).
+- Vitest `src/lib/history.test.ts`, `src/components/segmented-nav.test.ts`, task filter case in `task-helpers.test.ts`. e2e: new `history.spec.ts`; `openMe` helper; swap, extra-spot, progress and tasks specs follow the new navigation. Not done: "To review" filter and List/Board/Calendar views (PR D/E).

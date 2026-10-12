@@ -1,5 +1,5 @@
 import { formatDay, formatTimeOfDay } from "../src/lib/darwin";
-import { addUtcDays, clearOfficeClock, expect, nextMonday, setOfficeClock, signIn, signOut, test } from "./fixtures";
+import { addUtcDays, clearOfficeClock, expect, nextMonday, openMe, setOfficeClock, signIn, signOut, test } from "./fixtures";
 
 // Golden path 2 (§16): intern submits a swap → supervisor approves → the schedule updates.
 test.afterEach(() => clearOfficeClock());
@@ -29,7 +29,7 @@ test("intern swaps a day and the supervisor approves it", async ({ page }, testI
   await page.getByRole("button", { name: /^Submit$/ }).click();
   await expect(page.getByText(/Swap sent/i)).toBeVisible();
 
-  await page.getByRole("link", { name: "Requests" }).click();
+  await openMe(page, "Requests");
   await expect(page).toHaveURL(/\/clock\/requests/);
   await page.getByRole("button", { name: /^Pending$/ }).click();
   const pending = page.getByRole("listitem").filter({ hasText: "Swap" }).first();
@@ -56,7 +56,7 @@ test("intern swaps a day and the supervisor approves it", async ({ page }, testI
   await expect(newDay).toContainText(new RegExp(`${formatTimeOfDay("09:00")}.*${formatTimeOfDay("17:00")}`));
   await expect(newDay).toContainText(/Scheduled/i);
 
-  await page.getByRole("link", { name: "Requests" }).click();
+  await openMe(page, "Requests");
   await page.getByRole("button", { name: /^Decided$/ }).click();
   const decided = page.getByRole("listitem").filter({ hasText: "Swap" }).first();
   await expect(decided).toContainText(/Approved/i);

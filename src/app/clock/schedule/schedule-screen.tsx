@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { InternShell } from "@/components/desk-shell";
 import { DAY_STATUS, DayStatusBadge, type DayStatus } from "@/components/day-status-badge";
 import { DeskGate } from "@/components/desk-gate";
+import { ScheduleTabs } from "@/components/segmented-nav";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { RequestForm } from "@/components/request-form";
@@ -36,6 +37,7 @@ export function ScheduleScreen() {
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Schedule">
+          <ScheduleTabs />
           <ScheduleDesk />
         </InternShell>
       )}
