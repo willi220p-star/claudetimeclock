@@ -37,15 +37,19 @@
 ## PR B: intern tabs and shift history (D46)
 
 **Dilip's answers:**
-- Bottom tabs: **Today · Tasks · Schedule · Requests · Me**.
-- Progress moves inside Me as a split tab: **Me | Progress**.
+- Bottom tabs: **Today · Tasks · Projects · Schedule · Me** (13 Oct update).
+- Progress and Requests move inside Me as a split tab: **Me | Progress | Requests**.
 - Schedule gets a **History** tab showing every shift since the placement start, and tapping one opens a pre-filled fix request.
 
 **Tasks:**
-- [ ] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Schedule, Requests, Me.
-    - `/clock/progress` stays as a page, and its tab moves into Me.
-    - Me gets a two-segment switch (Me | Progress). The segment is remembered in the URL hash.
-- [ ] **`/clock/tasks`:** the existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
+- [ ] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Projects (`/clock/projects`), Schedule, Me.
+    - Until PR E ships, the Projects tab shows an empty state.
+    - `/clock/progress` and `/clock/requests` stay as pages, with no bottom tab. Me gets a three-segment switch (Me | Progress | Requests).
+    - The segments are links to those pages, so existing links (such as notifications going to `/clock/requests`) keep working.
+- [ ] **`/clock/tasks`** is the "My work" hub (Dilip, 13 Oct). The existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
+    - Top filters: Today, This week, Overdue, To review.
+    - A view switch: List, Board (PR D) or Calendar (PR E).
+    - A big **+ Task** button, plus filters by project, label and priority as they land.
 - [ ] **Schedule:** a segment switch, Roster | History.
     - **History** lists days newest first: date, day type, clock-in, breaks, clock-out, counted hours, and chips (Missing clock-out, Waiting, Offline, Kiosk, Typed-in, Absent, Leave). It loads by month, with a "Load earlier" button.
     - Tapping a day opens the existing request form as a `punch_fix` for that date, pre-filled with the day's in and out punch ids. The intern picks "Forgot to clock out", "Wrong time" or "Missed break" and writes a reason.
@@ -133,31 +137,75 @@
 - [ ] **"To review":** a section on the Tasks tab for reviewers, interns included.
 - [ ] **Tests:** pgTAP 230 covers each rule above (review gate, subtasks gate, participants only, notifications, needs-changes path). Also Vitest for the board grouping and the time format, and e2e for assign with reviewer → send for review → needs changes → fix → approve.
 
-## PR E: projects, labels, calendar and workload (D49)
+## PR E: projects, milestones, labels, calendar and workload (D49)
 
-**Dilip's answer:** projects, labels, a calendar view and a workload view.
+**Dilip's answers (13 Oct):**
+- **Projects tab:** projects get their own intern bottom tab.
+- **Who creates:** anyone can add a client project. An intern's project waits for supervisor or admin approval. It shows "Waiting for approval" to its creator only, and staff get a notification.
+- **Visibility:** team only. That means the lead, members, anyone with a task in it, and the staff who manage any of them. An admin sees everything.
+- **Project form:**
+    - name;
+    - client name;
+    - contact name, email and phone;
+    - start date and due date;
+    - status: Planning, Active, On hold or Completed;
+    - lead and team members;
+    - description and links (up to 5 `https://` links).
+- **Project page:**
+    - progress (done copies out of all copies), estimated hours against time spent, overdue and blocked counts;
+    - tasks as a list or board, with "+ Task" pre-filled with the project;
+    - milestones;
+    - an activity feed.
+- **Milestones:** a name and a due date. A task can optionally belong to one, and the milestone shows done when all its tasks are done. The lead or staff manage milestones.
+- **On a task:** the task form gets an optional **Project** lookup, a search box listing only projects the person can see. **Milestone** shows once a project is picked. Anyone who can edit the task can set or clear them, interns' own tasks included.
 
 **Database:**
-- [ ] `daymark_projects(id, name 1–80, description ≤ 2,000, due_date, created_by, created_at, archived_at)`.
-    - Staff create and edit projects: admins any, supervisors their own.
-    - Interns see a project when they have a task in it.
-- [ ] `daymark_tasks.project_id` (nullable).
-- [ ] `project_list()` returns progress (done copies / all copies), the total estimate, total spent, overdue and blocked counts.
-- [ ] `daymark_labels(id, name 1–30, colour from a fixed list of 8 tokens, archived_at)`. Staff manage labels, and `daymark_task_labels(task_id, label_id)` links them. The task form picks labels, and every task list filters by project and label.
-- [ ] `task_workload(week_start)` is for staff only. Per intern (theirs, or everyone for an admin) it returns: open copies, estimated minutes due this week, rostered minutes this week, overdue, blocked and in review.
-- [ ] pgTAP 240: project visibility, progress maths, label filter, workload maths and scoping.
+- [ ] **`daymark_projects`:**
+    - `id`, `name` 1–80;
+    - `client_name` ≤ 120, `contact_name` ≤ 80, `contact_email`, `contact_phone` ≤ 30;
+    - `start_date`, `due_date`;
+    - `status` planning, active, on_hold or completed (default planning);
+    - `description` ≤ 2,000, `links text[]` (at most 5, each `https://`, each ≤ 500);
+    - `lead_id`;
+    - `approved_at` and `approved_by` (null while waiting);
+    - `created_by`, `created_at`, `archived_at`.
+- [ ] `daymark_project_members(project_id, person_id, removed_at)`.
+- [ ] `daymark_milestones(id, project_id, name 1–80, due_date, position, archived_at)`.
+- [ ] `daymark_tasks.project_id` and `milestone_id`, both nullable. The milestone must belong to the project.
+- [ ] `daymark_project_activity(id, project_id, actor_id on delete set null, actor_name, kind, text ≤ 200, created_at)`.
+    - It is written by the task, project and milestone functions: task added, task done, review approved, status changed, member added, milestone done.
+    - It is cut to 90 days by archive, never `delete from`. The feed shows the last 90 days.
+- [ ] **RPCs:**
+    - `save_project(...)`, `approve_project(id, approve)`, `archive_project(id)`;
+    - `save_milestone(...)`, `archive_milestone(id)`;
+    - `my_projects()` returns the visible projects with progress, hours, overdue and blocked counts, and `waiting` (for the approval list);
+    - `project_detail(id)` returns the project plus milestones and member names;
+    - `project_activity(id, before)`;
+    - `project_lookup(q)` returns id and name for the task form.
+- [ ] `save_task` refuses a project the caller can't see (42501).
+- [ ] **`daymark_labels`:** `id`, `name` 1–30, `colour` (one of 8 tokens), `archived_at`. Staff manage labels, and `daymark_task_labels` links them to tasks.
+- [ ] **`task_workload(week_start)`:** staff only, as in the earlier version of this plan.
+- [ ] **pgTAP 240:**
+    - team-only visibility, including that another team's intern can't see the project or look it up;
+    - intern project approval;
+    - progress and hours maths;
+    - milestone done-ness;
+    - the activity rows;
+    - a task with a project the caller can't see is refused;
+    - labels and workload.
 
 **UI:**
-- [ ] Staff **Projects** page, next to Tasks: list → project detail with a progress bar and its tasks (list or board).
-- [ ] **Calendar** (List | Board | Calendar): a month grid of tasks by due date, coloured by priority. Interns also see their rostered days as dots.
-- [ ] **Workload** tab on the staff Tasks page: one row per intern with bars for estimated hours against rostered hours this week. Red when estimated is over rostered.
-- [ ] Labels admin is under Settings → Task labels.
-- [ ] Tests: Vitest for calendar placement and workload colour, plus e2e for a project with 2 tasks reaching 1 of 2 done.
+- [ ] **`/clock/projects`:** project cards (client, status chip, progress bar, due date), a "Waiting for approval" chip, and **+ Project**. Tapping a card opens the project page with segments: Overview (progress, hours, milestones, client and links), Tasks (List or Board), Activity.
+- [ ] **Staff:** a Projects page next to Tasks. It has the same page, plus an "Approve projects" list.
+- [ ] **Task form:** the Project lookup (combobox, optional) and the Milestone select.
+- [ ] **Calendar view** on Tasks: a month grid by due date, coloured by priority, with interns' rostered days as dots.
+- [ ] **Workload** tab on staff Tasks.
+- [ ] **Settings → Task labels.**
+- [ ] **Tests:** Vitest for progress maths, calendar placement and workload colour. e2e: an intern adds a project → the supervisor approves → a task is filed under it → it's done → progress shows 1 of 1 and the activity shows it.
 
 ## Defaults chosen (say if any is wrong)
 
 - **Subtasks and comments are per person's copy.** Each assignee has their own checklist and thread. The creator's starting subtasks are copied to everyone.
-- **Projects:** only staff create them. Interns can't create projects, but they can add their own tasks to a project they're in.
 - **Labels:** one shared list for the whole organisation, managed by staff.
 - **Comment pushes:** at most one per person per task every 10 minutes.
 
