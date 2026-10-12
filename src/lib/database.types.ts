@@ -618,6 +618,62 @@ export type Database = {
           },
         ]
       }
+      daymark_labels: {
+        Row: {
+          archived_at: string | null
+          colour: string
+          id: string
+          name: string
+        }
+        Insert: {
+          archived_at?: string | null
+          colour: string
+          id?: string
+          name: string
+        }
+        Update: {
+          archived_at?: string | null
+          colour?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      daymark_milestones: {
+        Row: {
+          archived_at: string | null
+          due_date: string | null
+          id: string
+          name: string
+          position: number
+          project_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          position: number
+          project_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          position?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_notices: {
         Row: {
           body: string
@@ -937,6 +993,166 @@ export type Database = {
             columns: ["kiosk_site_id"]
             isOneToOne: false
             referencedRelation: "daymark_sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_project_activity: {
+        Row: {
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          id: string
+          kind: string
+          project_id: string
+          text: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name: string
+          created_at?: string
+          id?: string
+          kind: string
+          project_id: string
+          text: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          project_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_project_activity_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_project_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_project_members: {
+        Row: {
+          person_id: string
+          project_id: string
+          removed_at: string | null
+        }
+        Insert: {
+          person_id: string
+          project_id: string
+          removed_at?: string | null
+        }
+        Update: {
+          person_id?: string
+          project_id?: string
+          removed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_project_members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_projects: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          archived_at: string | null
+          client_name: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          lead_id: string | null
+          links: string[] | null
+          name: string
+          start_date: string | null
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          client_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          links?: string[] | null
+          name: string
+          start_date?: string | null
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          archived_at?: string | null
+          client_name?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          links?: string[] | null
+          name?: string
+          start_date?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_projects_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_projects_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1784,6 +2000,39 @@ export type Database = {
           },
         ]
       }
+      daymark_task_labels: {
+        Row: {
+          label_id: string
+          removed_at: string | null
+          task_id: string
+        }
+        Insert: {
+          label_id: string
+          removed_at?: string | null
+          task_id: string
+        }
+        Update: {
+          label_id?: string
+          removed_at?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_task_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_task_labels_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_task_subtasks: {
         Row: {
           created_at: string
@@ -1853,7 +2102,9 @@ export type Database = {
           estimate_minutes: number | null
           id: string
           link: string | null
+          milestone_id: string | null
           priority: string
+          project_id: string | null
           repeat_days: number[] | null
           repeat_until: string | null
           reviewer_id: string | null
@@ -1870,7 +2121,9 @@ export type Database = {
           estimate_minutes?: number | null
           id?: string
           link?: string | null
+          milestone_id?: string | null
           priority?: string
+          project_id?: string | null
           repeat_days?: number[] | null
           repeat_until?: string | null
           reviewer_id?: string | null
@@ -1887,7 +2140,9 @@ export type Database = {
           estimate_minutes?: number | null
           id?: string
           link?: string | null
+          milestone_id?: string | null
           priority?: string
+          project_id?: string | null
           repeat_days?: number[] | null
           repeat_until?: string | null
           reviewer_id?: string | null
@@ -1900,6 +2155,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_projects"
             referencedColumns: ["id"]
           },
           {
@@ -2146,11 +2415,18 @@ export type Database = {
           read_at: string
         }[]
       }
+      approve_project: {
+        Args: { approve: boolean; id: string; note?: string }
+        Returns: undefined
+      }
       approve_uni_report: {
         Args: { note?: string; placement: string }
         Returns: undefined
       }
       archive_announcement: { Args: { id: string }; Returns: undefined }
+      archive_label: { Args: { id: string }; Returns: undefined }
+      archive_milestone: { Args: { id: string }; Returns: undefined }
+      archive_project: { Args: { id: string }; Returns: undefined }
       archive_task: { Args: { id: string }; Returns: undefined }
       attach_leave_certificate: {
         Args: { path: string; request_id: string }
@@ -2341,6 +2617,14 @@ export type Database = {
       kpi_admin: { Args: never; Returns: Json }
       kpi_intern: { Args: never; Returns: Json }
       kpi_supervisor: { Args: never; Returns: Json }
+      labels: {
+        Args: never
+        Returns: {
+          colour: string
+          id: string
+          name: string
+        }[]
+      }
       log_task_time: {
         Args: { item: string; minutes: number }
         Returns: undefined
@@ -2387,7 +2671,84 @@ export type Database = {
         }[]
       }
       my_consent: { Args: never; Returns: Json }
+      my_projects: {
+        Args: never
+        Returns: {
+          blocked: number
+          client_name: string
+          due_date: string
+          estimate_minutes: number
+          id: string
+          in_review: number
+          lead_name: string
+          name: string
+          next_milestone: string
+          next_milestone_due: string
+          overdue: number
+          spent_minutes: number
+          start_date: string
+          status: string
+          tasks_done: number
+          tasks_total: number
+          waiting: boolean
+        }[]
+      }
       my_tasks: {
+        Args: never
+        Returns: {
+          blocked_reason: string
+          comments: number
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          estimate_minutes: number
+          item_id: string
+          labels: string[]
+          link: string
+          milestone_id: string
+          milestone_name: string
+          own: boolean
+          priority: string
+          project_id: string
+          project_name: string
+          repeat_days: number[]
+          review_requested_at: string
+          reviewer_id: string
+          reviewer_name: string
+          spent_minutes: number
+          status: string
+          subtasks_done: number
+          subtasks_total: number
+          task_id: string
+          title: string
+          to_review: boolean
+          working_with: string[]
+        }[]
+      }
+      my_tasks_d44: {
+        Args: never
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          own: boolean
+          priority: string
+          repeat_days: number[]
+          status: string
+          task_id: string
+          title: string
+          working_with: string[]
+        }[]
+      }
+      my_tasks_d48: {
         Args: never
         Returns: {
           blocked_reason: string
@@ -2463,6 +2824,32 @@ export type Database = {
       preview_request: { Args: { req: Json }; Returns: Json }
       progress_all: { Args: never; Returns: Json[] }
       progress_for_supervisor: { Args: never; Returns: Json[] }
+      project_activity: {
+        Args: { before?: string; id: string }
+        Returns: {
+          actor_name: string
+          created_at: string
+          id: string
+          kind: string
+          text: string
+        }[]
+      }
+      project_detail: { Args: { id: string }; Returns: Json }
+      project_lookup: {
+        Args: { q?: string }
+        Returns: {
+          client_name: string
+          id: string
+          name: string
+        }[]
+      }
+      project_people: {
+        Args: { project?: string }
+        Returns: {
+          display_name: string
+          person_id: string
+        }[]
+      }
       publish_notice: {
         Args: { body: string; title: string; version: string }
         Returns: Json
@@ -2554,8 +2941,34 @@ export type Database = {
         Args: { id: string; name: string; notes?: string; starts_on?: string }
         Returns: string
       }
+      save_label: {
+        Args: { colour: string; id: string; name: string }
+        Returns: string
+      }
+      save_milestone: {
+        Args: { due_date: string; id: string; name: string; project: string }
+        Returns: string
+      }
       save_placement: {
         Args: { allow_extra?: boolean; p: Json }
+        Returns: string
+      }
+      save_project: {
+        Args: {
+          client_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          description: string
+          due_date: string
+          id: string
+          lead: string
+          links: string[]
+          members: string[]
+          name: string
+          start_date: string
+          status: string
+        }
         Returns: string
       }
       save_push_kinds: { Args: { kinds: string[] }; Returns: string[] }
@@ -2565,6 +2978,43 @@ export type Database = {
       }
       save_site: { Args: { site: Json }; Returns: Json }
       save_task: {
+        Args: {
+          assignees: string[]
+          collaborators: string[]
+          description: string
+          due_date: string
+          due_time: string
+          estimate_minutes?: number
+          id: string
+          link: string
+          milestone?: string
+          priority: string
+          project?: string
+          repeat_days: number[]
+          repeat_until: string
+          reviewer?: string
+          subtasks?: string[]
+          title: string
+        }
+        Returns: string
+      }
+      save_task_d44: {
+        Args: {
+          assignees: string[]
+          collaborators: string[]
+          description: string
+          due_date: string
+          due_time: string
+          id: string
+          link: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          title: string
+        }
+        Returns: string
+      }
+      save_task_d48: {
         Args: {
           assignees: string[]
           collaborators: string[]
@@ -2638,6 +3088,10 @@ export type Database = {
       set_subtask: { Args: { done: boolean; id: string }; Returns: undefined }
       set_task_blocked: {
         Args: { item: string; reason: string }
+        Returns: undefined
+      }
+      set_task_labels: {
+        Args: { labels: string[]; task: string }
         Returns: undefined
       }
       set_task_status: {
@@ -2731,6 +3185,62 @@ export type Database = {
           due_time: string
           estimate_minutes: number
           item_id: string
+          labels: string[]
+          link: string
+          milestone_id: string
+          milestone_name: string
+          person_id: string
+          person_name: string
+          priority: string
+          project_id: string
+          project_name: string
+          repeat_days: number[]
+          repeat_until: string
+          review_requested_at: string
+          reviewer_id: string
+          reviewer_name: string
+          spent_minutes: number
+          status: string
+          subtasks_done: number
+          subtasks_total: number
+          task_id: string
+          title: string
+        }[]
+      }
+      staff_tasks_d44: {
+        Args: { intern?: string }
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          person_id: string
+          person_name: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          status: string
+          task_id: string
+          title: string
+        }[]
+      }
+      staff_tasks_d48: {
+        Args: { intern?: string }
+        Returns: {
+          blocked_reason: string
+          comments: number
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          estimate_minutes: number
+          item_id: string
           link: string
           person_id: string
           person_name: string
@@ -2793,6 +3303,19 @@ export type Database = {
         }[]
       }
       task_thread: { Args: { item: string }; Returns: Json }
+      task_workload: {
+        Args: { week_start: string }
+        Returns: {
+          blocked: number
+          estimate_due_minutes: number
+          in_review: number
+          open_tasks: number
+          overdue: number
+          person_id: string
+          person_name: string
+          rostered_minutes: number
+        }[]
+      }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {

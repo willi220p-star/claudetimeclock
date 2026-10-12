@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, ListTodo, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
@@ -28,7 +29,9 @@ import {
   type TaskStatus,
   type Viewer,
 } from "@/components/tasks/task-helpers";
+import { TaskCalendar } from "@/components/tasks/task-calendar";
 import { TaskBoard, TaskRow, useWide, ViewSwitch, type View } from "@/components/tasks/task-parts";
+import { TaskWorkload } from "@/components/tasks/task-workload";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { darwinDateKey } from "@/lib/darwin";
@@ -40,7 +43,7 @@ import { cn } from "@/lib/utils";
 const card = "flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card";
 const group = "overflow-hidden rounded-xl bg-card shadow-card divide-y divide-border";
 // With the side panel open at 1024px+, keep the list clear of it (26rem) where the page's side gutter isn't enough.
-const besidePanel = "lg:pr-[max(0px,calc(26rem_-_(100vw_-_100%)_/_2))]";
+export const besidePanel = "lg:pr-[max(0px,calc(26rem_-_(100vw_-_100%)_/_2))]";
 
 export async function loadMyTasks() {
   const { data, error } = await createClient().rpc("my_tasks");
@@ -58,7 +61,7 @@ async function loadMine() {
   return { rows, me };
 }
 
-async function loadStaffTasks(intern?: string) {
+export async function loadStaffTasks(intern?: string) {
   const [{ data, error }, me] = await Promise.all([
     createClient().rpc("staff_tasks", intern ? { intern } : {}),
     loadMe(),
@@ -76,7 +79,7 @@ async function setTaskStatus(item: string, status: TaskStatus) {
 }
 
 /** Board moves and the open detail, shared by My work, the staff desk and the intern tab. */
-function useTaskView(reload: () => void) {
+export function useTaskView(reload: () => void) {
   const wide = useWide();
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -211,6 +214,8 @@ export function TasksCard({ filters = false }: { filters?: boolean }) {
         </LoadBlock>
       ) : view === "board" ? (
         <TaskBoard rows={shown} viewerOf={viewerOf} busy={tasks.busy} onOpen={tasks.open} onMove={(row, status) => void tasks.move(row, status)} />
+      ) : view === "calendar" ? (
+        <TaskCalendar rows={shown} onOpen={tasks.open} rostered />
       ) : (
         <>
           {open.length === 0 && review.length === 0 ? (
@@ -239,6 +244,12 @@ export function TasksCard({ filters = false }: { filters?: boolean }) {
 
 /** `/supervisor/tasks` and `/admin/tasks` (D44, D48): assign, see "2 of 3 done", review, edit and archive. */
 export function TasksDesk({ isAdmin }: { isAdmin: boolean }) {
+  const router = useRouter();
+  const tab = useSearchParams().get("tab");
+  // The "Project to approve" notification links here with ?tab=projects (D49): projects have their own page.
+  useEffect(() => {
+    if (tab === "projects") router.replace(isAdmin ? "/admin/projects" : "/supervisor/projects");
+  }, [tab, isAdmin, router]);
   const [state, reload] = useLoad(loadAllStaffTasks);
   const [intern, setIntern] = useState("");
   const [view, setView] = useState<View>("list");
@@ -287,12 +298,14 @@ export function TasksDesk({ isAdmin }: { isAdmin: boolean }) {
             ))}
           </select>
         </div>
-        <ViewSwitch view={view} setView={setView} />
+        <ViewSwitch view={view} setView={setView} views={["list", "board", "calendar", "workload"]} />
       </div>
       <LoadBlock state={state} reload={reload}>
         {({ rows: data }) => {
           const forIntern = data.filter((row) => !intern || row.person_id === intern);
-          if (data.length === 0) return <EmptyState>No tasks yet.</EmptyState>;
+          if (view === "workload") return <TaskWorkload />;
+          if (data.length === 0) return <EmptyState>No tasks yet. Add one above and it shows here.</EmptyState>;
+          if (view === "calendar") return <TaskCalendar rows={forIntern} onOpen={tasks.open} showPerson />;
           if (view === "board")
             return (
               <TaskBoard
@@ -400,6 +413,10 @@ function TaskGroupCard({
               reviewer: first.reviewer_id,
               reviewer_name: first.reviewer_name,
               estimate_minutes: first.estimate_minutes,
+              project_id: first.project_id,
+              project_name: first.project_name,
+              milestone_id: first.milestone_id,
+              labels: first.labels,
             }}
             onSaved={() => {
               setEditing(false);

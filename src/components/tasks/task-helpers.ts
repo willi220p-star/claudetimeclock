@@ -1,6 +1,6 @@
 import type { Database } from "@/lib/database.types";
 import { darwinAt, darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
-import { addDays, mondayOf } from "@/lib/periods";
+import { addDays, addMonths, mondayOf, monthStart } from "@/lib/periods";
 
 type Fns = Database["public"]["Functions"];
 type Nullable =
@@ -15,7 +15,12 @@ type Nullable =
   | "reviewer_name"
   | "estimate_minutes"
   | "blocked_reason"
-  | "review_requested_at";
+  | "review_requested_at"
+  | "project_id"
+  | "project_name"
+  | "milestone_id"
+  | "milestone_name"
+  | "labels";
 type Loosen<T> = Omit<T, Nullable> & {
   description: string | null;
   due_date: string | null;
@@ -29,6 +34,11 @@ type Loosen<T> = Omit<T, Nullable> & {
   estimate_minutes: number | null;
   blocked_reason: string | null;
   review_requested_at: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  milestone_id: string | null;
+  milestone_name: string | null;
+  labels: string[] | null;
 };
 /** The generator marks every function column non-null; these can be null at runtime. */
 export type MyTask = Loosen<Fns["my_tasks"]["Returns"][number]>;
@@ -239,4 +249,71 @@ export function taskActions(task: Gate, viewer: Viewer) {
     logTime: viewer.person,
     editSubtasks: task.status !== "done" && (viewer.person || viewer.reviewer || viewer.manager),
   };
+}
+
+export type CalendarDay = { date: string; inMonth: boolean };
+
+/** Monday-first weeks covering the month holding `key` (D49 calendar), with the neighbouring months' days marked. */
+export function calendarWeeks(key: string): CalendarDay[][] {
+  const first = monthStart(key);
+  const next = addMonths(first, 1);
+  const weeks: CalendarDay[][] = [];
+  for (let monday = mondayOf(first); monday < next; monday = addDays(monday, 7)) {
+    weeks.push(Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(monday, i);
+      return { date, inMonth: date >= first && date < next };
+    }));
+  }
+  return weeks;
+}
+
+/** Tasks by due date (no date left out), each day sorted like the list. */
+export function tasksByDay<T extends Sortable>(rows: T[]) {
+  const days = new Map<string, T[]>();
+  for (const row of sortTasks(rows)) {
+    if (!row.due_date) continue;
+    days.set(row.due_date, [...(days.get(row.due_date) ?? []), row]);
+  }
+  return days;
+}
+
+/**
+ * The phone agenda (D49): the month's days that have a task or a rostered shift, oldest first, each with its tasks.
+ */
+export function agendaDays<T extends Sortable>(rows: T[], key: string, rostered: Iterable<string> = []) {
+  const first = monthStart(key);
+  const next = addMonths(first, 1);
+  const byDay = tasksByDay(rows);
+  const dates = new Set([...byDay.keys(), ...rostered].filter((date) => date >= first && date < next));
+  return [...dates].sort().map((date) => ({ date, rows: byDay.get(date) ?? [] }));
+}
+
+/** "October 2026" from a date key. */
+export function monthTitle(key: string) {
+  const [year, month] = key.split("-").map(Number);
+  return `${FULL_MONTHS[month - 1]} ${year}`;
+}
+const FULL_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+/**
+ * Workload bar (D49): estimated against rostered minutes for the week. The bar is the estimate as a share of the
+ * rostered time (full when over), and it's over when the estimate passes the rostered time.
+ */
+export function workloadBar(estimate: number, rostered: number) {
+  const over = estimate > rostered;
+  const percent = rostered > 0 ? Math.min(100, Math.round((estimate / rostered) * 100)) : estimate > 0 ? 100 : 0;
+  return { over, percent };
 }

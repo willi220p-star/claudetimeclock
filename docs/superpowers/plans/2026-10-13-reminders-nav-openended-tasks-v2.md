@@ -195,13 +195,13 @@
     - labels and workload.
 
 **UI:**
-- [ ] **`/clock/projects`:** project cards (client, status chip, progress bar, due date), a "Waiting for approval" chip, and **+ Project**. Tapping a card opens the project page with segments: Overview (progress, hours, milestones, client and links), Tasks (List or Board), Activity.
-- [ ] **Staff:** a Projects page next to Tasks. It has the same page, plus an "Approve projects" list.
-- [ ] **Task form:** the Project lookup (combobox, optional) and the Milestone select.
-- [ ] **Calendar view** on Tasks: a month grid by due date, coloured by priority, with interns' rostered days as dots.
-- [ ] **Workload** tab on staff Tasks.
-- [ ] **Settings → Task labels.**
-- [ ] **Tests:** Vitest for progress maths, calendar placement and workload colour. e2e: an intern adds a project → the supervisor approves → a task is filed under it → it's done → progress shows 1 of 1 and the activity shows it.
+- [x] **`/clock/projects`:** project cards (client, status chip, progress bar, due date), a "Waiting for approval" chip, and **+ Project**. Tapping a card opens the project page with segments: Overview (progress, hours, milestones, client and links), Tasks (List or Board), Activity.
+- [x] **Staff:** a Projects page next to Tasks. It has the same page, plus an "Approve projects" list.
+- [x] **Task form:** the Project lookup (combobox, optional) and the Milestone select.
+- [x] **Calendar view** on Tasks: a month grid by due date, coloured by priority, with interns' rostered days as dots.
+- [x] **Workload** tab on staff Tasks.
+- [x] **Settings → Task labels.**
+- [x] **Tests:** Vitest for progress maths, calendar placement and workload colour. e2e: an intern adds a project → the supervisor approves → a task is filed under it → it's done → progress shows 1 of 1 and the activity shows it.
 
 ## Defaults chosen (say if any is wrong)
 
