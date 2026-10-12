@@ -343,6 +343,11 @@ export function internName(value: unknown) {
   return typeof row?.display_name === "string" ? row.display_name : "Intern";
 }
 
+function fixTime(key: "clock_in" | "clock_out", time?: string, was?: string, replaces?: string) {
+  if (!time || (replaces && time === was)) return {};
+  return { [key]: time, ...(replaces ? { [key === "clock_in" ? "replaces_in_punch_id" : "replaces_out_punch_id"]: replaces } : {}) };
+}
+
 export function buildRequestPayload(type: string, fields: Record<string, string>): Record<string, unknown> {
   switch (type) {
     case "swap":
@@ -361,10 +366,12 @@ export function buildRequestPayload(type: string, fields: Record<string, string>
         kind: fields.kind || "personal",
       };
     case "punch_fix":
+      // With the punch it replaces (Shift history, D46), a time is sent only when it changed:
+      // an unchanged clock-in plus a new clock-out closes or corrects just the clock-out.
       return {
         date: fields.date,
-        ...(fields.clock_in ? { clock_in: fields.clock_in } : {}),
-        ...(fields.clock_out ? { clock_out: fields.clock_out } : {}),
+        ...fixTime("clock_in", fields.clock_in, fields.clock_in_was, fields.replaces_in_punch_id),
+        ...fixTime("clock_out", fields.clock_out, fields.clock_out_was, fields.replaces_out_punch_id),
       };
     case "pattern_change":
       return { effective_from: fields.effective_from, pattern: JSON.parse(fields.pattern || "[]") };

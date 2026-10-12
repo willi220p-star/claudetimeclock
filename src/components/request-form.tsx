@@ -18,6 +18,7 @@ import {
   type RequestType,
 } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 const INTERN_TYPES: RequestType[] = ["swap", "shift_change", "extra_day", "leave", "punch_fix", "pattern_change"];
 
@@ -30,10 +31,20 @@ export type RequestDefaults = {
   kind?: string;
   clock_in?: string;
   clock_out?: string;
+  /** Punch fix (D46): the punches the times replace; a time left unchanged isn't sent. */
+  replaces_in_punch_id?: string;
+  replaces_out_punch_id?: string;
   effective_from?: string;
   pattern?: string;
   new_date?: string;
 };
+
+/** Quick reasons for a punch fix (D46); each is long enough for the 20-character minimum. */
+const FIX_REASONS = [
+  { label: "Forgot to clock out", text: "I forgot to clock out. The clock-out time above is when I left." },
+  { label: "Wrong time", text: "The time recorded is wrong. The times above are the right ones." },
+  { label: "Missed break", text: "I took a break but didn't record it. " },
+] as const;
 
 function hhmm(value?: string) {
   return value ? value.slice(0, 5) : "";
@@ -50,6 +61,10 @@ function fieldsFrom(defaults: RequestDefaults): Record<string, string> {
     kind: defaults.kind ?? "personal",
     clock_in: hhmm(defaults.clock_in),
     clock_out: hhmm(defaults.clock_out),
+    clock_in_was: hhmm(defaults.clock_in),
+    clock_out_was: hhmm(defaults.clock_out),
+    replaces_in_punch_id: defaults.replaces_in_punch_id ?? "",
+    replaces_out_punch_id: defaults.replaces_out_punch_id ?? "",
     effective_from: defaults.effective_from ?? "",
     pattern: defaults.pattern ?? '[{"weekday":1,"start":"09:00","end":"17:00"}]',
   };
@@ -212,6 +227,25 @@ export function RequestForm({
             )}
           </FormField>
         </>
+      ) : null}
+
+      {type === "punch_fix" ? (
+        <div role="group" aria-label="Quick reason" className="flex flex-wrap gap-2">
+          {FIX_REASONS.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              aria-pressed={reason === item.text}
+              onClick={() => setReason(item.text)}
+              className={cn(
+                "min-h-11 rounded-full px-4 text-[15px] font-medium transition-colors",
+                reason === item.text ? "bg-foreground text-background" : "border border-border bg-card text-foreground hover:bg-muted",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <FormField id="req-reason" label="Reason" hint={type === "punch_fix" ? "At least 20 characters." : "Say what you need and why."}>
