@@ -411,3 +411,6 @@ Plan: `docs/superpowers/plans/2026-10-12-announcements-kiosk-signoff-tasks.md` (
 Dilip's answers: front desk, anyone; the tablet stands in for GPS, the live selfie stays.
 - Migration `20261016010000_kiosk.sql`, pgTAP `190_kiosk.sql` (18); `/kiosk` (`src/app/kiosk/kiosk-screen.tsx`), Kiosk PIN card on Me, Add a kiosk + Reset kiosk PIN in Admin → People; kiosk accounts route to `/kiosk` (`homeFor`).
 - e2e `kiosk.spec.ts`. Not done: a "Kiosk" chip on Timesheets (the punch shows its selfie and place like any other).
+
+### Weekly sign-off, signed-hours export, pay rates (Dilip, 2026-10-12) — D43, PR 3 of the 12 Oct plan
+Built by three parallel workers against one contract (`docs/superpowers/specs/2026-10-12-signoff-contract.md`): database (migration `20261017010000_signoff.sql`, pgTAP `200_signoff.sql`, 36), export + pay (`src/lib/timesheet-csv.ts`, `timesheet-export.tsx`, placement pay fields), sign-off UI (`week-signoff.tsx`, "Weeks to sign" setting). Merged and verified together; e2e `signoff-export.spec.ts`.

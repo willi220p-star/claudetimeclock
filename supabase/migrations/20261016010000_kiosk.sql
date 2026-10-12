@@ -235,7 +235,8 @@ begin
 end;
 $$;
 
--- The kiosk may upload exactly the photo of an open challenge it issued.
+-- The kiosk may upload exactly the photo of an unused challenge it issued. The 90-second expiry and the
+-- photo's real upload time are checked by kiosk_punch, so no clock is read here.
 create or replace function private.kiosk_may_upload(name text)
 returns boolean
 language sql
@@ -245,7 +246,7 @@ set search_path = ''
 as $$
   select exists (
     select 1 from public.daymark_clock_challenges c
-    where c.kiosk_id = (select auth.uid()) and c.used_at is null and c.expires_at > private.clock_now()
+    where c.kiosk_id = (select auth.uid()) and c.used_at is null
       and kiosk_may_upload.name = c.person_id || '/' || c.id || '.jpg');
 $$;
 

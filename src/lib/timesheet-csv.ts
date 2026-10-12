@@ -1,6 +1,8 @@
 import type { Database } from "@/lib/database.types";
 
-export type ExportRow = Database["public"]["Functions"]["signoff_export"]["Returns"][number];
+type Generated = Database["public"]["Functions"]["signoff_export"]["Returns"][number];
+/** Rate and amount are null for unpaid placements (the generator never marks function columns nullable). */
+export type ExportRow = Omit<Generated, "amount" | "hourly_rate"> & { amount: number | null; hourly_rate: number | null };
 
 const HEADER = ["Intern", "Week starting", "Date", "Hours", "Break (min)", "Paid", "Hourly rate", "Amount"];
 

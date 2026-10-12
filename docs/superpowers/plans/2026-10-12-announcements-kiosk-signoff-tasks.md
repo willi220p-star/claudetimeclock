@@ -125,19 +125,19 @@
   - The CSV is built on the client.
 
 **Tasks:**
-- [ ] **pgTAP 200:**
+- [x] **pgTAP 200:**
   - sign a clean week;
   - refused with open items, listing them;
   - a staff edit reopens it and notifies;
   - the export only includes signed weeks and the amount equals rate times hours;
   - an intern can't sign;
   - a supervisor signs only their own interns.
-- [ ] **Migration.**
-- [ ] **UI:**
+- [x] **Migration.**
+- [x] **UI:**
   - On Timesheets, each week row gets "Sign week" or a "Signed by Priya, Tue 4:10 pm" chip, plus a list of open items with links.
   - "Export CSV" on Admin Timesheets, for a fortnight or a date range.
   - Paid and hourly rate fields on the placement wizard and placement screen.
-- [ ] **Checks:** Vitest for the CSV builder and e2e. Then docs, preview, PR and deploy.
+- [x] **Checks:** Vitest for the CSV builder and e2e. Then docs, preview, PR and deploy.
 
 ## Feature 4: Built-in tasks (D44). PR 4
 
