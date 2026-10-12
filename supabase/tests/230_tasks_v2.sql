@@ -1,5 +1,5 @@
 begin;
-select plan(68);
+select plan(70);
 
 -- Tasks v2 (Dilip, 13 Oct; D48). Mon 12 Oct. A and B are tests.supervisor()'s interns, C is sup2's.
 create temp table ids as
@@ -295,6 +295,22 @@ select results_eq($$select x->>'author_name', x->>'body', (x->>'subtask_id') is 
 select is((select comments from public.my_tasks() where item_id = (select id from tk where name = 'peer_item')), 3,
   'my_tasks counts the comments');
 reset role;
+
+-- Editing with subtasks null keeps the starting checklist; an empty array clears it.
+select tests.as_person(tests.supervisor());
+insert into tk select 'keep', public.save_task(null, 'Keep list', null, 'low', '2026-10-20', null, null,
+  array[(select a from ids)], null, null, null, null, null, array['One', 'Two']);
+select public.save_task((select id from tk where name = 'keep'), 'Keep list v2', null, 'low', '2026-10-20', null, null,
+  array[(select a from ids)], null, null, null, null, null, null);
+reset role;
+select is((select subtask_titles from public.daymark_tasks where id = (select id from tk where name = 'keep')),
+  array['One', 'Two'], 'an edit without subtasks keeps the starting checklist');
+select tests.as_person(tests.supervisor());
+select public.save_task((select id from tk where name = 'keep'), 'Keep list v3', null, 'low', '2026-10-20', null, null,
+  array[(select a from ids)], null, null, null, null, null, array[]::text[]);
+reset role;
+select is((select subtask_titles from public.daymark_tasks where id = (select id from tk where name = 'keep')),
+  null::text[], 'an edit with an empty list clears it');
 
 select * from finish();
 rollback;

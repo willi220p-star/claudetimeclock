@@ -268,7 +268,8 @@ begin
         repeat_days = case when save_task.repeat_days is not null then days end,
         repeat_until = case when save_task.repeat_days is not null then save_task.repeat_until end,
         reviewer_id = save_task.reviewer, estimate_minutes = save_task.estimate_minutes,
-        subtask_titles = nullif(checklist, '{}')
+        -- null on edit keeps the starting checklist (the edit form doesn't load it); [] clears it
+        subtask_titles = case when save_task.subtasks is null then x.subtask_titles else nullif(checklist, '{}') end
     where x.id = old.id
     returning * into t;
     if t.repeat_days is null then

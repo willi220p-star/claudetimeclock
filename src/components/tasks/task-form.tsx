@@ -1,12 +1,13 @@
 "use client";
 
 import { useId, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { FormMessage } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PRIORITY_LABEL, WEEKDAYS, type Priority } from "@/components/tasks/task-helpers";
+import { PRIORITY_LABEL, WEEKDAYS, parseDuration, type Priority } from "@/components/tasks/task-helpers";
 import type { Database } from "@/lib/database.types";
 import { darwinDateKey } from "@/lib/darwin";
 import { errorText } from "@/lib/daymark";
@@ -24,14 +25,18 @@ export type TaskDraft = {
   repeat_days: number[] | null;
   repeat_until: string | null;
   assignees: string[];
+  reviewer: string | null;
+  reviewer_name: string | null;
+  estimate_minutes: number | null;
 };
 
 type SaveArgs = Database["public"]["Functions"]["save_task"]["Args"];
 
 async function loadPeople() {
-  const { data, error } = await createClient().rpc("task_people");
+  const supabase = createClient();
+  const [{ data, error }, { data: claims }] = await Promise.all([supabase.rpc("task_people"), supabase.auth.getClaims()]);
   if (error) throw error;
-  return data ?? [];
+  return { people: data ?? [], me: claims?.claims?.sub ?? null };
 }
 
 const field = "flex flex-col gap-1";
@@ -64,10 +69,24 @@ export function TaskForm({
   const [days, setDays] = useState(() => new Set(initial?.repeat_days ?? []));
   const [until, setUntil] = useState(initial?.repeat_until ?? "");
   const [picked, setPicked] = useState(() => new Set(initial?.assignees ?? []));
+  // null until touched: then the default is the creator (staff adding a task for an intern), or none.
+  const [reviewer, setReviewer] = useState<string | null>(null);
+  const [hours, setHours] = useState(initial?.estimate_minutes ? String(Math.floor(initial.estimate_minutes / 60)) : "");
+  const [minutes, setMinutes] = useState(initial?.estimate_minutes ? String(initial.estimate_minutes % 60) : "");
+  const [subtasks, setSubtasks] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editing = Boolean(initial?.id);
   const pickLabel = mode === "staff" ? "Assign to" : "Working with";
+  const me = people.status === "ready" ? people.data.me : null;
+  const reviewerValue = reviewer ?? (initial ? (initial.reviewer ?? "") : mode === "staff" ? (me ?? "") : "");
+  const list = people.status === "ready" ? people.data.people : [];
+  // An assignee can't review their own copy (the database refuses it).
+  const peers = list.filter((person) => mode === "intern" || !picked.has(person.person_id));
+  const otherReviewer =
+    initial?.reviewer && initial.reviewer !== me && !list.some((person) => person.person_id === initial.reviewer)
+      ? { id: initial.reviewer, name: initial.reviewer_name ?? "Current reviewer" }
+      : null;
 
   function toggle<T>(set: (update: (current: Set<T>) => Set<T>) => void, value: T, on: boolean) {
     set((current) => {
@@ -85,6 +104,12 @@ export function TaskForm({
     if (url && !url.startsWith("https://")) return setError("The link must start with https://");
     if (repeat && (days.size === 0 || !until)) return setError("Pick the weekdays it repeats on and an end date.");
     if (mode === "staff" && picked.size === 0) return setError("Pick at least one intern.");
+    const estimate = parseDuration(hours, minutes);
+    if ("error" in estimate) return setError(estimate.error);
+    if (estimate.minutes !== null && (estimate.minutes < 1 || estimate.minutes > 6000))
+      return setError("Keep the estimate between 1 minute and 100 hours.");
+    const checklist = subtasks?.map((line) => line.trim()).filter(Boolean) ?? [];
+    if (checklist.length > 30) return setError("Keep it to 30 subtasks.");
     setBusy(true);
     // The generated Args mark every parameter non-null; the function takes nulls for the optional ones.
     const args = {
@@ -99,6 +124,11 @@ export function TaskForm({
       collaborators: mode === "intern" ? [...picked] : [],
       repeat_days: repeat ? [...days].sort((a, b) => a - b) : null,
       repeat_until: repeat ? until : null,
+      reviewer: reviewerValue || null,
+      estimate_minutes: estimate.minutes,
+      // ponytail: staff_tasks doesn't return a task's starting checklist, so an edit can't show it; null leaves it as is
+      // unless they open the subtasks box. Upgrade: return subtask_titles from staff_tasks and prefill.
+      subtasks: subtasks === null ? (editing ? null : []) : checklist,
     } as unknown as SaveArgs;
     const { error: fail } = await createClient().rpc("save_task", args);
     setBusy(false);
@@ -114,6 +144,10 @@ export function TaskForm({
       setDays(new Set());
       setUntil("");
       setPicked(new Set());
+      setReviewer(null);
+      setHours("");
+      setMinutes("");
+      setSubtasks(null);
     }
     onSaved();
   }
@@ -228,11 +262,11 @@ export function TaskForm({
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : people.status === "error" ? (
           <p className="text-sm text-bad">{people.message}</p>
-        ) : people.data.length === 0 ? (
+        ) : list.length === 0 ? (
           <p className="text-sm text-muted-foreground">{mode === "staff" ? "No interns to assign." : "No teammates to add."}</p>
         ) : (
           <div className="flex max-h-56 flex-col overflow-y-auto">
-            {people.data.map((person) => (
+            {list.map((person) => (
               <label key={person.person_id} className="flex min-h-11 items-center gap-3">
                 <input
                   type="checkbox"
@@ -246,6 +280,103 @@ export function TaskForm({
           </div>
         )}
       </fieldset>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className={field}>
+          <Label htmlFor={`${id}-reviewer`}>Reviewer</Label>
+          <select
+            id={`${id}-reviewer`}
+            aria-describedby={`${id}-reviewer-hint`}
+            className="h-12 w-full rounded-md border border-input bg-card px-3"
+            value={reviewerValue}
+            onChange={(e) => setReviewer(e.target.value)}
+          >
+            <option value="">None</option>
+            {(mode === "staff" && me) || otherReviewer ? (
+              <optgroup label="Staff">
+                {mode === "staff" && me ? <option value={me}>Me</option> : null}
+                {otherReviewer ? <option value={otherReviewer.id}>{otherReviewer.name}</option> : null}
+              </optgroup>
+            ) : null}
+            {peers.length > 0 ? (
+              <optgroup label="Interns">
+                {peers.map((person) => (
+                  <option key={person.person_id} value={person.person_id}>
+                    {person.display_name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+          </select>
+          <p id={`${id}-reviewer-hint`} className="text-sm text-muted-foreground">
+            {reviewerValue ? "Only the reviewer can mark it done." : "No review: it's done when it's ticked."}
+          </p>
+        </div>
+        <fieldset className={field}>
+          <legend className="mb-1 text-sm font-medium">Estimate</legend>
+          <div className="flex items-center gap-2">
+            <Input
+              id={`${id}-hours`}
+              aria-label="Estimate hours"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              className="w-20"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+            />
+            <span aria-hidden>h</span>
+            <Input
+              id={`${id}-minutes`}
+              aria-label="Estimate minutes"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              className="w-20"
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+            />
+            <span aria-hidden>m</span>
+          </div>
+        </fieldset>
+      </div>
+      {subtasks === null ? (
+        <Button type="button" variant="ghost" className="w-fit px-2" onClick={() => setSubtasks([""])}>
+          <Plus aria-hidden />
+          {editing ? "Change subtasks for new copies" : "Add subtasks"}
+        </Button>
+      ) : (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm font-medium">Subtasks</legend>
+          {editing ? (
+            <p className="text-sm text-muted-foreground">These replace the checklist on copies made from now on.</p>
+          ) : null}
+          {subtasks.map((line, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Input
+                aria-label={`Subtask ${index + 1}`}
+                maxLength={140}
+                value={line}
+                onChange={(e) => setSubtasks(subtasks.map((item, at) => (at === index ? e.target.value : item)))}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={`Remove subtask ${index + 1}`}
+                onClick={() => setSubtasks(subtasks.filter((_, at) => at !== index))}
+              >
+                <X aria-hidden />
+              </Button>
+            </div>
+          ))}
+          {subtasks.length < 30 ? (
+            <Button type="button" variant="ghost" className="w-fit px-2" onClick={() => setSubtasks([...subtasks, ""])}>
+              <Plus aria-hidden />
+              Add another
+            </Button>
+          ) : null}
+        </fieldset>
+      )}
       {error ? <FormMessage>{error}</FormMessage> : null}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={busy}>

@@ -125,16 +125,16 @@
 - **The 30-day rule:** subtasks and comments go with their copy by cascade.
 
 **UI:**
-- [ ] **Task form:** Reviewer (None, creator, or pick from `task_people`, which grows to staff plus interns), an estimate as hours and minutes, and "Subtasks" lines behind a + button.
-- [ ] **Task detail sheet** (tap a task):
+- [x] **Task form:** Reviewer (None, creator, or pick from `task_people`, which grows to staff plus interns), an estimate as hours and minutes, and "Subtasks" lines behind a + button.
+- [x] **Task detail sheet** (tap a task):
     - description, link, and the subtasks with ticks (shown when the subtask icon is tapped);
     - time spent ("Log time");
     - Blocked on and off with a reason;
     - the comments thread, with "Reply to subtask";
     - the status buttons: To do, In progress, Send for review, or Done when there's no reviewer;
     - for the reviewer, **Approve** or **Needs changes** with a comment.
-- [ ] **Views:** List | Board on the Tasks tab and the staff Tasks pages. The Board has four columns (To do, In progress, In review, Done), and you change status by moving a card or with the menu (accessible). Blocked cards show a red chip.
-- [ ] **"To review":** a section on the Tasks tab for reviewers, interns included.
+- [x] **Views:** List | Board on the Tasks tab and the staff Tasks pages. The Board has four columns (To do, In progress, In review, Done), and you change status by moving a card or with the menu (accessible). Blocked cards show a red chip.
+- [x] **"To review":** a section on the Tasks tab for reviewers, interns included.
 - [ ] **Tests:** pgTAP 230 covers each rule above (review gate, subtasks gate, participants only, notifications, needs-changes path). Also Vitest for the board grouping and the time format, and e2e for assign with reviewer → send for review → needs changes → fix → approve.
 
 ## PR E: projects, milestones, labels, calendar and workload (D49)
