@@ -53,6 +53,13 @@ test("admin adds an intern with no end date; the intern sees hours done without 
   await page.getByLabel("Type it again").fill("Open-ended-pass-1");
   await page.getByRole("button", { name: "Save password" }).click();
   await page.waitForURL((url) => !url.pathname.startsWith("/set-password"));
+  // A new intern accepts the collection notice before anything else.
+  await expect(page.getByRole("heading", { name: "Before you clock in" })).toBeVisible();
+  await page.getByRole("checkbox", { name: /I have read the collection notice/ }).check();
+  await page.getByRole("group", { name: "Location" }).getByRole("radio", { name: "Agree" }).check();
+  await page.getByRole("group", { name: "Selfie" }).getByRole("radio", { name: "Agree" }).check();
+  await page.getByRole("button", { name: "Save my choices" }).click();
+  await expect(page.getByRole("heading", { name: "Before you clock in" })).toHaveCount(0);
   await page.goto("/clock/progress");
   await expect(page.getByText("0h done · 0h this week")).toBeVisible();
   await expect(page.getByText(/^Finishes /)).toHaveCount(0);

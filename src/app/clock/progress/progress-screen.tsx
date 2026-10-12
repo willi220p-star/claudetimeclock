@@ -71,7 +71,7 @@ function ProgressDesk({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <PageHeader title="Progress" description="Hours counted against your target. The forecast is written as text." />
+      <PageHeader title="Progress" description="Your counted hours, week by week. Any forecast is written out as text." />
       <LoadBlock state={state} reload={reload} empty="No placement hours yet.">
         {({ kpi, weeks, progress, week, attendance }) =>
           kpi ? (
@@ -104,7 +104,7 @@ function ProgressDesk({ profile }: { profile: Profile }) {
                 ) : (
                   <>
                     <p className="text-lg font-semibold">{hoursDoneText(kpi.counted_total, kpi.this_week.counted)}</p>
-                    <p className="text-muted-foreground">Week {kpi.week_no}</p>
+                    <p className="text-muted-foreground">{kpi.week_no >= 1 ? `Week ${kpi.week_no}` : "Your placement hasn't started yet."}</p>
                   </>
                 )}
               </section>

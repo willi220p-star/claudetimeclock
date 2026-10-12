@@ -230,7 +230,7 @@ export function RequestForm({
       ) : null}
 
       {type === "punch_fix" ? (
-        <div role="group" aria-label="Quick reason" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Common fixes" className="flex flex-wrap gap-2">
           {FIX_REASONS.map((item) => (
             <button
               key={item.label}
