@@ -1978,6 +1978,11 @@ export type Database = {
         Args: { reason: string; request_id: string }
         Returns: Json
       }
+      add_subtask: { Args: { item: string; title: string }; Returns: string }
+      add_task_comment: {
+        Args: { body: string; item: string; subtask?: string }
+        Returns: string
+      }
       announcement_reads: {
         Args: { id: string }
         Returns: {
@@ -2182,6 +2187,10 @@ export type Database = {
       kpi_admin: { Args: never; Returns: Json }
       kpi_intern: { Args: never; Returns: Json }
       kpi_supervisor: { Args: never; Returns: Json }
+      log_task_time: {
+        Args: { item: string; minutes: number }
+        Returns: undefined
+      }
       mark_announcement: {
         Args: { ack: boolean; id: string }
         Returns: undefined
@@ -2227,20 +2236,30 @@ export type Database = {
       my_tasks: {
         Args: never
         Returns: {
+          blocked_reason: string
+          comments: number
           created_by_name: string
           description: string
           done_at: string
           done_note: string
           due_date: string
           due_time: string
+          estimate_minutes: number
           item_id: string
           link: string
           own: boolean
           priority: string
           repeat_days: number[]
+          review_requested_at: string
+          reviewer_id: string
+          reviewer_name: string
+          spent_minutes: number
           status: string
+          subtasks_done: number
+          subtasks_total: number
           task_id: string
           title: string
+          to_review: boolean
           working_with: string[]
         }[]
       }
@@ -2324,6 +2343,7 @@ export type Database = {
         }[]
       }
       remove_closure_day: { Args: { id: string }; Returns: Json }
+      remove_subtask: { Args: { id: string }; Returns: undefined }
       report_missed_time: {
         Args: { at_time: string; event: string; note?: string }
         Returns: Json
@@ -2345,6 +2365,10 @@ export type Database = {
         Returns: {
           intern_id: string
         }[]
+      }
+      review_task: {
+        Args: { approve: boolean; comment?: string; item: string }
+        Returns: undefined
       }
       run_job: { Args: { name: string }; Returns: Json }
       save_banner: {
@@ -2393,11 +2417,14 @@ export type Database = {
           description: string
           due_date: string
           due_time: string
+          estimate_minutes: number
           id: string
           link: string
           priority: string
           repeat_days: number[]
           repeat_until: string
+          reviewer: string
+          subtasks: string[]
           title: string
         }
         Returns: string
@@ -2454,6 +2481,11 @@ export type Database = {
         Returns: undefined
       }
       set_site_active: { Args: { active: boolean; id: string }; Returns: Json }
+      set_subtask: { Args: { done: boolean; id: string }; Returns: undefined }
+      set_task_blocked: {
+        Args: { item: string; reason: string }
+        Returns: undefined
+      }
       set_task_status: {
         Args: { item: string; note?: string; status: string }
         Returns: undefined
@@ -2535,12 +2567,15 @@ export type Database = {
       staff_tasks: {
         Args: { intern?: string }
         Returns: {
+          blocked_reason: string
+          comments: number
           created_by_name: string
           description: string
           done_at: string
           done_note: string
           due_date: string
           due_time: string
+          estimate_minutes: number
           item_id: string
           link: string
           person_id: string
@@ -2548,7 +2583,13 @@ export type Database = {
           priority: string
           repeat_days: number[]
           repeat_until: string
+          review_requested_at: string
+          reviewer_id: string
+          reviewer_name: string
+          spent_minutes: number
           status: string
+          subtasks_done: number
+          subtasks_total: number
           task_id: string
           title: string
         }[]
@@ -2597,6 +2638,7 @@ export type Database = {
           person_id: string
         }[]
       }
+      task_thread: { Args: { item: string }; Returns: Json }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
       update_record: {

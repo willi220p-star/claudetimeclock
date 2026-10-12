@@ -16,6 +16,8 @@ test("tasks: assign, tick done with a note, staff see progress", async ({ page, 
   await people.nth(0).check();
   const chosen = (await people.nth(0).locator("xpath=..").textContent())!.trim();
   await people.nth(1).check();
+  // D48: no reviewer, so the intern's tick makes it done.
+  await form.getByLabel("Reviewer").selectOption("");
   await form.getByRole("button", { name: "Add task" }).click();
   const card = page.getByRole("listitem").filter({ hasText: title }).first();
   await expect(card.getByText("0 of 2 done")).toBeVisible();
@@ -30,12 +32,16 @@ test("tasks: assign, tick done with a note, staff see progress", async ({ page, 
   await expect(page.getByRole("link", { name: /tasks? to do/ })).toBeVisible();
   await page.getByRole("navigation", { name: "Intern" }).getByRole("link", { name: "Tasks", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My work", level: 1 })).toBeVisible();
-  const status = page.getByRole("group", { name: `Status of ${title}` });
-  await expect(status).toBeVisible();
-  await expect(page.getByText("High priority").first()).toBeVisible();
-  await status.getByRole("button", { name: "Done" }).click();
-  await page.getByLabel("Note (optional)").fill("Added 12 leads");
-  await page.getByRole("button", { name: "Mark done" }).click();
+  // D48: a row opens the task's sheet; its main action is Mark done when there's no reviewer.
+  const row = page.getByRole("button", { name: new RegExp(title) });
+  await expect(row).toContainText("High priority");
+  await row.click();
+  const sheet = page.getByRole("dialog", { name: title });
+  await sheet.getByRole("button", { name: "Mark done" }).click();
+  await sheet.getByLabel("Note (optional)").fill("Added 12 leads");
+  await sheet.getByRole("button", { name: "Mark done" }).click();
+  await expect(sheet.getByRole("button", { name: "Reopen" })).toBeVisible();
+  await sheet.getByRole("button", { name: "Close" }).click();
   await expect(page.getByText(/^Done \(\d+\)$/)).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("tasks-home.png"), fullPage: true });
 

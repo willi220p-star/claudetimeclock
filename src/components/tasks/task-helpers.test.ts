@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  boardColumns,
+  formatMinutes,
   groupTasks,
+  moveBlocker,
+  parseDuration,
+  taskActions,
   isOverdue,
   matchesTaskFilter,
   repeatSummary,
@@ -24,6 +29,11 @@ describe("matchesTaskFilter (My work quick filters)", () => {
     expect(matchesTaskFilter(due(null), "week", now)).toBe(false);
     expect(matchesTaskFilter(due(null, "done"), "all", now)).toBe(true);
   });
+
+  it("To review keeps only rows waiting for the caller's review", () => {
+    expect(matchesTaskFilter({ ...due(null, "in_review"), to_review: true }, "review", now)).toBe(true);
+    expect(matchesTaskFilter({ ...due(null, "in_review"), to_review: false }, "review", now)).toBe(false);
+  });
 });
 
 const base: MyTask = {
@@ -42,6 +52,16 @@ const base: MyTask = {
   own: true,
   working_with: [],
   repeat_days: null,
+  reviewer_id: null,
+  reviewer_name: null,
+  estimate_minutes: null,
+  spent_minutes: 0,
+  blocked_reason: null,
+  subtasks_total: 0,
+  subtasks_done: 0,
+  comments: 0,
+  review_requested_at: null,
+  to_review: false,
 };
 const task = (patch: Partial<MyTask>): MyTask => ({ ...base, ...patch });
 
@@ -117,5 +137,109 @@ describe("groupTasks", () => {
       ["b", 0, 1, ["Ana"]],
       ["a", 1, 3, ["Ben", "Cy"]],
     ]);
+  });
+});
+
+describe("formatMinutes and parseDuration (D48 estimate and time spent)", () => {
+  it("formats hours and minutes", () => {
+    expect(formatMinutes(100)).toBe("1 h 40 m");
+    expect(formatMinutes(180)).toBe("3 h");
+    expect(formatMinutes(40)).toBe("40 m");
+    expect(formatMinutes(0)).toBe("0 m");
+  });
+  it("adds up the boxes, null when both are blank, refuses non-whole numbers", () => {
+    expect(parseDuration("1", "40")).toEqual({ minutes: 100 });
+    expect(parseDuration("", "90")).toEqual({ minutes: 90 });
+    expect(parseDuration(" 3 ", "")).toEqual({ minutes: 180 });
+    expect(parseDuration("", " ")).toEqual({ minutes: null });
+    expect(parseDuration("1.5", "")).toHaveProperty("error");
+    expect(parseDuration("-1", "")).toHaveProperty("error");
+  });
+});
+
+describe("boardColumns", () => {
+  it("puts each copy in its status column, sorted, with unknown statuses in To do", () => {
+    const columns = boardColumns([
+      task({ item_id: "a", status: "in_review" }),
+      task({ item_id: "b", status: "todo", due_date: "2026-10-15" }),
+      task({ item_id: "c", status: "weird" }),
+      task({ item_id: "d", status: "done" }),
+      task({ item_id: "e", status: "todo", due_date: "2026-10-14" }),
+    ]);
+    expect(columns.map((column) => [column.label, column.rows.map((row) => row.item_id)])).toEqual([
+      ["To do", ["e", "b", "c"]],
+      ["In progress", []],
+      ["In review", ["a"]],
+      ["Done", ["d"]],
+    ]);
+  });
+});
+
+describe("taskActions and moveBlocker (who sees which button)", () => {
+  const person = { person: true, reviewer: false, manager: false };
+  const reviewer = { person: false, reviewer: true, manager: false };
+  const staff = { person: false, reviewer: false, manager: true };
+  const teammate = { person: false, reviewer: false, manager: false };
+  const copy = (patch: Partial<MyTask>) => task({ status: "in_progress", ...patch });
+
+  it("the person sends for review once every subtask is ticked", () => {
+    const open = copy({ reviewer_id: "r", subtasks_total: 4, subtasks_done: 2 });
+    expect(taskActions(open, person).primary).toEqual({
+      kind: "review",
+      label: "Send for review",
+      blocker: "Tick all 4 subtasks to send for review.",
+    });
+    expect(taskActions({ ...open, subtasks_done: 4 }, person).primary?.blocker).toBeNull();
+    expect(taskActions(copy({ reviewer_id: "r", subtasks_total: 1 }), person).primary?.blocker).toBe(
+      "Tick the subtask to send for review.",
+    );
+  });
+
+  it("without a reviewer the person or staff mark it done, gated on subtasks", () => {
+    expect(taskActions(copy({}), person).primary).toEqual({ kind: "done", label: "Mark done", blocker: null });
+    expect(taskActions(copy({ subtasks_total: 2, subtasks_done: 1 }), staff).primary?.blocker).toBe(
+      "Tick all 2 subtasks to mark it done.",
+    );
+  });
+
+  it("with a reviewer, staff who aren't the reviewer get no main action", () => {
+    expect(taskActions(copy({ reviewer_id: "r" }), staff).primary).toBeNull();
+  });
+
+  it("only the reviewer sees Needs changes and Approve, and only in review", () => {
+    const inReview = copy({ status: "in_review", reviewer_id: "r" });
+    expect(taskActions(inReview, reviewer)).toMatchObject({ review: true, primary: null, logTime: false });
+    expect(taskActions(copy({ reviewer_id: "r" }), reviewer).review).toBe(false);
+    expect(taskActions(inReview, person)).toMatchObject({ review: false, primary: { kind: "withdraw" } });
+  });
+
+  it("a teammate can only read and comment", () => {
+    expect(taskActions(copy({}), teammate)).toEqual({
+      review: false,
+      primary: null,
+      blocked: false,
+      logTime: false,
+      editSubtasks: false,
+    });
+  });
+
+  it("done copies can be reopened but not blocked or edited", () => {
+    expect(taskActions(copy({ status: "done" }), person)).toMatchObject({
+      primary: { kind: "reopen" },
+      blocked: false,
+      editSubtasks: false,
+    });
+  });
+
+  it("Move to… follows set_task_status", () => {
+    const withReviewer = copy({ reviewer_id: "r" });
+    expect(moveBlocker(withReviewer, person, "done")).toBe("Send it for review. Your reviewer marks it done.");
+    expect(moveBlocker(withReviewer, person, "in_review")).toBeNull();
+    expect(moveBlocker(withReviewer, staff, "in_review")).toBe("Only the person it's for can send it for review.");
+    expect(moveBlocker(copy({}), person, "in_review")).toBe("It has no reviewer. Mark it done instead.");
+    expect(moveBlocker(copy({ status: "in_review", reviewer_id: "r" }), staff, "todo")).toBe("It's waiting for the reviewer.");
+    expect(moveBlocker(copy({ status: "in_review", reviewer_id: "r" }), person, "in_progress")).toBeNull();
+    expect(moveBlocker(copy({}), teammate, "todo")).toBe("Only the person it's for can move it.");
+    expect(moveBlocker(copy({}), staff, "todo")).toBeNull();
   });
 });
