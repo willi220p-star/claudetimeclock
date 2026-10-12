@@ -11,6 +11,7 @@ import { CatchUpSheet } from "@/components/catch-up-sheet";
 import { EmptyState } from "@/components/empty-state";
 import { FormMessage } from "@/components/form-field";
 import { MinutesText } from "@/components/minutes-text";
+import { AnnouncementCards } from "@/components/announcements";
 import { RemindersNudge } from "@/components/reminders-nudge";
 import { PaceChip } from "@/components/pace-chip";
 import { PunchDayTable } from "@/components/punch-day-table";
@@ -202,6 +203,7 @@ export function ClockDesk({ profile }: { profile: Profile }) {
       ) : null}
 
       <RemindersNudge />
+      <AnnouncementCards />
 
       {status?.placement?.read_only ? (
         <p role="status" className="rounded-lg bg-muted px-4 py-3">

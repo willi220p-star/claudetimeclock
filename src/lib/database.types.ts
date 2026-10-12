@@ -34,6 +34,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      daymark_announcement_reads: {
+        Row: {
+          acked_at: string | null
+          announcement_id: string
+          person_id: string
+          read_at: string
+        }
+        Insert: {
+          acked_at?: string | null
+          announcement_id: string
+          person_id: string
+          read_at?: string
+        }
+        Update: {
+          acked_at?: string | null
+          announcement_id?: string
+          person_id?: string
+          read_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_announcement_reads_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_announcements: {
+        Row: {
+          archived_at: string | null
+          audience: string
+          body: string
+          created_at: string
+          created_by: string
+          id: string
+          must_ack: boolean
+          title: string
+        }
+        Insert: {
+          archived_at?: string | null
+          audience: string
+          body: string
+          created_at?: string
+          created_by: string
+          id?: string
+          must_ack?: boolean
+          title: string
+        }
+        Update: {
+          archived_at?: string | null
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          must_ack?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_audit_log: {
         Row: {
           action: string
@@ -1594,10 +1671,20 @@ export type Database = {
         Args: { reason: string; request_id: string }
         Returns: Json
       }
+      announcement_reads: {
+        Args: { id: string }
+        Returns: {
+          acked_at: string
+          display_name: string
+          person_id: string
+          read_at: string
+        }[]
+      }
       approve_uni_report: {
         Args: { note?: string; placement: string }
         Returns: undefined
       }
+      archive_announcement: { Args: { id: string }; Returns: undefined }
       attach_leave_certificate: {
         Args: { path: string; request_id: string }
         Returns: Json
@@ -1760,6 +1847,10 @@ export type Database = {
       kpi_admin: { Args: never; Returns: Json }
       kpi_intern: { Args: never; Returns: Json }
       kpi_supervisor: { Args: never; Returns: Json }
+      mark_announcement: {
+        Args: { ack: boolean; id: string }
+        Returns: undefined
+      }
       mark_certificate_sighted: { Args: { request_id: string }; Returns: Json }
       mark_notifications_read: { Args: { ids?: string[] }; Returns: undefined }
       monday_summary: {
@@ -1784,7 +1875,21 @@ export type Database = {
           work_logs: number
         }[]
       }
+      my_announcements: {
+        Args: never
+        Returns: {
+          acked_at: string
+          author: string
+          body: string
+          created_at: string
+          id: string
+          must_ack: boolean
+          read_at: string
+          title: string
+        }[]
+      }
       my_consent: { Args: never; Returns: Json }
+      nudge_announcement: { Args: { id: string }; Returns: number }
       people_directory: {
         Args: never
         Returns: {
@@ -1803,6 +1908,30 @@ export type Database = {
         }[]
       }
       placement_progress: { Args: { placement: string }; Returns: Json }
+      post_announcement: {
+        Args: {
+          audience: string
+          body: string
+          must_ack: boolean
+          title: string
+        }
+        Returns: string
+      }
+      posted_announcements: {
+        Args: never
+        Returns: {
+          acked: number
+          audience: string
+          author: string
+          body: string
+          created_at: string
+          id: string
+          must_ack: boolean
+          read: number
+          recipients: number
+          title: string
+        }[]
+      }
       preview_request: { Args: { req: Json }; Returns: Json }
       progress_all: { Args: never; Returns: Json[] }
       progress_for_supervisor: { Args: never; Returns: Json[] }

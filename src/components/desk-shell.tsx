@@ -27,7 +27,14 @@ type NavGroup = { label: string; icon: LucideIcon; pages: NavPage[] };
 
 // Staff navigation as a tree (Dilip, 5 Oct): a few main tabs, each with its related pages as sub-tabs.
 export const SUPERVISOR_GROUPS: NavGroup[] = [
-  { label: "Today", icon: House, pages: [{ href: "/supervisor", label: "Today", match: exact("/supervisor") }] },
+  {
+    label: "Today",
+    icon: House,
+    pages: [
+      { href: "/supervisor", label: "Today", match: exact("/supervisor") },
+      { href: "/supervisor/announcements", label: "Announcements", match: prefix("/supervisor/announcements") },
+    ],
+  },
   {
     label: "Time",
     icon: Clock,
@@ -54,7 +61,14 @@ export const SUPERVISOR_GROUPS: NavGroup[] = [
 ];
 
 export const ADMIN_GROUPS: NavGroup[] = [
-  { label: "Home", icon: House, pages: [{ href: "/admin", label: "Overview", match: exact("/admin") }] },
+  {
+    label: "Home",
+    icon: House,
+    pages: [
+      { href: "/admin", label: "Overview", match: exact("/admin") },
+      { href: "/admin/announcements", label: "Announcements", match: prefix("/admin/announcements") },
+    ],
+  },
   {
     label: "People",
     icon: Users,

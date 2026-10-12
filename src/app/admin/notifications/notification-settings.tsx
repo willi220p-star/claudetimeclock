@@ -36,6 +36,7 @@ const KIND_GROUPS = [
     title: "Updates to interns",
     note: "Unticked updates still show in the app's notifications, just not on phones.",
     kinds: [
+      ["announcement", "Announcements", "A new announcement from you or their supervisor, and reminders to read it."],
       ["schedule", "Roster changes", "A day added, removed or marked absent; usual days changed."],
       ["times", "Clock time changes", "A supervisor changed their times or added a break."],
       ["request", "Request decisions", "Their leave or time request was approved or declined."],
