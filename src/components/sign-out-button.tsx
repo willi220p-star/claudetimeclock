@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { clearSessionCache, sessionProfile } from "@/lib/browser-session";
 import { listQueue } from "@/lib/offline-queue";
-import { forgetPushSubscription } from "@/lib/push";
+import { currentPushSubscription, forgetPushSubscription } from "@/lib/push";
 import { createClient } from "@/lib/supabase/client";
 
 export const SIGN_OUT_EVERYWHERE_CONFIRM = "This signs you out on every phone and computer.";
@@ -40,8 +40,14 @@ export function SignOutButton({ compact = false, everywhere = false }: { compact
         ) {
           return;
         }
+        // Reminders stay on by default (D45); only a shared phone drops them.
+        const forget =
+          Boolean(await currentPushSubscription().catch(() => null)) &&
+          window.confirm(
+            `Shared phone? Also stop reminders on this phone for ${profile?.display_name ?? "you"}? OK stops them, Cancel keeps them.`,
+          );
         setPending(true);
-        await forgetPushSubscription();
+        if (forget) await forgetPushSubscription();
         const { error } = await createClient().auth.signOut({ scope: everywhere ? "global" : "local" });
         // A failed global sign-out still ends this device's session; say the others may not be.
         if (error && everywhere) toast.error("Other devices may still be signed in. Try again once you're back online.");

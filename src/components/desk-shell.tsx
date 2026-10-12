@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { CalendarDays, ChartPie, CircleUserRound, Clock, House, Inbox, Settings, Users, type LucideIcon } from "lucide-react";
@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/app-header";
 import { SignOutButton } from "@/components/sign-out-button";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/lib/daymark";
+import { relinkPush } from "@/lib/push";
 import type { Role } from "@/lib/roles";
 
 const INTERN_TABS = [
@@ -191,6 +192,7 @@ export function InternShell({
   title: string;
   children: ReactNode;
 }) {
+  useEffect(() => void relinkPush(profile.id), [profile.id]);
   return (
     <>
       <AppHeader profile={profile} role="intern" title={title} />
@@ -219,6 +221,7 @@ export function StaffShell({
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
+  useEffect(() => void relinkPush(profile.id), [profile.id]);
   const groups = role === "admin" ? ADMIN_GROUPS : SUPERVISOR_GROUPS;
   const group = currentGroup(groups, path);
   const tabs: NavItem[] = groups.map((item) => ({

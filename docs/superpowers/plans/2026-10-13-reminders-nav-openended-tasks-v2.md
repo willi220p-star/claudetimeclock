@@ -25,14 +25,14 @@
 - **Dilip's answer:** keep reminders on.
 
 **Fix:**
-- [ ] The idle sign-out no longer calls `forgetPushSubscription`.
-- [ ] Sign out keeps reminders by default. A tick box, "Shared phone: also stop reminders here", calls `forgetPushSubscription` only when it is ticked.
-- [ ] **Quiet re-link:** when `Notification.permission === "granted"` but there is no subscription (after a sign-out, a browser reset, or the push service dropping it), the app subscribes again silently and calls `save_push_subscription`.
+- [x] The idle sign-out no longer calls `forgetPushSubscription`.
+- [x] Sign out keeps reminders by default. A tick box, "Shared phone: also stop reminders here", calls `forgetPushSubscription` only when it is ticked.
+- [x] **Quiet re-link:** when `Notification.permission === "granted"` but there is no subscription (after a sign-out, a browser reset, or the push service dropping it), the app subscribes again silently and calls `save_push_subscription`.
     - It runs once per app open from the desk shell, for interns and staff.
     - The `save` already moves an endpoint to the signed-in person.
     - The banner and the toggle then show "on" without asking.
-- [ ] Vitest for the decision helper: granted plus no subscription means re-link; default or denied means don't.
-- [ ] Docs: D45 and the BUILD-LOG.
+- [x] Vitest for the decision helper: granted plus no subscription means re-link; default or denied means don't.
+- [x] Docs: D45 and the BUILD-LOG.
 
 ## PR B: intern tabs and shift history (D46)
 
