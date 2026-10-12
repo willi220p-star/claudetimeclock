@@ -50,6 +50,7 @@ const KIND_GROUPS = [
       ["attendance", "Times to confirm", "An intern typed in a time or clocked offline."],
       ["work_based", "Work-based days", "A work-based day is waiting for approval."],
       ["escalated", "Escalations", "A request has waited too long."],
+      ["signoff", "Weeks to sign", "Monday and Tuesday morning: weeks waiting for your sign-off (due Tuesday 5 pm)."],
     ],
   },
 ] as const;
