@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { errorText, type Profile } from "@/lib/daymark";
 import { darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
 import { formatMinutes, plannedMinutes } from "@/lib/minutes";
+import { END_DATE_LABEL, endDateText, placementDatesProblem, targetMinutesOf } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
 
 const WEEKDAYS = [
@@ -69,8 +70,8 @@ export function draftFromPlacement(args: {
   course: string;
   cohort_id: string | null;
   start_date: string;
-  planned_end_date: string;
-  target_minutes: number;
+  planned_end_date: string | null;
+  target_minutes: number | null;
   break_minutes: number;
   pattern: PatternDay[];
 }): WizardDraft {
@@ -87,8 +88,8 @@ export function draftFromPlacement(args: {
     course: args.course,
     cohort_id: args.cohort_id ?? "",
     start_date: args.start_date,
-    planned_end_date: args.planned_end_date,
-    target_hours: String(args.target_minutes / 60),
+    planned_end_date: args.planned_end_date ?? "",
+    target_hours: args.target_minutes === null ? "" : String(args.target_minutes / 60),
     break_minutes: String(args.break_minutes),
     days,
   };
@@ -150,8 +151,7 @@ export function PlacementWizard({
   const pattern = useMemo(() => patternOf(draft.days), [draft.days]);
   const breakMinutes = breakOf(draft.break_minutes);
   const weekMinutes = pattern.reduce((sum, day) => sum + plannedMinutes(day.start, day.end, breakMinutes ?? 30), 0);
-  const hours = Number(draft.target_hours);
-  const targetMinutes = Number.isFinite(hours) ? Math.round(hours * 60) : 0;
+  const targetMinutes = targetMinutesOf(draft.target_hours);
 
   function set<K extends keyof WizardDraft>(key: K, value: WizardDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -164,8 +164,9 @@ export function PlacementWizard({
       setStep(1);
       return;
     }
-    if (!draft.start_date || !draft.planned_end_date || targetMinutes < 60) {
-      setError("Set the dates and target hours.");
+    const datesProblem = placementDatesProblem(draft.start_date, draft.planned_end_date, draft.target_hours);
+    if (datesProblem) {
+      setError(datesProblem);
       setStep(2);
       return;
     }
@@ -188,7 +189,7 @@ export function PlacementWizard({
       course: draft.course,
       cohort_id: draft.cohort_id || null,
       start_date: draft.start_date,
-      planned_end_date: draft.planned_end_date,
+      planned_end_date: draft.planned_end_date || null,
       target_minutes: targetMinutes,
       break_minutes: breakMinutes,
       pattern,
@@ -291,17 +292,18 @@ export function PlacementWizard({
               <Input {...field} type="date" value={draft.start_date} onChange={(e) => set("start_date", e.target.value)} />
             )}
           </FormField>
-          <FormField id="wiz-end" label="Planned end date">
+          <FormField id="wiz-end" label={END_DATE_LABEL}>
             {(field) => (
               <Input
                 {...field}
                 type="date"
+                min={draft.start_date || undefined}
                 value={draft.planned_end_date}
                 onChange={(e) => set("planned_end_date", e.target.value)}
               />
             )}
           </FormField>
-          <FormField id="wiz-hours" label="Target hours" hint="Saved as minutes (hours × 60).">
+          <FormField id="wiz-hours" label="Target hours (optional)" hint="Saved as minutes (hours × 60). Leave blank for no target.">
             {(field) => (
               <Input
                 {...field}
@@ -313,7 +315,9 @@ export function PlacementWizard({
               />
             )}
           </FormField>
-          {targetMinutes >= 60 ? <p className="text-sm text-muted-foreground">{formatMinutes(targetMinutes)} target</p> : null}
+          {targetMinutes !== null && targetMinutes >= 60 ? (
+            <p className="text-sm text-muted-foreground">{formatMinutes(targetMinutes)} target</p>
+          ) : null}
           <BreakField id="wiz-break" value={draft.break_minutes} onChange={(value) => set("break_minutes", value)} />
         </div>
       ) : null}
@@ -350,12 +354,12 @@ export function PlacementWizard({
             <div>
               <dt className="text-muted-foreground">Dates</dt>
               <dd>
-                {draft.start_date ? formatDay(draft.start_date) : "—"} – {draft.planned_end_date ? formatDay(draft.planned_end_date) : "—"}
+                {draft.start_date ? formatDay(draft.start_date) : "—"} – {endDateText(draft.planned_end_date)}
               </dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Target</dt>
-              <dd>{targetMinutes >= 60 ? formatMinutes(targetMinutes) : "—"}</dd>
+              <dd>{targetMinutes !== null && targetMinutes >= 60 ? formatMinutes(targetMinutes) : "No target"}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Break</dt>

@@ -6,7 +6,7 @@ import {
   loadTodayBoard,
   previewRequest,
 } from "@/lib/data";
-import { asRecord, owedLabel, type ProgressRow, type RequestPreview, type TodayPerson } from "@/lib/placement-ui";
+import { asRecord, endDateText, owedLabel, type ProgressRow, type RequestPreview, type TodayPerson } from "@/lib/placement-ui";
 import { plannedMinutes } from "@/lib/minutes";
 import type { Tables } from "@/lib/database.types";
 
@@ -45,9 +45,10 @@ export function pctText(value: number | null | undefined) {
 }
 
 export function forecastText(row: Pick<ProgressRow, "forecast_finish" | "days_late" | "planned_end_date">, format: (d: string) => string) {
+  if (!row.planned_end_date) return "No end date";                          // D47: nothing to forecast against
   if (!row.forecast_finish) return "Can't forecast a finish date.";
   const finish = format(row.forecast_finish);
-  const plan = format(row.planned_end_date);
+  const plan = endDateText(row.planned_end_date, format);
   if (row.days_late == null) return `Finishes ${finish} vs ${plan}`;
   if (row.days_late < 0) return `Finishes ${finish} · ${-row.days_late === 1 ? "1 day" : `${-row.days_late} days`} early`;
   if (row.days_late === 0) return `Finishes ${finish} · on plan`;

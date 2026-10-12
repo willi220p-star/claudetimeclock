@@ -52,7 +52,7 @@ export const RECORD_TABLES: RecordTable[] = [
     label: "Placements",
     order: { column: "start_date" },
     title: (r, n) => text(n.person(r.intern_id)),
-    subtitle: (r) => join(text(r.university), LABEL(r.status), `${day(r.start_date)} – ${day(r.planned_end_date)}`),
+    subtitle: (r) => join(text(r.university), LABEL(r.status), `${day(r.start_date)} – ${r.planned_end_date ? day(r.planned_end_date) : "No end date"}`),
     edit: [
       { name: "university", label: "University", kind: "text" },
       { name: "course", label: "Course", kind: "text" },

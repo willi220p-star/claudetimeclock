@@ -219,8 +219,8 @@ export function ClockDesk({ profile }: { profile: Profile }) {
             <h1 id="clock-title">Hi {firstName} 👋</h1>
             <p className="text-muted-foreground">DGK Business Consultancy</p>
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>{kpi ? `Week ${kpi.week_no} of ${kpi.total_weeks}` : formatDay(now)}</span>
-              {kpi ? <PaceChip daysLate={kpi.days_late} /> : null}
+              <span>{kpi ? `Week ${kpi.week_no}${kpi.total_weeks !== null ? ` of ${kpi.total_weeks}` : ""}` : formatDay(now)}</span>
+              {kpi ? <PaceChip daysLate={kpi.days_late} pace={kpi.pace} /> : null}
             </div>
           </div>
           <Avatar url={latestPhoto} name={profile.display_name} size={64} />

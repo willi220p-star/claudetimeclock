@@ -84,11 +84,11 @@ function ScheduleDesk() {
   const [state, reload] = useLoad(load);
   const shown = state.status === "ready" ? state.data : null;
 
-  // Add my roster to my phone calendar: every scheduled day from today to the planned end.
+  // Add my roster to my phone calendar: every scheduled day from today to the planned end (12 weeks with none, D47).
   async function downloadRoster() {
     if (!shown?.placement) return;
     try {
-      const days = await loadScheduledDays(shown.placement.id, shown.today, shown.placement.planned_end_date);
+      const days = await loadScheduledDays(shown.placement.id, shown.today, shown.placement.planned_end_date ?? addDays(shown.today, 84));
       const scheduled = days.filter((day) => day.status === "scheduled");
       const url = URL.createObjectURL(new Blob([rosterIcs(scheduled, shown.place)], { type: "text/calendar" }));
       const link = Object.assign(document.createElement("a"), { href: url, download: "dgk-roster.ics" });

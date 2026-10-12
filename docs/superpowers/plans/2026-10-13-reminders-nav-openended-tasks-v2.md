@@ -64,15 +64,15 @@
 - With no end date, Progress shows hours done only, with no forecast.
 
 **Database:**
-- [ ] `daymark_placements.planned_end_date` and `original_end_date` become nullable. The dates check becomes `planned_end_date is null or planned_end_date >= start_date`.
-- [ ] `target_minutes` becomes optional (nullable, or 0 meaning none).
-- [ ] **Roster horizon:** `private.roster_horizon(pl)` is `coalesce(planned_end_date, darwin_today() + 84)`.
+- [x] `daymark_placements.planned_end_date` and `original_end_date` become nullable. The dates check becomes `planned_end_date is null or planned_end_date >= start_date`.
+- [x] `target_minutes` becomes optional (nullable, or 0 meaning none).
+- [x] **Roster horizon:** `private.roster_horizon(pl)` is `coalesce(planned_end_date, darwin_today() + 84)`.
     - `generate_days`, pattern changes and capacity use it instead of `planned_end_date`.
     - A daily job, `private.job_roll_rosters()`, adds the next day for open-ended placements. It runs in `job_reminders` once per day, deduplicated.
-- [ ] Every reader of `planned_end_date` is checked: about 17 migrations' functions. These include the forecast, pace, catch-up "back on track by", retention (the 30-day read-only period starts from the end date or the status change), reports, the certificate (only once ended), the 'target_reached' status, and the overview.
+- [x] Every reader of `planned_end_date` is checked: about 17 migrations' functions. These include the forecast, pace, catch-up "back on track by", retention (the 30-day read-only period starts from the end date or the status change), reports, the certificate (only once ended), the 'target_reached' status, and the overview.
     - Null means: no forecast, no pace chip, no "ends in" text, and no target_reached unless there is a target.
     - Ending a placement sets the end date (`planned_end_date = today`) through the existing end or extend flow.
-- [ ] **pgTAP 220:**
+- [x] **pgTAP 220:**
     - create a placement without an end date;
     - the roster has 12 weeks of days and rolls forward a day;
     - no forecast;
@@ -80,9 +80,9 @@
     - erase and retention still work.
 
 **UI:**
-- [ ] Add person, the placement wizard, the placement screen and import: the end date is optional, labelled "End date (optional, leave blank if not known)".
-- [ ] Intern Progress, supervisor and admin progress screens: "142 h done · 18 h this week", with no forecast chart when there is no end date. The target bar still shows if a target is set.
-- [ ] Schedule shows "No end date" instead of the end date.
+- [x] Add person, the placement wizard, the placement screen and import: the end date is optional, labelled "End date (optional, leave blank if not known)".
+- [x] Intern Progress, supervisor and admin progress screens: "142 h done · 18 h this week", with no forecast chart when there is no end date. The target bar still shows if a target is set.
+- [x] Schedule shows "No end date" instead of the end date.
 
 ## PR D: tasks v2 (D48)
 
