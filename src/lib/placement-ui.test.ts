@@ -4,11 +4,15 @@ import {
   checkinOverdue,
   coversLine,
   dayCellStatus,
+  endDateText,
   forecastSeries,
+  hoursDoneText,
   knownParam,
   overtimeSteps,
+  placementDatesProblem,
   requestTimeline,
   splitEffect,
+  targetMinutesOf,
   statusMatches,
 } from "@/lib/placement-ui";
 
@@ -91,4 +95,22 @@ describe("check-ins", () => {
     expect(checkinOverdue("2026-10-05", "2026-10-05")).toBe(false);
     expect(checkinOverdue("2026-10-12", "2026-10-05")).toBe(false);
   });
+});
+
+test("open-ended placements read as no end date and hours done (D47)", () => {
+  expect(endDateText(null)).toBe("No end date");
+  expect(endDateText("2026-12-18", (date) => `on ${date}`)).toBe("on 2026-12-18");
+  expect(hoursDoneText(142 * 60, 18 * 60)).toBe("142h done · 18h this week");
+  expect(hoursDoneText(90, 0)).toBe("1h 30m done · 0h this week");
+});
+
+test("placement dates: start required, end and target optional (D47)", () => {
+  expect(placementDatesProblem("", "", "")).toBe("Set the start date.");
+  expect(placementDatesProblem("2026-10-12", "", "")).toBeNull();
+  expect(placementDatesProblem("2026-10-12", "2026-10-11", "")).toBe("The end date must be on or after the start date.");
+  expect(placementDatesProblem("2026-10-12", "2026-12-18", "400")).toBeNull();
+  expect(placementDatesProblem("2026-10-12", "", "0.5")).toMatch(/between 1 and 2,000/);
+  expect(placementDatesProblem("2026-10-12", "", "abc")).toMatch(/between 1 and 2,000/);
+  expect(targetMinutesOf(" ")).toBeNull();
+  expect(targetMinutesOf("80.5")).toBe(4830);
 });

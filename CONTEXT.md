@@ -11,8 +11,8 @@ Use these exact words in code, UI copy and comments. The UI never says "staff" o
 ## Placement
 - **Cohort**: a named intake group.
 - **Placement**: one intern's internship: start date, planned end date, target hours, supervisor, cohort, site. Status is `active`, `extended`, `target_reached`, `completed` or `withdrawn`.
-- **Target Hours**: the placement completes when counted hours reach the target (`target_minutes`).
-- **Planned End Date**: the pacing reference. Extending it sets status `extended`.
+- **Target Hours**: the placement completes when counted hours reach the target (`target_minutes`). Optional (D47): null means no target.
+- **Planned End Date**: the pacing reference. Extending it sets status `extended`. Optional (D47): with none, the schedule runs 12 weeks ahead and rolls forward daily, and there is no forecast or pace; setting it later cancels days after it.
 - **Weekly Pattern**: the intern's usual weekdays and times, stored as versions (`daymark_pattern_versions` + `daymark_pattern_days`).
 - **Schedule**: the list of **Scheduled Days** generated from the pattern. A scheduled day is `scheduled`, `moved`, `leave` or `cancelled`.
 - **Site**: the office (Regus, Level 1, 1 Palmerston Circuit, Palmerston City NT 0830), with its geofence radius and capacity.

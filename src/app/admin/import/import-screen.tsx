@@ -25,6 +25,7 @@ const COLUMNS = [
 
 const TEMPLATE = `${COLUMNS.join(",")}
 Ada Cole,ada@uni.test,CDU,BBus,2026-10-12,2026-12-18,120,sup1@dgk.test,Term 4 2026,Mon 09:00-17:00; Wed 09:00-17:00
+Ben Tran,ben@uni.test,CDU,BIT,2026-10-19,,,sup1@dgk.test,Term 4 2026,Tue 09:00-17:00; Thu 09:00-17:00
 `;
 
 type Row = Record<(typeof COLUMNS)[number], string>;
@@ -133,7 +134,7 @@ function ImportDesk() {
         }
       />
       <form className="flex flex-col gap-4 rounded-xl bg-card p-6 shadow-card" onSubmit={(e) => e.preventDefault()}>
-        <FormField id="import-file" label="CSV file" hint="Columns: display_name, email, university, course, start_date, planned_end_date, target_hours, supervisor_email, cohort, pattern. Pattern like Mon 09:00-17:00; Wed 09:00-17:00.">
+        <FormField id="import-file" label="CSV file" hint="Columns: display_name, email, university, course, start_date, planned_end_date, target_hours, supervisor_email, cohort, pattern. Pattern like Mon 09:00-17:00; Wed 09:00-17:00. Leave planned_end_date or target_hours blank if not known.">
           {(field) => (
             <input
               {...field}

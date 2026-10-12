@@ -170,13 +170,16 @@ export type CatchUpSlots = {
 export type InternKpi = {
   placement_id: string;
   counted_total: number;
-  target_minutes: number;
-  remaining: number;
+  /** Null: no target (D47). */
+  target_minutes: number | null;
+  remaining: number | null;
   week_no: number;
-  total_weeks: number;
+  /** Null with no end date (D47). */
+  total_weeks: number | null;
   forecast_finish: string | null;
   days_late: number | null;
-  pace: string;
+  /** Null with no end date or no target: nothing to pace against (D47). */
+  pace: string | null;
   owed: number;
   this_week: { counted: number; scheduled: number };
   on_time_pct: number | null;
@@ -236,7 +239,8 @@ export type ClockStatus = {
     id: string;
     status: string;
     start_date: string;
-    planned_end_date: string;
+    /** Null: no end date yet (D47). */
+    planned_end_date: string | null;
     ended_on: string | null;
     break_minutes: number;
     read_only: boolean;
@@ -273,21 +277,56 @@ export type ProgressRow = {
   supervisor_id: string;
   status: string;
   start_date: string;
-  planned_end_date: string;
-  target_minutes: number;
+  /** Null: no end date yet (D47). */
+  planned_end_date: string | null;
+  target_minutes: number | null;
   owed: number;
   counted_total: number;
-  remaining: number;
+  remaining: number | null;
   week_no: number;
-  total_weeks: number;
+  total_weeks: number | null;
   forecast_finish: string | null;
   days_late: number | null;
-  pace: string;
+  pace: string | null;
   attendance_pct?: number | null;
   risk_reasons: string[];
   fortnight_start?: string;
   fortnight_end?: string;
 };
+
+/** The end date field's label: it can be left blank when the leave date isn't known (D47). */
+export const END_DATE_LABEL = "End date (optional — leave blank if not known)";
+
+/** Target hours typed in a form as minutes: null when blank (no target, D47), NaN when not a number. */
+export function targetMinutesOf(hours: string) {
+  return hours.trim() === "" ? null : Math.round(Number(hours) * 60);
+}
+
+/** Dates and target for a placement form: the start is required, the end and target are optional (D47). */
+export function placementDatesProblem(start: string, end: string, targetHours: string) {
+  if (!start) return "Set the start date.";
+  if (end && end < start) return "The end date must be on or after the start date.";
+  const target = targetMinutesOf(targetHours);
+  if (target !== null && !(target >= 60 && target <= 120000)) {
+    return "Set target hours between 1 and 2,000, or leave it blank.";
+  }
+  return null;
+}
+
+/** A placement's end date, or "No end date" while the leave date isn't known (D47). */
+export function endDateText(date: string | null | undefined, format: (date: string) => string = formatDay) {
+  return date ? format(date) : "No end date";
+}
+
+/** Target hours, or "No target" (D47). */
+export function targetText(minutes: number | null) {
+  return minutes === null ? "No target" : formatMinutes(minutes);
+}
+
+/** Progress with nothing to pace against (no end date or no target, D47): "142h done · 18h this week". */
+export function hoursDoneText(total: number, thisWeek: number) {
+  return `${formatMinutes(total)} done · ${formatMinutes(thisWeek)} this week`;
+}
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;

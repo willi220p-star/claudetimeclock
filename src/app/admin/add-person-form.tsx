@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorText, type Profile } from "@/lib/daymark";
 import { formatMinutes, plannedMinutes } from "@/lib/minutes";
+import { END_DATE_LABEL, placementDatesProblem, targetMinutesOf } from "@/lib/placement-ui";
 import { rosterTotal } from "@/lib/periods";
 import { ROLE_LABEL } from "@/lib/roles";
 import { personSchema } from "@/lib/schemas";
@@ -43,13 +44,12 @@ function emptyPlacement(): Placement {
 }
 
 /** The first thing wrong with the placement part, in the order the fields appear. */
-function placementProblem(p: Placement, targetMinutes: number, days: number) {
+function placementProblem(p: Placement, days: number) {
   if (!p.supervisor_id) return "Pick their supervisor.";
   if (!p.university.trim() || !p.course.trim()) return "Enter the university and the course.";
-  if (!p.start_date || !p.planned_end_date) return "Set the start and end dates.";
-  if (p.planned_end_date < p.start_date) return "The end date must be on or after the start date.";
+  const dates = placementDatesProblem(p.start_date, p.planned_end_date, p.target_hours);
+  if (dates) return dates;
   if (days === 0) return "Pick at least one day they work.";
-  if (targetMinutes < 60) return "Set their target hours.";
   if (breakOf(p.break_minutes) === undefined) return "Set the break between 0 and 120 minutes, or leave it empty for 30.";
   return null;
 }
@@ -76,8 +76,6 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
   const isIntern = useWatch({ control, name: "is_intern" });
   const supervisors = people.filter((person) => person.is_supervisor && person.active);
   const pattern = useMemo(() => patternOf(placement.days), [placement.days]);
-  const hours = Number(placement.target_hours);
-  const targetMinutes = Number.isFinite(hours) ? Math.round(hours * 60) : 0;
   const roster =
     placement.start_date && placement.planned_end_date && placement.planned_end_date >= placement.start_date
       ? rosterTotal(placement.start_date, placement.planned_end_date, (weekday) => {
@@ -99,7 +97,7 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
         return;
       }
     } else {
-      const problem = placementProblem(placement, targetMinutes, pattern.length);
+      const problem = placementProblem(placement, pattern.length);
       if (problem) {
         setFormError(problem);
         return;
@@ -115,8 +113,8 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
           university: placement.university.trim(),
           course: placement.course.trim(),
           start_date: placement.start_date,
-          planned_end_date: placement.planned_end_date,
-          target_minutes: targetMinutes,
+          planned_end_date: placement.planned_end_date || null,
+          target_minutes: targetMinutesOf(placement.target_hours),
           break_minutes: breakOf(placement.break_minutes) ?? null,
           pattern,
         },
@@ -228,7 +226,7 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
                   <Input {...field} type="date" value={placement.start_date} onChange={(e) => set("start_date", e.target.value)} />
                 )}
               </FormField>
-              <FormField id="person-end" label="End date">
+              <FormField id="person-end" label={END_DATE_LABEL}>
                 {(field) => (
                   <Input
                     {...field}
@@ -246,11 +244,11 @@ export function AddPersonForm({ people, onAdded }: { people: Profile[]; onAdded:
             </fieldset>
             <FormField
               id="person-target"
-              label="Target hours"
+              label="Target hours (optional)"
               hint={
                 roster
                   ? `The roster adds up to ${roster.days} days, ${formatMinutes(roster.minutes)} before closures.`
-                  : "The hours their university needs."
+                  : "The hours their university needs. Leave blank for no target."
               }
             >
               {(field) => (

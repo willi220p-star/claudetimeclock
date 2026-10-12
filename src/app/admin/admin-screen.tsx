@@ -57,7 +57,11 @@ function OverviewDesk() {
       <LoadBlock state={progress} reload={reloadProgress} empty="No one is at risk right now.">
         {(rows) => {
           const atRisk = rows.filter((row) => row.risk_reasons.length > 0);
-          const finishing = rows.filter((row) => row.planned_end_date >= today && row.planned_end_date <= soonUntil);
+          const finishing = rows.flatMap((row) =>
+            row.planned_end_date && row.planned_end_date >= today && row.planned_end_date <= soonUntil
+              ? [{ ...row, planned_end_date: row.planned_end_date }]
+              : [],
+          );
           return (
             <>
               <section aria-labelledby="at-risk-title" className="flex flex-col gap-3">
@@ -234,7 +238,7 @@ function RiskTable({ rows }: { rows: ProgressRow[] }) {
                   </Link>
                 </td>
                 <td className="py-3 pr-3">
-                  <PaceChip daysLate={row.days_late} />
+                  <PaceChip daysLate={row.days_late} pace={row.pace} />
                 </td>
                 <td className="py-3">
                   <div className="flex flex-wrap gap-1">
@@ -254,7 +258,7 @@ function RiskTable({ rows }: { rows: ProgressRow[] }) {
             <Link href={`/admin/placement?id=${row.placement_id}`} className="font-semibold">
               {row.intern_name}
             </Link>
-            <PaceChip daysLate={row.days_late} />
+            <PaceChip daysLate={row.days_late} pace={row.pace} />
             <div className="flex flex-wrap gap-1">
               {row.risk_reasons.map((reason) => (
                 <StatusChip key={reason} tone="warn" label={RISK_LABEL[reason] ?? reason} />

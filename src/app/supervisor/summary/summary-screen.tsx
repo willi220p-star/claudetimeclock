@@ -132,7 +132,8 @@ function SummaryDesk() {
 }
 
 function SummaryCard({ row }: { row: SummaryRow }) {
-  const pace = PACE[row.pace] ?? { tone: "neutral" as const, label: row.pace };
+  // pace is null with no end date or no target (D47): no chip.
+  const pace = row.pace ? (PACE[row.pace] ?? { tone: "neutral" as const, label: row.pace }) : null;
   const checkin = asRecord(row.checkin);
   const average = typeof checkin?.average === "number" ? checkin.average : null;
   const comment = typeof checkin?.comment === "string" ? checkin.comment : null;
@@ -157,7 +158,7 @@ function SummaryCard({ row }: { row: SummaryRow }) {
         <Link href={`/supervisor/intern?id=${row.placement_id}`} className="font-semibold">
           {row.intern_name}
         </Link>
-        <StatusChip tone={pace.tone} label={pace.label} />
+        {pace ? <StatusChip tone={pace.tone} label={pace.label} /> : null}
       </div>
       {row.risk_reasons.length > 0 ? (
         <div className="flex flex-wrap gap-1">
