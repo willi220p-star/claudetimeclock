@@ -5,7 +5,7 @@ import { DeskGate } from "@/components/desk-gate";
 import { PageHeader } from "@/components/page-header";
 import { TasksCard } from "@/components/tasks/tasks";
 
-/** My work (D46): the intern's tasks. Board and calendar views come with tasks v2. */
+/** My work (D46, D48): the intern's tasks as a list or a board. The calendar view comes with PR E. */
 export function TasksScreen() {
   return (
     <DeskGate role="intern">
