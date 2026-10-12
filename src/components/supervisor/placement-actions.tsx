@@ -7,6 +7,7 @@ import { PdfDownloads } from "@/components/pdf-downloads";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { darwinDateKey } from "@/lib/darwin";
 import { addDays } from "@/lib/periods";
 import { errorText } from "@/lib/daymark";
 import { createClient } from "@/lib/supabase/client";
@@ -22,13 +23,15 @@ export function PlacementActions({
 }: {
   placementId: string;
   status: string;
-  plannedEnd: string;
+  /** Null: no end date yet (D47), so Extend becomes "Set end date". */
+  plannedEnd: string | null;
   reportApprovedAt: string | null;
   onDone: () => void;
 }) {
   const [action, setAction] = useState<Action>(null);
   const [note, setNote] = useState("");
-  const [newEnd, setNewEnd] = useState(addDays(plannedEnd, 14));
+  const today = darwinDateKey(new Date());
+  const [newEnd, setNewEnd] = useState(addDays(plannedEnd ?? today, 14));
   const [allowExtra, setAllowExtra] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +72,9 @@ export function PlacementActions({
     }
     toast.success(
       action === "extend"
-        ? "End date extended."
+        ? plannedEnd
+          ? "End date extended."
+          : "End date set."
         : action === "complete"
           ? "Placement marked complete."
           : action === "withdraw"
@@ -86,7 +91,7 @@ export function PlacementActions({
         {live ? (
           <>
             <Button type="button" variant="secondary" onClick={() => setAction("extend")}>
-              Extend end date
+              {plannedEnd ? "Extend end date" : "Set end date"}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setAction("complete")}>
               Confirm completion
@@ -114,7 +119,9 @@ export function PlacementActions({
         <DialogContent>
           <DialogTitle>
             {action === "extend"
-              ? "Extend end date"
+              ? plannedEnd
+                ? "Extend end date"
+                : "Set end date"
               : action === "complete"
                 ? "Confirm completion"
                 : action === "withdraw"
@@ -123,7 +130,9 @@ export function PlacementActions({
           </DialogTitle>
           <DialogDescription>
             {action === "extend"
-              ? "New scheduled days are added from the current pattern."
+              ? plannedEnd
+                ? "New scheduled days are added from the current pattern."
+                : "Scheduled days after the end date are cancelled."
               : action === "complete"
                 ? "This ends the placement and cancels days after today."
                 : action === "withdraw"
@@ -132,12 +141,12 @@ export function PlacementActions({
           </DialogDescription>
           {action === "extend" ? (
             <>
-              <FormField id="new-end" label="New end date">
+              <FormField id="new-end" label={plannedEnd ? "New end date" : "End date"}>
                 {(input) => (
                   <Input
                     {...input}
                     type="date"
-                    min={addDays(plannedEnd, 1)}
+                    min={plannedEnd ? addDays(plannedEnd, 1) : today}
                     value={newEnd}
                     onChange={(event) => setNewEnd(event.target.value)}
                   />

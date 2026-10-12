@@ -40,7 +40,14 @@ import {
 import { FLAG_LABEL, errorText, formatDistance, type Profile } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
 import { addDays } from "@/lib/periods";
-import { PLACEMENT_STATUS_LABEL, REQUEST_STATUS_LABEL, asRecord, dayCellStatus, requestLabel } from "@/lib/placement-ui";
+import {
+  PLACEMENT_STATUS_LABEL,
+  REQUEST_STATUS_LABEL,
+  asRecord,
+  dayCellStatus,
+  hoursDoneText,
+  requestLabel,
+} from "@/lib/placement-ui";
 import { dayTimes, filterDays, profileDays, profileSummary, type ProfileDay, type ProfileFilter } from "@/lib/profile-stats";
 import { selfieUrl, signSelfies } from "@/lib/punches";
 import { useLoad } from "@/lib/use-load";
@@ -56,9 +63,11 @@ type PlacementView = {
   supervisor_id: string;
   status: string;
   start_date: string;
-  planned_end_date: string;
+  /** Null: no end date yet (D47). */
+  planned_end_date: string | null;
   ended_on: string | null;
-  target_minutes: number;
+  /** Null: no target (D47). */
+  target_minutes: number | null;
   university: string;
   course: string;
   report_approved_at: string | null;
@@ -84,9 +93,9 @@ function asPlacement(data: unknown): PlacementView | null {
     supervisor_id: typeof row.supervisor_id === "string" ? row.supervisor_id : "",
     status: typeof row.status === "string" ? row.status : "",
     start_date: typeof row.start_date === "string" ? row.start_date : "",
-    planned_end_date: typeof row.planned_end_date === "string" ? row.planned_end_date : "",
+    planned_end_date: typeof row.planned_end_date === "string" ? row.planned_end_date : null,
     ended_on: typeof row.ended_on === "string" ? row.ended_on : null,
-    target_minutes: typeof row.target_minutes === "number" ? row.target_minutes : 0,
+    target_minutes: typeof row.target_minutes === "number" ? row.target_minutes : null,
     university: typeof row.university === "string" ? row.university : "",
     course: typeof row.course === "string" ? row.course : "",
     report_approved_at: typeof row.report_approved_at === "string" ? row.report_approved_at : null,
@@ -102,7 +111,7 @@ async function loadInternDesk(id: string) {
   if (!placement) return null;
   const today = darwinDateKey(new Date());
   const from = placement.start_date || today;
-  const latest = [placement.planned_end_date, placement.ended_on ?? from, today].reduce((a, b) => (a > b ? a : b));
+  const latest = [placement.planned_end_date ?? today, placement.ended_on ?? from, today].reduce((a, b) => (a > b ? a : b));
   const to = addDays(latest, 14);
   const [progressRows, days, results, requests, logs, punches, checkins, flagged, kinds] = await Promise.all([
     loadProgressForSupervisor(),
@@ -244,15 +253,27 @@ function InternDetail({
       />
 
       <div className="flex flex-col gap-6 rounded-xl bg-card p-6 shadow-card sm:flex-row sm:items-center">
-        <ProgressRing counted={counted} target={target} size={140} label={`${counted} of ${target} minutes counted`}>
-          <div>
-            <p className="text-2xl font-bold tabular-nums">{target > 0 ? Math.round((counted / target) * 100) : 0}%</p>
-            <p className="caption text-muted-foreground">counted</p>
-          </div>
-        </ProgressRing>
+        {target !== null ? (
+          <ProgressRing counted={counted} target={target} size={140} label={`${counted} of ${target} minutes counted`}>
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{target > 0 ? Math.round((counted / target) * 100) : 0}%</p>
+              <p className="caption text-muted-foreground">counted</p>
+            </div>
+          </ProgressRing>
+        ) : null}
         <div className="flex min-w-0 flex-col gap-2">
-          {progress ? <PaceChip daysLate={progress.days_late} /> : null}
-          <p>{progress ? forecastText(progress, formatDay) : `Planned end ${formatDay(placement.planned_end_date)}`}</p>
+          {/* D47: no end date or no target means no pace or forecast, just hours done. */}
+          {progress?.pace ? <PaceChip daysLate={progress.days_late} /> : null}
+          <p>
+            {progress?.pace
+              ? forecastText(progress, formatDay)
+              : progress || placement.planned_end_date === null
+                ? hoursDoneText(counted, summary.thisWeek.counted)
+                : `Planned end ${formatDay(placement.planned_end_date)}`}
+          </p>
+          {placement.planned_end_date === null && !placement.ended_on ? (
+            <p className="text-sm text-muted-foreground">No end date</p>
+          ) : null}
           <p className="text-muted-foreground">{progress ? owedText(progress.owed) : "Owed —"}</p>
           {attendance != null || onTime != null ? (
             <p className="text-sm text-muted-foreground">
@@ -293,7 +314,7 @@ function InternDetail({
         <MetricCard
           label="Total counted"
           value={formatMinutes(counted)}
-          sub={`of ${formatMinutes(target)} placement target`}
+          sub={target !== null ? `of ${formatMinutes(target)} placement target` : "No target"}
           className="col-span-2"
         />
       </section>
@@ -339,7 +360,7 @@ function InternDetail({
         <CheckinPanel
           placementId={placement.id}
           startDate={placement.start_date}
-          endDate={placement.ended_on ?? placement.planned_end_date}
+          endDate={placement.ended_on ?? placement.planned_end_date ?? today}
           today={today}
           checkins={checkins}
           onSaved={onDone}

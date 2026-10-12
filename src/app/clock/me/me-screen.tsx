@@ -11,6 +11,7 @@ import { PushToggle } from "@/components/push-toggle";
 import { Avatar } from "@/components/avatar";
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
+import { MeTabs } from "@/components/segmented-nav";
 import { EmptyState } from "@/components/empty-state";
 import { FormField, FormMessage } from "@/components/form-field";
 import { LoadBlock } from "@/components/load-block";
@@ -33,6 +34,7 @@ export function MeScreen() {
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Me">
+          <MeTabs />
           <MeDesk profile={profile} />
         </InternShell>
       )}

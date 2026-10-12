@@ -298,12 +298,12 @@ export function ChangeDaysSheet({
         <div className="grid grid-cols-2 gap-3">
           <FormField id="range-from" label="From">
             {(field) => (
-              <Input {...field} type="date" min={today} max={chosen?.planned_end_date} value={from} onChange={(e) => setFrom(e.target.value)} />
+              <Input {...field} type="date" min={today} max={chosen?.planned_end_date ?? undefined} value={from} onChange={(e) => setFrom(e.target.value)} />
             )}
           </FormField>
           <FormField id="range-to" label="Until (optional)">
             {(field) => (
-              <Input {...field} type="date" min={from} max={chosen?.planned_end_date} value={to} onChange={(e) => setTo(e.target.value)} />
+              <Input {...field} type="date" min={from} max={chosen?.planned_end_date ?? undefined} value={to} onChange={(e) => setTo(e.target.value)} />
             )}
           </FormField>
         </div>

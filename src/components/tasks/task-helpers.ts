@@ -1,5 +1,6 @@
 import type { Database } from "@/lib/database.types";
 import { darwinAt, darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
+import { addDays, mondayOf } from "@/lib/periods";
 
 type Fns = Database["public"]["Functions"];
 type Nullable = "description" | "due_date" | "due_time" | "link" | "done_at" | "done_note";
@@ -49,6 +50,30 @@ export function isOverdue(row: { status: string; due_date: string | null; due_ti
   const today = darwinDateKey(now);
   if (row.due_date < today) return true;
   return row.due_date === today && !!row.due_time && darwinAt(row.due_date, row.due_time) < now;
+}
+
+export type TaskFilter = "all" | "today" | "week" | "overdue";
+export const TASK_FILTERS: { value: TaskFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This week" },
+  { value: "overdue", label: "Overdue" },
+];
+
+/** My work quick filters (D46): open tasks due today, this Monday–Sunday, or overdue (Darwin). */
+export function matchesTaskFilter(
+  row: { status: string; due_date: string | null; due_time: string | null },
+  filter: TaskFilter,
+  now: Date,
+) {
+  if (filter === "all") return true;
+  if (row.status === "done") return false;
+  if (filter === "overdue") return isOverdue(row, now);
+  if (!row.due_date) return false;
+  const today = darwinDateKey(now);
+  if (filter === "today") return row.due_date === today;
+  const monday = mondayOf(today);
+  return row.due_date >= monday && row.due_date <= addDays(monday, 6);
 }
 
 /** "Tue 14 Oct, 9:00 am", "Tue 14 Oct" or null. */

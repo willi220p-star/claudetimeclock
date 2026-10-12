@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { InternShell } from "@/components/desk-shell";
 import { DAY_STATUS, DayStatusBadge, type DayStatus } from "@/components/day-status-badge";
 import { DeskGate } from "@/components/desk-gate";
+import { ScheduleTabs } from "@/components/segmented-nav";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { RequestForm } from "@/components/request-form";
@@ -36,6 +37,7 @@ export function ScheduleScreen() {
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Schedule">
+          <ScheduleTabs />
           <ScheduleDesk />
         </InternShell>
       )}
@@ -82,11 +84,11 @@ function ScheduleDesk() {
   const [state, reload] = useLoad(load);
   const shown = state.status === "ready" ? state.data : null;
 
-  // Add my roster to my phone calendar: every scheduled day from today to the planned end.
+  // Add my roster to my phone calendar: every scheduled day from today to the planned end (12 weeks with none, D47).
   async function downloadRoster() {
     if (!shown?.placement) return;
     try {
-      const days = await loadScheduledDays(shown.placement.id, shown.today, shown.placement.planned_end_date);
+      const days = await loadScheduledDays(shown.placement.id, shown.today, shown.placement.planned_end_date ?? addDays(shown.today, 84));
       const scheduled = days.filter((day) => day.status === "scheduled");
       const url = URL.createObjectURL(new Blob([rosterIcs(scheduled, shown.place)], { type: "text/calendar" }));
       const link = Object.assign(document.createElement("a"), { href: url, download: "dgk-roster.ics" });

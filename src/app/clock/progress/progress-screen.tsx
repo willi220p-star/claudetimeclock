@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { BarsChart, ChartCard, ChartTable } from "@/components/bar-chart";
 import { InternShell } from "@/components/desk-shell";
 import { DeskGate } from "@/components/desk-gate";
+import { MeTabs } from "@/components/segmented-nav";
 import { LoadBlock } from "@/components/load-block";
 import { MinutesText } from "@/components/minutes-text";
 import { PaceChip } from "@/components/pace-chip";
@@ -24,7 +25,7 @@ import {
 import { formatMinutes } from "@/lib/minutes";
 import { addDays, mondayOf, weekNo } from "@/lib/periods";
 import { loadPunches } from "@/lib/punches";
-import { forecastSeries, type InternKpi } from "@/lib/placement-ui";
+import { forecastSeries, hoursDoneText, type InternKpi } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
 export function ProgressScreen() {
@@ -32,6 +33,7 @@ export function ProgressScreen() {
     <DeskGate role="intern">
       {(profile) => (
         <InternShell profile={profile} title="Progress">
+          <MeTabs />
           <ProgressDesk profile={profile} />
         </InternShell>
       )}
@@ -69,32 +71,46 @@ function ProgressDesk({ profile }: { profile: Profile }) {
 
   return (
     <>
-      <PageHeader title="Progress" description="Hours counted against your target. The forecast is written as text." />
+      <PageHeader title="Progress" description="Your counted hours, week by week. Any forecast is written out as text." />
       <LoadBlock state={state} reload={reload} empty="No placement hours yet.">
         {({ kpi, weeks, progress, week, attendance }) =>
           kpi ? (
             <div className="flex flex-col gap-6">
               <section className="flex flex-col items-center gap-3 rounded-xl bg-card p-6 shadow-card">
-                <ProgressRing
-                  counted={kpi.counted_total}
-                  target={kpi.target_minutes}
-                  label={`${formatMinutes(kpi.counted_total)} of ${formatMinutes(kpi.target_minutes)} counted`}
-                >
-                  <p className="text-sm font-semibold">
-                    <MinutesText minutes={kpi.remaining} /> left
-                  </p>
-                </ProgressRing>
-                <p>
-                  Week {kpi.week_no} of {kpi.total_weeks}
-                </p>
-                <PaceChip daysLate={kpi.days_late} />
-                <p className="text-center text-muted-foreground">
-                  {kpi.forecast_finish
-                    ? `Finishes ${formatDay(kpi.forecast_finish)}${forecastLag(kpi.days_late)}`
-                    : "Can't forecast"}
-                </p>
+                {kpi.target_minutes !== null ? (
+                  <ProgressRing
+                    counted={kpi.counted_total}
+                    target={kpi.target_minutes}
+                    label={`${formatMinutes(kpi.counted_total)} of ${formatMinutes(kpi.target_minutes)} counted`}
+                  >
+                    <p className="text-sm font-semibold">
+                      <MinutesText minutes={kpi.remaining ?? 0} /> left
+                    </p>
+                  </ProgressRing>
+                ) : null}
+                {/* D47: no end date or no target means nothing to pace against, so hours done instead. */}
+                {kpi.pace !== null && kpi.total_weeks !== null ? (
+                  <>
+                    <p>
+                      Week {kpi.week_no} of {kpi.total_weeks}
+                    </p>
+                    <PaceChip daysLate={kpi.days_late} />
+                    <p className="text-center text-muted-foreground">
+                      {kpi.forecast_finish
+                        ? `Finishes ${formatDay(kpi.forecast_finish)}${forecastLag(kpi.days_late)}`
+                        : "Can't forecast"}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-semibold">{hoursDoneText(kpi.counted_total, kpi.this_week.counted)}</p>
+                    <p className="text-muted-foreground">{kpi.week_no >= 1 ? `Week ${kpi.week_no}` : "Your placement hasn't started yet."}</p>
+                  </>
+                )}
               </section>
-              {progress ? <ForecastCard kpi={kpi} weeks={weeks} progress={progress} /> : null}
+              {progress && progress.pace !== null && kpi.target_minutes !== null && kpi.total_weeks !== null ? (
+                <ForecastCard kpi={kpi} target={kpi.target_minutes} totalWeeks={kpi.total_weeks} weeks={weeks} progress={progress} />
+              ) : null}
               <WeekCard week={week} />
               <WeeklyCard weeks={weeks} />
               {attendance ? <AttendanceCard rows={attendance} /> : null}
@@ -228,26 +244,29 @@ type Progress = NonNullable<Awaited<ReturnType<typeof loadPlacementProgress>>>;
 
 function ForecastCard({
   kpi,
+  target,
+  totalWeeks,
   weeks,
   progress,
 }: {
   kpi: InternKpi;
+  target: number;
+  totalWeeks: number;
   weeks: Awaited<ReturnType<typeof loadWeekHours>>;
   progress: Progress;
 }) {
   const start = progress.start_date;
   const forecastWeek = progress.forecast_finish && start ? weekNo(progress.forecast_finish, start) : null;
-  const target = progress.target_minutes ?? kpi.target_minutes;
   const points = forecastSeries({
     weeks,
     targetMinutes: target,
-    totalWeeks: progress.total_weeks ?? kpi.total_weeks,
+    totalWeeks,
     currentWeek: progress.week_no ?? kpi.week_no,
     forecastWeek,
   });
   const summary =
     `Cumulative counted hours by week: ${formatMinutes(kpi.counted_total)} of ${formatMinutes(target)} by week ` +
-    `${kpi.week_no} of ${kpi.total_weeks}. ` +
+    `${kpi.week_no} of ${totalWeeks}. ` +
     (progress.forecast_finish
       ? `Forecast finish ${formatDay(progress.forecast_finish)}, week ${forecastWeek}${forecastLag(kpi.days_late)}.`
       : "No forecast yet.");

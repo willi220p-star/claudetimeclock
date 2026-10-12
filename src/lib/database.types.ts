@@ -775,9 +775,9 @@ export type Database = {
           hourly_rate: number | null
           id: string
           intern_id: string
-          original_end_date: string
+          original_end_date: string | null
           paid: boolean
-          planned_end_date: string
+          planned_end_date: string | null
           report_approval_note: string | null
           report_approved_at: string | null
           report_approved_by: string | null
@@ -785,7 +785,7 @@ export type Database = {
           start_date: string
           status: string
           supervisor_id: string
-          target_minutes: number
+          target_minutes: number | null
           target_reached_at: string | null
           uni_coordinator_email: string | null
           uni_coordinator_name: string | null
@@ -801,9 +801,9 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           intern_id: string
-          original_end_date: string
+          original_end_date?: string | null
           paid?: boolean
-          planned_end_date: string
+          planned_end_date?: string | null
           report_approval_note?: string | null
           report_approved_at?: string | null
           report_approved_by?: string | null
@@ -811,7 +811,7 @@ export type Database = {
           start_date: string
           status?: string
           supervisor_id: string
-          target_minutes: number
+          target_minutes?: number | null
           target_reached_at?: string | null
           uni_coordinator_email?: string | null
           uni_coordinator_name?: string | null
@@ -827,9 +827,9 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           intern_id?: string
-          original_end_date?: string
+          original_end_date?: string | null
           paid?: boolean
-          planned_end_date?: string
+          planned_end_date?: string | null
           report_approval_note?: string | null
           report_approved_at?: string | null
           report_approved_by?: string | null
@@ -837,7 +837,7 @@ export type Database = {
           start_date?: string
           status?: string
           supervisor_id?: string
-          target_minutes?: number
+          target_minutes?: number | null
           target_reached_at?: string | null
           uni_coordinator_email?: string | null
           uni_coordinator_name?: string | null

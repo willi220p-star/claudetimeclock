@@ -108,17 +108,22 @@ export function periodHours(
 
 const LIVE = new Set(["active", "extended", "target_reached"]);
 
-/** Live placements' counted share of target, furthest along first. */
+/** Live placements' counted share of target, furthest along first. No target, no bar (D47). */
 export function progressToTarget(rows: ProgressRow[]) {
   return rows
-    .filter((row) => LIVE.has(row.status))
-    .map((row) => ({
-      id: row.placement_id,
-      label: row.intern_name,
-      pct: Math.min(100, pct(row.counted_total, row.target_minutes) ?? 0),
-      counted: row.counted_total,
-      target: row.target_minutes,
-    }))
+    .flatMap((row) =>
+      LIVE.has(row.status) && row.target_minutes !== null
+        ? [
+            {
+              id: row.placement_id,
+              label: row.intern_name,
+              pct: Math.min(100, pct(row.counted_total, row.target_minutes) ?? 0),
+              counted: row.counted_total,
+              target: row.target_minutes,
+            },
+          ]
+        : [],
+    )
     .sort((a, b) => b.pct - a.pct || a.label.localeCompare(b.label));
 }
 

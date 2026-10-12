@@ -13,9 +13,11 @@ export type ReportPlacement = {
   id: string;
   status: string;
   start_date: string;
-  planned_end_date: string;
+  /** Null: no end date (D47). */
+  planned_end_date: string | null;
   ended_on: string | null;
-  target_minutes: number;
+  /** Null: no target (D47). */
+  target_minutes: number | null;
   university: string;
   course: string;
   uni_coordinator_name: string | null;
@@ -196,10 +198,10 @@ export function buildReportModel(input: ReportInput): ReportModel {
     status: PLACEMENT_STATUS_LABEL[placement.status] ?? placement.status,
     dates: {
       start: formatDate(placement.start_date),
-      plannedEnd: formatDate(placement.planned_end_date),
+      plannedEnd: placement.planned_end_date ? formatDate(placement.planned_end_date) : "No end date",
       ended: placement.ended_on ? formatDate(placement.ended_on) : "—",
     },
-    target: formatMinutes(placement.target_minutes),
+    target: placement.target_minutes === null ? "No target" : formatMinutes(placement.target_minutes),
     counted: formatMinutes(counted),
     weeks: weeks.map((w) => ({
       week: String(num(w.week_no)),
@@ -265,7 +267,7 @@ export function buildCertificateModel(input: ReportInput): CertificateModel {
     documentId: input.documentId,
     internName: input.internName,
     statement: `completed ${hoursText(countedMinutes(input.weeks))} of professional placement at DGK Business Consultancy, Palmerston City NT`,
-    dates: `${formatDate(placement.start_date)} to ${formatDate(end)}`,
+    dates: end ? `${formatDate(placement.start_date)} to ${formatDate(end)}` : `From ${formatDate(placement.start_date)}`,
     supervisorName: nameOf(input.names, placement.supervisor_id),
     issued: formatDate(input.generatedAt),
   };

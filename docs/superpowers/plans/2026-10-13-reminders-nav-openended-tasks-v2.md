@@ -42,20 +42,20 @@
 - Schedule gets a **History** tab showing every shift since the placement start, and tapping one opens a pre-filled fix request.
 
 **Tasks:**
-- [ ] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Projects (`/clock/projects`), Schedule, Me.
+- [x] **`desk-shell.tsx`:** intern tabs are Today, Tasks (`/clock/tasks`), Projects (`/clock/projects`), Schedule, Me.
     - Until PR E ships, the Projects tab shows an empty state.
     - `/clock/progress` and `/clock/requests` stay as pages, with no bottom tab. Me gets a three-segment switch (Me | Progress | Requests).
     - The segments are links to those pages, so existing links (such as notifications going to `/clock/requests`) keep working.
-- [ ] **`/clock/tasks`** is the "My work" hub (Dilip, 13 Oct). The existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
-    - Top filters: Today, This week, Overdue, To review.
-    - A view switch: List, Board (PR D) or Calendar (PR E).
+- [x] **`/clock/tasks`** is the "My work" hub (Dilip, 13 Oct). The existing `Tasks` card moves here, and Home keeps a small "3 tasks today" link card.
+    - Top filters: Today, This week, Overdue, To review. (PR B ships All, Today, This week, Overdue; To review comes with PR D.)
+    - A view switch: List, Board (PR D) or Calendar (PR E). (Not in PR B.)
     - A big **+ Task** button, plus filters by project, label and priority as they land.
-- [ ] **Schedule:** a segment switch, Roster | History.
+- [x] **Schedule:** a segment switch, Roster | History.
     - **History** lists days newest first: date, day type, clock-in, breaks, clock-out, counted hours, and chips (Missing clock-out, Waiting, Offline, Kiosk, Typed-in, Absent, Leave). It loads by month, with a "Load earlier" button.
     - Tapping a day opens the existing request form as a `punch_fix` for that date, pre-filled with the day's in and out punch ids. The intern picks "Forgot to clock out", "Wrong time" or "Missed break" and writes a reason.
     - A day with a pending request shows "Fix requested", and a second fix can't be sent for it.
     - It reuses the timesheet data the intern already reads (`punch-day-table`, `loadDays`). No new database work, unless a read is missing. If one is, it's an `my_history(from, to)` read in PR C's migration.
-- [ ] **Tests:** Vitest for history row building (chips, missing clock-out) and e2e: open History, tap a day, send a fix, and see it in Requests.
+- [x] **Tests:** Vitest for history row building (chips, missing clock-out) and e2e: open History, tap a day, send a fix, and see it in Requests.
 
 ## PR C: open-ended placements (D47)
 
@@ -64,15 +64,15 @@
 - With no end date, Progress shows hours done only, with no forecast.
 
 **Database:**
-- [ ] `daymark_placements.planned_end_date` and `original_end_date` become nullable. The dates check becomes `planned_end_date is null or planned_end_date >= start_date`.
-- [ ] `target_minutes` becomes optional (nullable, or 0 meaning none).
-- [ ] **Roster horizon:** `private.roster_horizon(pl)` is `coalesce(planned_end_date, darwin_today() + 84)`.
+- [x] `daymark_placements.planned_end_date` and `original_end_date` become nullable. The dates check becomes `planned_end_date is null or planned_end_date >= start_date`.
+- [x] `target_minutes` becomes optional (nullable, or 0 meaning none).
+- [x] **Roster horizon:** `private.roster_horizon(pl)` is `coalesce(planned_end_date, darwin_today() + 84)`.
     - `generate_days`, pattern changes and capacity use it instead of `planned_end_date`.
     - A daily job, `private.job_roll_rosters()`, adds the next day for open-ended placements. It runs in `job_reminders` once per day, deduplicated.
-- [ ] Every reader of `planned_end_date` is checked: about 17 migrations' functions. These include the forecast, pace, catch-up "back on track by", retention (the 30-day read-only period starts from the end date or the status change), reports, the certificate (only once ended), the 'target_reached' status, and the overview.
+- [x] Every reader of `planned_end_date` is checked: about 17 migrations' functions. These include the forecast, pace, catch-up "back on track by", retention (the 30-day read-only period starts from the end date or the status change), reports, the certificate (only once ended), the 'target_reached' status, and the overview.
     - Null means: no forecast, no pace chip, no "ends in" text, and no target_reached unless there is a target.
     - Ending a placement sets the end date (`planned_end_date = today`) through the existing end or extend flow.
-- [ ] **pgTAP 220:**
+- [x] **pgTAP 220:**
     - create a placement without an end date;
     - the roster has 12 weeks of days and rolls forward a day;
     - no forecast;
@@ -80,9 +80,9 @@
     - erase and retention still work.
 
 **UI:**
-- [ ] Add person, the placement wizard, the placement screen and import: the end date is optional, labelled "End date (optional, leave blank if not known)".
-- [ ] Intern Progress, supervisor and admin progress screens: "142 h done · 18 h this week", with no forecast chart when there is no end date. The target bar still shows if a target is set.
-- [ ] Schedule shows "No end date" instead of the end date.
+- [x] Add person, the placement wizard, the placement screen and import: the end date is optional, labelled "End date (optional, leave blank if not known)".
+- [x] Intern Progress, supervisor and admin progress screens: "142 h done · 18 h this week", with no forecast chart when there is no end date. The target bar still shows if a target is set.
+- [x] Schedule shows "No end date" instead of the end date.
 
 ## PR D: tasks v2 (D48)
 

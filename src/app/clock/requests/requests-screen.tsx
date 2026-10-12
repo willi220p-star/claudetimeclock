@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
 import { PageHeader } from "@/components/page-header";
 import { RequestForm } from "@/components/request-form";
+import { MeTabs } from "@/components/segmented-nav";
 import { StatusChip } from "@/components/status-chip";
 import { Button } from "@/components/ui/button";
 import { loadCertRetentionDays, loadMyPlacement, loadRequestsForPlacement } from "@/lib/data";
@@ -37,9 +38,11 @@ function RequestsDesk() {
     return rows.length > 0 ? { rows, retention } : null; // null shows the empty state
   }, []);
   const [state, reload] = useLoad(load);
+  const pending = state.status === "ready" ? (state.data?.rows ?? []).filter((row) => isPending(row.status)).length : 0;
 
   return (
     <>
+      <MeTabs pending={pending} />
       <PageHeader
         title="Requests"
         description="Pending first. Decided keeps the outcome."

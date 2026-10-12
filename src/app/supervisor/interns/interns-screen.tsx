@@ -87,7 +87,7 @@ function InternsDesk() {
                           <p className="text-muted-foreground">{PLACEMENT_STATUS_LABEL[row.status] ?? row.status}</p>
                         </td>
                         <td className="px-4 py-3">
-                          <PaceChip daysLate={row.days_late} />
+                          <PaceChip daysLate={row.days_late} pace={row.pace} />
                         </td>
                         <td className="px-4 py-3">{forecastText(row, formatDay)}</td>
                         <td className="px-4 py-3">{owedText(row.owed)}</td>
@@ -106,7 +106,7 @@ function InternsDesk() {
                     <Link href={`/supervisor/intern?id=${row.placement_id}`} className="font-semibold">
                       {row.intern_name}
                     </Link>
-                    <PaceChip daysLate={row.days_late} />
+                    <PaceChip daysLate={row.days_late} pace={row.pace} />
                     <div className="flex">
                       <ReminderChip reminders={phones} personId={row.intern_id} />
                     </div>

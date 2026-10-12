@@ -14,7 +14,9 @@ export function paceOf(daysLate: number | null): { tone: Tone; label: string } {
   return { tone: daysLate <= 5 ? "warn" : "bad", label: `${days(daysLate)} behind` };
 }
 
-export function PaceChip({ daysLate }: { daysLate: number | null }) {
-  const pace = paceOf(daysLate);
-  return <StatusChip tone={pace.tone} label={pace.label} icon={daysLate === null ? CircleHelp : undefined} />;
+/** `pace` null: no end date or no target, so nothing to pace against and no chip (D47). */
+export function PaceChip({ daysLate, pace }: { daysLate: number | null; pace?: string | null }) {
+  if (pace === null) return null;
+  const chip = paceOf(daysLate);
+  return <StatusChip tone={chip.tone} label={chip.label} icon={daysLate === null ? CircleHelp : undefined} />;
 }

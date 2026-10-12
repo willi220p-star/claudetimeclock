@@ -13,8 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { loadCohorts, loadPlacements, loadProfiles, loadProgressAll } from "@/lib/data";
 import { formatDay } from "@/lib/darwin";
-import { formatMinutes } from "@/lib/minutes";
-import { PLACEMENT_STATUS_LABEL, knownParam, statusMatches } from "@/lib/placement-ui";
+import { PLACEMENT_STATUS_LABEL, endDateText, knownParam, statusMatches, targetText } from "@/lib/placement-ui";
 import { useLoad } from "@/lib/use-load";
 
 const selectClass = "h-11 rounded-md border border-input bg-card px-3";
@@ -48,7 +47,7 @@ function PlacementsDesk() {
   const anyFilter = cohort !== "all" || status !== "all" || supervisor !== "all" || pace !== "all";
 
   const progressById = useMemo(() => {
-    const map = new Map<string, { pace: string; days_late: number | null }>();
+    const map = new Map<string, { pace: string | null; days_late: number | null }>();
     if (progress.status === "ready") {
       for (const row of progress.data) map.set(row.placement_id, { pace: row.pace, days_late: row.days_late });
     }
@@ -235,10 +234,10 @@ function PlacementsDesk() {
                                 <StatusChip tone="info" label={PLACEMENT_STATUS_LABEL[row.status] ?? row.status} />
                               </td>
                               <td className="py-3 pr-3">
-                                {formatDay(row.start_date)} – {formatDay(row.planned_end_date)}
+                                {formatDay(row.start_date)} – {endDateText(row.planned_end_date)}
                               </td>
-                              <td className="py-3 pr-3">{formatMinutes(row.target_minutes)}</td>
-                              <td className="py-3">{mark ? <PaceChip daysLate={mark.days_late} /> : "—"}</td>
+                              <td className="py-3 pr-3">{targetText(row.target_minutes)}</td>
+                              <td className="py-3">{mark?.pace ? <PaceChip daysLate={mark.days_late} pace={mark.pace} /> : "—"}</td>
                             </tr>
                           );
                         })}
@@ -258,10 +257,10 @@ function PlacementsDesk() {
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <StatusChip tone="info" label={PLACEMENT_STATUS_LABEL[row.status] ?? row.status} />
-                            {mark ? <PaceChip daysLate={mark.days_late} /> : null}
+                            {mark ? <PaceChip daysLate={mark.days_late} pace={mark.pace} /> : null}
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {formatDay(row.start_date)} – {formatDay(row.planned_end_date)} · {formatMinutes(row.target_minutes)}
+                            {formatDay(row.start_date)} – {endDateText(row.planned_end_date)} · {targetText(row.target_minutes)}
                           </p>
                         </li>
                       );

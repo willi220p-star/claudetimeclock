@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { ListTodo } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/empty-state";
 import { LoadBlock } from "@/components/load-block";
@@ -14,11 +15,14 @@ import {
   dueText,
   groupTasks,
   isOverdue,
+  matchesTaskFilter,
   repeatSummary,
   sortTasks,
+  TASK_FILTERS,
   type MyTask,
   type Priority,
   type StaffTask,
+  type TaskFilter,
   type TaskGroup,
   type TaskStatus,
 } from "@/components/tasks/task-helpers";
@@ -29,6 +33,7 @@ import { errorText } from "@/lib/daymark";
 import { formatDayTime } from "@/lib/darwin";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
+import { cn } from "@/lib/utils";
 
 const card = "flex flex-col gap-3 rounded-xl bg-card p-4 shadow-card";
 const PRIORITY_TONE: Record<string, Tone> = { high: "bad", medium: "warn", low: "neutral" };
@@ -76,13 +81,41 @@ function TaskDetails({
   );
 }
 
-/** Intern Home (D44): their tasks and the ones they're working with, plus their own "Add task" form. */
-export function TasksCard() {
+/** Home's small link to My work (D46): how many open tasks, and how many are due today or overdue. */
+export function TasksLinkCard() {
+  const [state] = useLoad(loadMyTasks);
+  const rows = state.status === "ready" ? state.data : [];
+  const now = new Date();
+  const open = rows.filter((row) => row.status !== "done").length;
+  const today = rows.filter((row) => matchesTaskFilter(row, "today", now)).length;
+  const overdue = rows.filter((row) => matchesTaskFilter(row, "overdue", now)).length;
+  return (
+    <Link href="/clock/tasks" className="flex min-h-14 items-center gap-3 rounded-xl bg-card px-4 py-3 shadow-card">
+      <ListTodo aria-hidden className="size-5 shrink-0 text-primary" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="font-semibold">
+          {state.status !== "ready" ? "My work" : open === 0 ? "No tasks to do" : `${open} ${open === 1 ? "task" : "tasks"} to do`}
+        </span>
+        {today > 0 || overdue > 0 ? (
+          <span className="text-sm text-muted-foreground">
+            {[today > 0 ? `${today} due today` : null, overdue > 0 ? `${overdue} overdue` : null].filter(Boolean).join(" · ")}
+          </span>
+        ) : null}
+      </span>
+      <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+    </Link>
+  );
+}
+
+/** My work (D44, D46): their tasks and the ones they're working with, plus their own "Add task" form. */
+export function TasksCard({ filters = false }: { filters?: boolean }) {
   const [state, reload] = useLoad(loadMyTasks);
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<TaskFilter>("all");
   const rows = state.status === "ready" ? sortTasks(state.data) : [];
-  const open = rows.filter((row) => row.status !== "done");
-  const done = rows.filter((row) => row.status === "done");
+  const now = new Date();
+  const open = rows.filter((row) => row.status !== "done" && matchesTaskFilter(row, filter, now));
+  const done = filter === "all" ? rows.filter((row) => row.status === "done") : [];
 
   return (
     <section aria-labelledby="tasks-title" className={card}>
@@ -97,6 +130,29 @@ export function TasksCard() {
           </Button>
         )}
       </div>
+      {filters ? (
+        <div role="group" aria-label="Show tasks" className="-mx-1 flex gap-2 overflow-x-auto px-1">
+          {TASK_FILTERS.map((item) => {
+            const count = item.value === "all" ? null : rows.filter((row) => matchesTaskFilter(row, item.value, now)).length;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={filter === item.value}
+                onClick={() => setFilter(item.value)}
+                className={cn(
+                  "min-h-11 shrink-0 rounded-full px-4 text-[15px] font-medium whitespace-nowrap transition-colors",
+                  filter === item.value ? "bg-foreground text-background" : "border border-border bg-card hover:bg-muted",
+                  filter !== item.value && item.value === "overdue" && count ? "text-bad" : null,
+                )}
+              >
+                {item.label}
+                {count ? <span className="ml-1.5 tabular-nums">{count}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       {adding ? (
         <div className="rounded-lg border border-border p-3">
           <TaskForm
@@ -115,7 +171,9 @@ export function TasksCard() {
         </LoadBlock>
       ) : (
         <>
-          {open.length === 0 ? <p className="text-sm text-muted-foreground">Nothing to do right now.</p> : null}
+          {open.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{filter === "all" ? "Nothing to do right now." : "No tasks match."}</p>
+          ) : null}
           <ul className="flex flex-col divide-y divide-border">
             {open.map((row) => (
               <MyTaskItem key={row.item_id} row={row} onChanged={reload} />

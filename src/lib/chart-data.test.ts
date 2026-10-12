@@ -103,6 +103,11 @@ test("progressToTarget keeps live placements, caps at 100%, furthest first", () 
   ]);
 });
 
+test("progressToTarget leaves out placements with no target (D47)", () => {
+  const rows = [progress("A", "active", 250, 0), { ...progress("B", "active", 900, 0), target_minutes: null }];
+  expect(progressToTarget(rows).map((row) => row.label)).toEqual(["A"]);
+});
+
 test("owedRanking drops anyone ahead, most owed first", () => {
   const rows = [progress("A", "active", 0, 60), progress("B", "active", 0, -30), progress("C", "active", 0, 120)];
   expect(owedRanking(rows).map((row) => [row.label, row.hours])).toEqual([

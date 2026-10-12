@@ -29,6 +29,7 @@ browsers are pre-installed under `PLAYWRIGHT_BROWSERS_PATH`, the config falls ba
 | `SEED` | Seed logins: `admin@dgk.test`, `sup1@`/`sup2@`, `dual@`, `intern1@`…`intern7@dgk.test`, password `Password-1234`. |
 | `OFFICE` | The seeded site's coordinates, the default GPS position. |
 | `signIn(page, email, password?)` | Fills Email and Password on `/`, taps Sign in, waits until the URL leaves `/`. |
+| `openMe(page, segment)` | Intern: taps the Me tab, then the Me, Progress or Requests segment (D46), and waits for its URL. |
 | `moveTo(page, metresNorth)` | Moves the stubbed GPS north of the office (1° latitude ≈ 111,194.93 m). `0` puts it back. |
 | `setOfficeClock(isoDarwin)` | Sets `daymark.e2e_clock = 'on'` and `daymark.test_now` on the database, so `private.clock_now()` returns that instant. A time without an offset is Darwin time. |
 | `clearOfficeClock()` | Resets both settings. Global setup and teardown call it too. |

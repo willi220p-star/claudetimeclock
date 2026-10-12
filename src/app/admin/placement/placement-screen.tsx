@@ -24,7 +24,7 @@ import { loadCohorts, loadPlacement, loadProfiles } from "@/lib/data";
 import { darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwin";
 import { errorText } from "@/lib/daymark";
 import { formatMinutes } from "@/lib/minutes";
-import { PLACEMENT_STATUS_LABEL } from "@/lib/placement-ui";
+import { endDateText, PLACEMENT_STATUS_LABEL, targetText } from "@/lib/placement-ui";
 import { createClient } from "@/lib/supabase/client";
 import { useLoad } from "@/lib/use-load";
 
@@ -242,12 +242,12 @@ function PlacementFields({
         <div>
           <dt className="text-sm text-muted-foreground">Dates</dt>
           <dd>
-            {formatDay(row.start_date)} – {formatDay(row.planned_end_date)}
+            {formatDay(row.start_date)} – {endDateText(row.planned_end_date)}
           </dd>
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Target</dt>
-          <dd>{formatMinutes(row.target_minutes)}</dd>
+          <dd>{targetText(row.target_minutes)}</dd>
         </div>
         <div>
           <dt className="text-sm text-muted-foreground">Break</dt>
