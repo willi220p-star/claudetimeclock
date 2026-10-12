@@ -19,6 +19,7 @@ import { PageHeader } from "@/components/page-header";
 import { ProgressRing } from "@/components/progress-ring";
 import { SelfieImage } from "@/components/selfie-image";
 import { StatusChip } from "@/components/status-chip";
+import { InternTasks } from "@/components/tasks/tasks";
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -44,9 +45,9 @@ import { dayTimes, filterDays, profileDays, profileSummary, type ProfileDay, typ
 import { selfieUrl, signSelfies } from "@/lib/punches";
 import { useLoad } from "@/lib/use-load";
 
-const TABS = ["Timesheet", "Schedule", "Hours", "Requests", "Work logs", "Check-ins", "Flags", "Selfies"] as const;
+const TABS = ["Timesheet", "Schedule", "Hours", "Requests", "Tasks", "Work logs", "Check-ins", "Flags", "Selfies"] as const;
 /** ?tab= values, so a link can open a tab (the Monday summary links to Check-ins). */
-const TAB_PARAM: Record<string, Tab> = { checkins: "Check-ins", flags: "Flags" };
+const TAB_PARAM: Record<string, Tab> = { checkins: "Check-ins", flags: "Flags", tasks: "Tasks" };
 type Tab = (typeof TABS)[number];
 
 type PlacementView = {
@@ -332,6 +333,7 @@ function InternDetail({
       {tab === "Schedule" ? <ScheduleTab days={days} results={results} today={today} /> : null}
       {tab === "Hours" ? <HoursTab results={results} /> : null}
       {tab === "Requests" ? <RequestsTab requests={requests} /> : null}
+      {tab === "Tasks" ? <InternTasks internId={placement.intern_id} /> : null}
       {tab === "Work logs" ? <LogsTab logs={logs} /> : null}
       {tab === "Check-ins" ? (
         <CheckinPanel

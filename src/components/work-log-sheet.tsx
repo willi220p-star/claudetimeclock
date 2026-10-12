@@ -6,6 +6,7 @@ import { FormField, FormMessage } from "@/components/form-field";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { workLogLines, type MyTask } from "@/components/tasks/task-helpers";
 import { errorText } from "@/lib/daymark";
 import { createClient } from "@/lib/supabase/client";
 
@@ -28,6 +29,21 @@ export function WorkLogSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const length = summary.trim().length;
+
+  /** Appends "• title: note" for each of their tasks ticked done on this day (D44). */
+  async function addDoneTasks() {
+    const { data, error: fail } = await createClient().rpc("my_tasks");
+    if (fail) {
+      toast.error(errorText(fail, "Your tasks didn't load. Try again."));
+      return;
+    }
+    const lines = workLogLines((data ?? []) as MyTask[], date);
+    if (lines.length === 0) {
+      toast.info("No tasks were ticked done on this day.");
+      return;
+    }
+    setSummary((current) => [current.trimEnd(), ...lines].filter(Boolean).join("\n"));
+  }
 
   async function save() {
     setError(null);
@@ -73,6 +89,9 @@ export function WorkLogSheet({
             />
           )}
         </FormField>
+        <Button type="button" variant="secondary" className="w-fit" onClick={() => void addDoneTasks()}>
+          Add today&apos;s done tasks
+        </Button>
         {error ? <FormMessage>{error}</FormMessage> : null}
         <Button type="button" className="w-full" disabled={busy} onClick={() => void save()}>
           {busy ? "Saving…" : "Save log"}

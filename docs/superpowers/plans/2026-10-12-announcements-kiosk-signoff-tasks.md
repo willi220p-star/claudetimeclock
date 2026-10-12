@@ -153,13 +153,13 @@
 - An overdue task shows on the supervisor's morning summary line.
 
 **Tasks:**
-- [ ] **pgTAP 210:** visibility (intern, own supervisor, not another supervisor), ticking a task, assigning one notifies, and an intern can't edit another intern's tasks.
-- [ ] **Migration.**
-- [ ] **UI:**
+- [x] **pgTAP 210:** visibility (intern, own supervisor, not another supervisor), ticking a task, assigning one notifies, and an intern can't edit another intern's tasks.
+- [x] **Migration.**
+- [x] **UI:**
   - A Tasks card on intern Home with add and tick.
   - A Tasks section on the supervisor's intern page with add, assign and due date.
   - The work log sheet offers "Add today's ticked tasks".
-- [ ] **Checks:** e2e, then docs, preview, PR and deploy.
+- [x] **Checks:** e2e, then docs, preview, PR and deploy.
 
 ## Order and sizes
 
@@ -169,3 +169,5 @@
 | 2 | Kiosk | Medium |
 | 3 | Sign-off, export and rates | Medium to large |
 | 4 | Tasks | Medium |
+
+**Feature 4 update (Dilip, 12 Oct):** expanded. Multi-assign, repeats, priority, status, due time, link, done note, "working with" teammates, and the one-month rule. The contract is `docs/superpowers/specs/2026-10-12-tasks-contract.md`, and it replaces the Feature 4 section above. Two parallel workers build it: database and UI.

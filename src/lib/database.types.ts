@@ -1590,6 +1590,173 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_task_assignees: {
+        Row: {
+          person_id: string
+          removed_at: string | null
+          task_id: string
+        }
+        Insert: {
+          person_id: string
+          removed_at?: string | null
+          task_id: string
+        }
+        Update: {
+          person_id?: string
+          removed_at?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_task_assignees_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_task_assignees_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_task_collaborators: {
+        Row: {
+          person_id: string
+          removed_at: string | null
+          task_id: string
+        }
+        Insert: {
+          person_id: string
+          removed_at?: string | null
+          task_id: string
+        }
+        Update: {
+          person_id?: string
+          removed_at?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_task_collaborators_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_task_collaborators_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_task_items: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          done_note: string | null
+          due_date: string | null
+          id: string
+          person_id: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          done_note?: string | null
+          due_date?: string | null
+          id?: string
+          person_id: string
+          status?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          done_note?: string | null
+          due_date?: string | null
+          id?: string
+          person_id?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_task_items_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_task_items_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_tasks: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          link: string | null
+          priority: string
+          repeat_days: number[] | null
+          repeat_until: string | null
+          title: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          link?: string | null
+          priority?: string
+          repeat_days?: number[] | null
+          repeat_until?: string | null
+          title: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          link?: string | null
+          priority?: string
+          repeat_days?: number[] | null
+          repeat_until?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_week_signoffs: {
         Row: {
           counted_minutes: number
@@ -1825,6 +1992,7 @@ export type Database = {
         Returns: undefined
       }
       archive_announcement: { Args: { id: string }; Returns: undefined }
+      archive_task: { Args: { id: string }; Returns: undefined }
       attach_leave_certificate: {
         Args: { path: string; request_id: string }
         Returns: Json
@@ -2056,6 +2224,26 @@ export type Database = {
         }[]
       }
       my_consent: { Args: never; Returns: Json }
+      my_tasks: {
+        Args: never
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          own: boolean
+          priority: string
+          repeat_days: number[]
+          status: string
+          task_id: string
+          title: string
+          working_with: string[]
+        }[]
+      }
       nudge_announcement: { Args: { id: string }; Returns: number }
       people_directory: {
         Args: never
@@ -2198,6 +2386,22 @@ export type Database = {
         Returns: undefined
       }
       save_site: { Args: { site: Json }; Returns: Json }
+      save_task: {
+        Args: {
+          assignees: string[]
+          collaborators: string[]
+          description: string
+          due_date: string
+          due_time: string
+          id: string
+          link: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          title: string
+        }
+        Returns: string
+      }
       save_work_log: {
         Args: { summary: string; work_date: string }
         Returns: Json
@@ -2250,6 +2454,10 @@ export type Database = {
         Returns: undefined
       }
       set_site_active: { Args: { active: boolean; id: string }; Returns: Json }
+      set_task_status: {
+        Args: { item: string; note?: string; status: string }
+        Returns: undefined
+      }
       sign_week: {
         Args: { placement: string; week_start: string }
         Returns: Json
@@ -2324,6 +2532,27 @@ export type Database = {
         }
         Returns: string
       }
+      staff_tasks: {
+        Args: { intern?: string }
+        Returns: {
+          created_by_name: string
+          description: string
+          done_at: string
+          done_note: string
+          due_date: string
+          due_time: string
+          item_id: string
+          link: string
+          person_id: string
+          person_name: string
+          priority: string
+          repeat_days: number[]
+          repeat_until: string
+          status: string
+          task_id: string
+          title: string
+        }[]
+      }
       start_clock: { Args: { event_type: string }; Returns: Json }
       storage_usage: {
         Args: never
@@ -2360,6 +2589,13 @@ export type Database = {
           offline_id: string
         }
         Returns: Json
+      }
+      task_people: {
+        Args: never
+        Returns: {
+          display_name: string
+          person_id: string
+        }[]
       }
       today_board: { Args: { site?: string }; Returns: Json }
       update_my_name: { Args: { display_name: string }; Returns: string }
