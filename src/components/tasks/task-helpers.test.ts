@@ -62,6 +62,11 @@ const base: MyTask = {
   comments: 0,
   review_requested_at: null,
   to_review: false,
+  project_id: null,
+  project_name: null,
+  milestone_id: null,
+  milestone_name: null,
+  labels: [],
 };
 const task = (patch: Partial<MyTask>): MyTask => ({ ...base, ...patch });
 

@@ -15,7 +15,11 @@ type Nullable =
   | "reviewer_name"
   | "estimate_minutes"
   | "blocked_reason"
-  | "review_requested_at";
+  | "review_requested_at"
+  | "project_id"
+  | "project_name"
+  | "milestone_id"
+  | "milestone_name";
 type Loosen<T> = Omit<T, Nullable> & {
   description: string | null;
   due_date: string | null;
@@ -29,6 +33,10 @@ type Loosen<T> = Omit<T, Nullable> & {
   estimate_minutes: number | null;
   blocked_reason: string | null;
   review_requested_at: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  milestone_id: string | null;
+  milestone_name: string | null;
 };
 /** The generator marks every function column non-null; these can be null at runtime. */
 export type MyTask = Loosen<Fns["my_tasks"]["Returns"][number]>;
