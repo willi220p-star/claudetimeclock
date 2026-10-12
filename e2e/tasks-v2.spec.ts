@@ -18,9 +18,9 @@ test("tasks v2: review loop with subtasks and comments", async ({ page, consoleE
   await form.getByLabel("Estimate hours").fill("1");
   await form.getByLabel("Estimate minutes").fill("30");
   await form.getByRole("button", { name: "Add subtasks" }).click();
-  await form.getByLabel("Subtask 1").fill("Read the notes");
+  await form.getByLabel("Subtask 1", { exact: true }).fill("Read the notes");
   await form.getByRole("button", { name: "Add another" }).click();
-  await form.getByLabel("Subtask 2").fill("Write the brief");
+  await form.getByLabel("Subtask 2", { exact: true }).fill("Write the brief");
   await form.getByRole("button", { name: "Add task" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: title }).first().getByText("0 of 1 done")).toBeVisible();
 
@@ -42,6 +42,7 @@ test("tasks v2: review loop with subtasks and comments", async ({ page, consoleE
   await expect(sheet.getByText("Waiting for", { exact: false })).toBeVisible();
 
   // The supervisor asks for changes; a comment is required.
+  await page.keyboard.press("Escape"); // close the task sheet first
   await signOut(page);
   await signIn(page, SEED.supervisors[0]);
   await page.goto("/supervisor/tasks");
@@ -53,6 +54,7 @@ test("tasks v2: review loop with subtasks and comments", async ({ page, consoleE
   await expect(sheet.getByText("asked for changes", { exact: false })).toBeVisible();
 
   // Aisha sees the comment and sends it again.
+  await page.keyboard.press("Escape"); // close the task sheet first
   await signOut(page);
   await signIn(page, intern);
   await page.goto("/clock/tasks");
@@ -62,6 +64,7 @@ test("tasks v2: review loop with subtasks and comments", async ({ page, consoleE
   await expect(sheet.getByText("Waiting for", { exact: false })).toBeVisible();
 
   // The supervisor approves; the copy is Done.
+  await page.keyboard.press("Escape"); // close the task sheet first
   await signOut(page);
   await signIn(page, SEED.supervisors[0]);
   await page.goto("/supervisor/tasks");

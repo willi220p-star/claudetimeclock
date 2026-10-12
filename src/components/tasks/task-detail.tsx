@@ -88,6 +88,8 @@ export function TaskDetail({
   const actions = taskActions({ ...row, ...counts }, viewer);
 
   const [busy, setBusy] = useState(false);
+  // Ticks show at once; a failed save puts the box back.
+  const [ticked, setTicked] = useState<Record<string, boolean>>({});
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
   const [comment, setComment] = useState("");
@@ -221,7 +223,7 @@ export function TaskDetail({
           "lg:top-0 lg:right-0 lg:bottom-0 lg:left-auto lg:h-svh lg:max-h-none lg:w-[26rem] lg:translate-x-0 lg:translate-y-0 lg:rounded-none lg:border-l lg:border-border",
         )}
       >
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pt-3 pb-4 [&>*]:shrink-0">
           <span aria-hidden className="h-1.5 w-9 self-center rounded-full bg-input sm:hidden" />
           <div className="flex min-h-11 flex-wrap items-center gap-2 pr-12">
             <span className={cn("rounded-full px-2.5 py-1 text-[13px] font-semibold", STATUS_PILL[row.status] ?? STATUS_PILL.todo)}>
@@ -343,11 +345,15 @@ export function TaskDetail({
                         <input
                           type="checkbox"
                           className="size-5 shrink-0 accent-primary"
-                          checked={Boolean(item.done_at)}
-                          disabled={busy || !actions.editSubtasks}
-                          onChange={(e) =>
-                            void run(rpc().rpc("set_subtask", { id: item.id, done: e.target.checked }), "That didn't save. Try again.")
-                          }
+                          checked={ticked[item.id] ?? Boolean(item.done_at)}
+                          disabled={!actions.editSubtasks}
+                          onChange={(e) => {
+                            const done = e.target.checked;
+                            setTicked((now) => ({ ...now, [item.id]: done }));
+                            void run(rpc().rpc("set_subtask", { id: item.id, done }), "That didn't save. Try again.").then(
+                              (ok) => ok || setTicked((now) => ({ ...now, [item.id]: !done })),
+                            );
+                          }}
                         />
                         {item.title}
                       </label>
