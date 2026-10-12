@@ -7,8 +7,7 @@ import { isIos, useInstalled } from "@/components/install-card";
 import { pushState } from "@/components/push-toggle";
 import { Button } from "@/components/ui/button";
 import { darwinDateKey } from "@/lib/darwin";
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+import { PUSH_LINKED, VAPID_PUBLIC_KEY } from "@/lib/push";
 const dismissKey = "dgk-reminders-nudge";
 
 /** What to say for a push state; null means nothing to nag about (already on, or not possible here). */
@@ -39,12 +38,16 @@ export function RemindersNudge() {
   useEffect(() => {
     if (!supported) return;
     let live = true;
-    void navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((existing) => live && setSubscribed(Boolean(existing)))
-      .catch(() => undefined);
+    const check = () =>
+      void navigator.serviceWorker.ready
+        .then((registration) => registration.pushManager.getSubscription())
+        .then((existing) => live && setSubscribed(Boolean(existing)))
+        .catch(() => undefined);
+    check();
+    window.addEventListener(PUSH_LINKED, check); // the shell's quiet re-link (D45) turns the banner off
     return () => {
       live = false;
+      window.removeEventListener(PUSH_LINKED, check);
     };
   }, [supported]);
 
