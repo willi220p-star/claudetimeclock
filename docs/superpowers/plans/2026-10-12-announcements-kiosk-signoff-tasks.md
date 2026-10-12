@@ -1,6 +1,6 @@
 # Announcements, kiosk, weekly sign-off and tasks: implementation plan
 
-> **For agentic workers:** use superpowers:executing-plans to implement this task by task. Steps use checkboxes (`- [ ]`) for tracking.
+> **For agentic workers:** use superpowers:executing-plans to implement this task by task. Steps use checkboxes (`- [x]`) for tracking.
 
 **Goal:** Four features taken from the competitor research (Tanda, Gusto, Rippling, eBillity), chosen and specified by Dilip on 12 Oct.
 
@@ -55,7 +55,7 @@
 - **RLS:** recipients read their own announcements, and the poster and admins read all.
 
 **Tasks:**
-- [ ] **pgTAP 180:**
+- [x] **pgTAP 180:**
   - an admin posts to everyone and every active person is notified;
   - a supervisor posts `my_interns` and only their interns are notified, while another supervisor's intern isn't;
   - a supervisor can't post `everyone`;
@@ -63,12 +63,12 @@
   - the read and ack timestamps are set;
   - the reads list is visible to the poster only;
   - a nudge reaches only those who haven't acknowledged.
-- [ ] **Migration:** run until the tests pass. Add `announcement` to `push_kind_options` and to the default ticked kinds.
-- [ ] **UI:**
+- [x] **Migration:** run until the tests pass. Add `announcement` to `push_kind_options` and to the default ticked kinds.
+- [x] **UI:**
   - The intern Home shows unread or must-acknowledge cards above the clock, with "I've read this".
   - The Notifications list opens the card.
   - A staff page `/admin/announcements` and `/supervisor/announcements` with a post form, a list with "4 of 6 read", a detail with reads, and "Remind the rest".
-- [ ] **Checks:** Vitest for the audience label helper and e2e `announcements.spec.ts`. Then docs D41 and the BUILD-LOG, preview migration, PR, merge and deploy.
+- [x] **Checks:** Vitest for the audience label helper and e2e `announcements.spec.ts`. Then docs D41 and the BUILD-LOG, preview migration, PR, merge and deploy.
 
 ## Feature 2: Kiosk mode (D42). PR 2
 

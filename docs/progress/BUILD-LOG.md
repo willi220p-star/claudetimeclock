@@ -401,3 +401,8 @@ Dilip's answers: nav grouped by task; digest 8:00 am to each supervisor; evening
 Dilip's answers: strong reminder plus visibility, never blocking; say the reason plainly.
 - Migration `20261014010000_reminder_status.sql`, pgTAP `170_reminder_status.sql` (6); `ReminderChip` on Admin People and Supervisor Interns; `RemindersNudge` on intern Home; reminders card wording updated to the current reminders.
 - Vitest `reminders-nudge.test.ts`; e2e `reminder-status.spec.ts`.
+
+### Announcements with read receipts (Dilip, 2026-10-12) — D41, PR 1 of the 12 Oct plan
+Plan: `docs/superpowers/plans/2026-10-12-announcements-kiosk-signoff-tasks.md` (competitor research: Tanda, Gusto, Rippling, ADP, Patriot, eBillity).
+- Migration `20261015010000_announcements.sql`, pgTAP `180_announcements.sql` (17); `src/components/announcements.tsx` (Home cards, staff desk); pages `/admin/announcements`, `/supervisor/announcements`; "Announcements" checkbox in Settings → Notifications.
+- Vitest `announcements.test.ts`; e2e `announcements.spec.ts`.
