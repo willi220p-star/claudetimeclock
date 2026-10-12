@@ -766,17 +766,17 @@ export type Database = {
       }
       daymark_placements: {
         Row: {
-          hourly_rate: number | null
-          paid: boolean
           break_minutes: number
           cohort_id: string | null
           course: string
           created_at: string
           created_by: string | null
           ended_on: string | null
+          hourly_rate: number | null
           id: string
           intern_id: string
           original_end_date: string
+          paid: boolean
           planned_end_date: string
           report_approval_note: string | null
           report_approved_at: string | null
@@ -792,17 +792,17 @@ export type Database = {
           university: string
         }
         Insert: {
-          hourly_rate?: number | null
-          paid?: boolean
           break_minutes?: number
           cohort_id?: string | null
           course: string
           created_at?: string
           created_by?: string | null
           ended_on?: string | null
+          hourly_rate?: number | null
           id?: string
           intern_id: string
           original_end_date: string
+          paid?: boolean
           planned_end_date: string
           report_approval_note?: string | null
           report_approved_at?: string | null
@@ -818,17 +818,17 @@ export type Database = {
           university: string
         }
         Update: {
-          hourly_rate?: number | null
-          paid?: boolean
           break_minutes?: number
           cohort_id?: string | null
           course?: string
           created_at?: string
           created_by?: string | null
           ended_on?: string | null
+          hourly_rate?: number | null
           id?: string
           intern_id?: string
           original_end_date?: string
+          paid?: boolean
           planned_end_date?: string
           report_approval_note?: string | null
           report_approved_at?: string | null
@@ -1590,6 +1590,54 @@ export type Database = {
         }
         Relationships: []
       }
+      daymark_week_signoffs: {
+        Row: {
+          counted_minutes: number
+          id: string
+          placement_id: string
+          reopened_at: string | null
+          reopened_reason: string | null
+          signed_at: string
+          signed_by: string | null
+          week_start: string
+        }
+        Insert: {
+          counted_minutes: number
+          id?: string
+          placement_id: string
+          reopened_at?: string | null
+          reopened_reason?: string | null
+          signed_at: string
+          signed_by?: string | null
+          week_start: string
+        }
+        Update: {
+          counted_minutes?: number
+          id?: string
+          placement_id?: string
+          reopened_at?: string | null
+          reopened_reason?: string | null
+          signed_at?: string
+          signed_by?: string | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_week_signoffs_placement_id_fkey"
+            columns: ["placement_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_week_signoffs_signed_by_fkey"
+            columns: ["signed_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daymark_work_logs: {
         Row: {
           created_at: string
@@ -2087,39 +2135,6 @@ export type Database = {
           person_id: string
         }[]
       }
-      sign_week: { Args: { placement: string; week_start: string }; Returns: Json }
-      week_open_items: {
-        Args: { placement: string; week_start: string }
-        Returns: { kind: string; label: string; work_date: string }[]
-      }
-      week_signoffs: {
-        Args: { from_date: string; to_date: string }
-        Returns: {
-          counted_minutes: number
-          placement_id: string
-          signed_at: string
-          signed_by_name: string
-          week_start: string
-        }[]
-      }
-      signoff_export: {
-        Args: { from_date: string; to_date: string }
-        Returns: {
-          amount: number | null
-          break_minutes: number
-          counted_minutes: number
-          hourly_rate: number | null
-          intern_name: string
-          paid: boolean
-          placement_id: string
-          week_start: string
-          work_date: string
-        }[]
-      }
-      set_placement_pay: {
-        Args: { hourly_rate?: number; paid: boolean; placement: string }
-        Returns: undefined
-      }
       remove_closure_day: { Args: { id: string }; Returns: Json }
       report_missed_time: {
         Args: { at_time: string; event: string; note?: string }
@@ -2230,7 +2245,29 @@ export type Database = {
         Args: { password: string; target_id: string }
         Returns: undefined
       }
+      set_placement_pay: {
+        Args: { hourly_rate?: number; paid: boolean; placement: string }
+        Returns: undefined
+      }
       set_site_active: { Args: { active: boolean; id: string }; Returns: Json }
+      sign_week: {
+        Args: { placement: string; week_start: string }
+        Returns: Json
+      }
+      signoff_export: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          amount: number
+          break_minutes: number
+          counted_minutes: number
+          hourly_rate: number
+          intern_name: string
+          paid: boolean
+          placement_id: string
+          week_start: string
+          work_date: string
+        }[]
+      }
       site_headcounts: {
         Args: { from_date: string; site?: string; to_date: string }
         Returns: {
@@ -2331,6 +2368,24 @@ export type Database = {
         Returns: Json
       }
       update_settings: { Args: { changes: Json }; Returns: Json }
+      week_open_items: {
+        Args: { placement: string; week_start: string }
+        Returns: {
+          kind: string
+          label: string
+          work_date: string
+        }[]
+      }
+      week_signoffs: {
+        Args: { from_date: string; to_date: string }
+        Returns: {
+          counted_minutes: number
+          placement_id: string
+          signed_at: string
+          signed_by_name: string
+          week_start: string
+        }[]
+      }
       withdraw_placement: {
         Args: { placement: string; reason: string }
         Returns: undefined
