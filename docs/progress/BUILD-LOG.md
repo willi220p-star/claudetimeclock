@@ -406,3 +406,8 @@ Dilip's answers: strong reminder plus visibility, never blocking; say the reason
 Plan: `docs/superpowers/plans/2026-10-12-announcements-kiosk-signoff-tasks.md` (competitor research: Tanda, Gusto, Rippling, ADP, Patriot, eBillity).
 - Migration `20261015010000_announcements.sql`, pgTAP `180_announcements.sql` (17); `src/components/announcements.tsx` (Home cards, staff desk); pages `/admin/announcements`, `/supervisor/announcements`; "Announcements" checkbox in Settings → Notifications.
 - Vitest `announcements.test.ts`; e2e `announcements.spec.ts`.
+
+### Kiosk mode (Dilip, 2026-10-12) — D42, PR 2 of the 12 Oct plan
+Dilip's answers: front desk, anyone; the tablet stands in for GPS, the live selfie stays.
+- Migration `20261016010000_kiosk.sql`, pgTAP `190_kiosk.sql` (18); `/kiosk` (`src/app/kiosk/kiosk-screen.tsx`), Kiosk PIN card on Me, Add a kiosk + Reset kiosk PIN in Admin → People; kiosk accounts route to `/kiosk` (`homeFor`).
+- e2e `kiosk.spec.ts`. Not done: a "Kiosk" chip on Timesheets (the punch shows its selfie and place like any other).

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AddKioskForm } from "@/app/admin/add-kiosk-form";
 import { AddPersonForm } from "@/app/admin/add-person-form";
 import { ConfirmDialog } from "@/app/admin/confirm-dialog";
 import { PersonDialogs, type PersonDialog } from "@/app/admin/person-dialogs";
@@ -27,7 +28,10 @@ import { createClient } from "@/lib/supabase/client";
 import { filesOf, removeFiles } from "@/lib/stored-files";
 import { useLoad, type Loaded } from "@/lib/use-load";
 
-type Access = Pick<Profile, "is_intern" | "is_supervisor" | "is_admin" | "active">;
+type Access = Pick<
+  Profile,
+  "is_intern" | "is_supervisor" | "is_admin" | "active"
+>;
 
 const ROLE_FLAGS = [
   ["is_intern", ROLE_LABEL.intern],
@@ -51,13 +55,19 @@ async function loadSupervision() {
   const internsOf = new Map<string, string[]>();
   for (const row of data ?? []) {
     supervisorOf.set(row.intern_id, row.supervisor_id);
-    internsOf.set(row.supervisor_id, [...(internsOf.get(row.supervisor_id) ?? []), row.intern_id]);
+    internsOf.set(row.supervisor_id, [
+      ...(internsOf.get(row.supervisor_id) ?? []),
+      row.intern_id,
+    ]);
   }
   return { supervisorOf, internsOf };
 }
 
 async function loadPeople() {
-  const { data, error } = await createClient().from("daymark_profiles").select(PROFILE_COLUMNS).order("display_name");
+  const { data, error } = await createClient()
+    .from("daymark_profiles")
+    .select(PROFILE_COLUMNS)
+    .order("display_name");
   if (error) throw error;
   return data;
 }
@@ -71,13 +81,20 @@ export function AdminDesk({ profile }: { profile: Profile }) {
         title="People"
         description="Add people, choose their roles, and set temporary passwords. Nobody can see a password."
         actions={
-          <Link href="/set-password" className={buttonVariants({ variant: "ghost" })}>
+          <Link
+            href="/set-password"
+            className={buttonVariants({ variant: "ghost" })}
+          >
             Change my password
           </Link>
         }
       />
       <div className="grid items-start gap-6 lg:grid-cols-[360px_1fr]">
-        <AddPersonForm people={people.status === "ready" ? people.data : []} onAdded={reloadPeople} />
+        <AddPersonForm
+          people={people.status === "ready" ? people.data : []}
+          onAdded={reloadPeople}
+        />
+        <AddKioskForm onAdded={reloadPeople} />
         <PeopleList me={profile} people={people} reload={reloadPeople} />
       </div>
       <TimeCards people={people.status === "ready" ? people.data : []} />
@@ -85,35 +102,85 @@ export function AdminDesk({ profile }: { profile: Profile }) {
   );
 }
 
-function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profile[]>; reload: () => void }) {
+function PeopleList({
+  me,
+  people,
+  reload,
+}: {
+  me: Profile;
+  people: Loaded<Profile[]>;
+  reload: () => void;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [dialog, setDialog] = useState<PersonDialog>(null);
   const [deleting, setDeleting] = useState<Profile | null>(null);
   // Reloads with the people list, so a newly added intern shows their supervisor straight away.
   const loadLinks = useCallback(
-    () => (people.status === "ready" ? loadSupervision() : Promise.resolve({ supervisorOf: new Map<string, string>(), internsOf: new Map<string, string[]>() })),
+    () =>
+      people.status === "ready"
+        ? loadSupervision()
+        : Promise.resolve({
+            supervisorOf: new Map<string, string>(),
+            internsOf: new Map<string, string[]>(),
+          }),
     [people],
   );
   const [links, reloadLinks] = useLoad(loadLinks);
   const [reminders] = useLoad(loadReminderStatus);
-  const names = new Map(people.status === "ready" ? people.data.map((p) => [p.id, p.display_name]) : []);
-  const supervisorOf = links.status === "ready" ? links.data.supervisorOf : new Map<string, string>();
-  const internsOf = links.status === "ready" ? links.data.internsOf : new Map<string, string[]>();
+  const names = new Map(
+    people.status === "ready"
+      ? people.data.map((p) => [p.id, p.display_name])
+      : [],
+  );
+  const supervisorOf =
+    links.status === "ready"
+      ? links.data.supervisorOf
+      : new Map<string, string>();
+  const internsOf =
+    links.status === "ready"
+      ? links.data.internsOf
+      : new Map<string, string[]>();
 
   async function deletePerson(person: Profile) {
-    const { data, error } = await createClient().rpc("delete_record", { tbl: "daymark_profiles", row_id: person.id });
-    if (error) return errorText(error, "That account wasn't deleted. Try again.");
+    const { data, error } = await createClient().rpc("delete_record", {
+      tbl: "daymark_profiles",
+      row_id: person.id,
+    });
+    if (error)
+      return errorText(error, "That account wasn't deleted. Try again.");
     const failed = await removeFiles(filesOf(data));
-    if (failed > 0) toast.warning(`${person.display_name} is deleted. ${failed} photo file(s) are left: clear them under Records → Storage.`);
-    else toast.success(`${person.display_name} and everything about them is deleted.`);
+    if (failed > 0)
+      toast.warning(
+        `${person.display_name} is deleted. ${failed} photo file(s) are left: clear them under Records → Storage.`,
+      );
+    else
+      toast.success(
+        `${person.display_name} and everything about them is deleted.`,
+      );
     setDeleting(null);
     reload();
     reloadLinks();
     return null;
   }
 
-  async function setAccess(person: Profile, change: Partial<Access>, done: string) {
+  async function resetPin(person: Profile) {
+    const { error } = await createClient().rpc("reset_kiosk_pin", {
+      person: person.id,
+    });
+    if (error)
+      toast.error(errorText(error, "The PIN wasn't reset. Try again."));
+    else
+      toast.success(
+        `${person.display_name}'s kiosk PIN is cleared. They set a new one on Me.`,
+      );
+  }
+
+  async function setAccess(
+    person: Profile,
+    change: Partial<Access>,
+    done: string,
+  ) {
     const next = { ...person, ...change };
     setPending(person.id);
     const { error } = await createClient().rpc("set_person_access", {
@@ -157,68 +224,138 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
           </Button>
         </div>
       ) : people.data.length === 0 ? (
-        <EmptyState>No one here yet. Add the first person with the form.</EmptyState>
+        <EmptyState>
+          No one here yet. Add the first person with the form.
+        </EmptyState>
       ) : (
         <ul className="flex flex-col gap-2">
           {people.data.map((person) => (
-            <li key={person.id} className="flex flex-col gap-3 rounded-lg bg-card p-4 shadow-card">
+            <li
+              key={person.id}
+              className="flex flex-col gap-3 rounded-lg bg-card p-4 shadow-card"
+            >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-semibold">
                     {person.display_name}
-                    {person.id === me.id ? <span className="font-normal text-muted-foreground"> (you)</span> : null}
+                    {person.id === me.id ? (
+                      <span className="font-normal text-muted-foreground">
+                        {" "}
+                        (you)
+                      </span>
+                    ) : null}
                   </p>
-                  <p className="text-sm break-all text-muted-foreground">{person.contact_email ?? "No email yet"}</p>
+                  <p className="text-sm break-all text-muted-foreground">
+                    {person.contact_email ?? "No email yet"}
+                  </p>
                   {person.is_intern ? (
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Supervisor: </span>
-                      {names.get(supervisorOf.get(person.id) ?? "") ?? "none yet"}
+                      <span className="text-muted-foreground">
+                        Supervisor:{" "}
+                      </span>
+                      {names.get(supervisorOf.get(person.id) ?? "") ??
+                        "none yet"}
                     </p>
                   ) : null}
                   {person.is_supervisor ? (
                     <p className="text-sm">
-                      <span className="text-muted-foreground">Supervises: </span>
-                      {(internsOf.get(person.id) ?? []).map((id) => names.get(id) ?? "Intern").join(", ") || "no interns yet"}
+                      <span className="text-muted-foreground">
+                        Supervises:{" "}
+                      </span>
+                      {(internsOf.get(person.id) ?? [])
+                        .map((id) => names.get(id) ?? "Intern")
+                        .join(", ") || "no interns yet"}
                     </p>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  <StatusChip tone={person.active ? "ok" : "neutral"} label={person.active ? "Active" : "Deactivated"} />
+                  <StatusChip
+                    tone={person.active ? "ok" : "neutral"}
+                    label={person.active ? "Active" : "Deactivated"}
+                  />
                   {person.active ? (
-                    <ReminderChip reminders={reminders.status === "ready" ? reminders.data : null} personId={person.id} />
+                    <ReminderChip
+                      reminders={
+                        reminders.status === "ready" ? reminders.data : null
+                      }
+                      personId={person.id}
+                    />
                   ) : null}
-                  {person.must_change_password ? <StatusChip tone="info" label="Password change due" /> : null}
+                  {person.must_change_password ? (
+                    <StatusChip tone="info" label="Password change due" />
+                  ) : null}
                 </div>
               </div>
-              <fieldset disabled={pending === person.id} className="flex flex-wrap gap-x-5">
-                <legend className="sr-only">Roles for {person.display_name}</legend>
-                {ROLE_FLAGS.map(([flag, label]) => (
-                  <label key={flag} className="flex min-h-11 items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={person[flag]}
-                      onChange={(event) =>
-                        void setAccess(
-                          person,
-                          { [flag]: event.target.checked },
-                          roleChangeText(person.display_name, label, event.target.checked),
-                        )
-                      }
-                      className="size-5 accent-primary"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </fieldset>
+              {person.is_kiosk ? (
+                <StatusChip tone="info" label="Kiosk (office tablet)" />
+              ) : (
+                <fieldset
+                  disabled={pending === person.id}
+                  className="flex flex-wrap gap-x-5"
+                >
+                  <legend className="sr-only">
+                    Roles for {person.display_name}
+                  </legend>
+                  {ROLE_FLAGS.map(([flag, label]) => (
+                    <label
+                      key={flag}
+                      className="flex min-h-11 items-center gap-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={person[flag]}
+                        onChange={(event) =>
+                          void setAccess(
+                            person,
+                            { [flag]: event.target.checked },
+                            roleChangeText(
+                              person.display_name,
+                              label,
+                              event.target.checked,
+                            ),
+                          )
+                        }
+                        className="size-5 accent-primary"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" size="sm" onClick={() => setDialog({ kind: "password", person })}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDialog({ kind: "password", person })}
+                >
                   Set password
                 </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setDialog({ kind: "email", person })}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDialog({ kind: "email", person })}
+                >
                   Change email
                 </Button>
+                {person.is_intern ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void resetPin(person)}
+                  >
+                    Reset kiosk PIN
+                  </Button>
+                ) : null}
                 {person.active ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setDialog({ kind: "deactivate", person })}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDialog({ kind: "deactivate", person })}
+                  >
                     Deactivate
                   </Button>
                 ) : (
@@ -227,13 +364,25 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
                     variant="ghost"
                     size="sm"
                     disabled={pending === person.id}
-                    onClick={() => void setAccess(person, { active: true }, `${person.display_name} can sign in again.`)}
+                    onClick={() =>
+                      void setAccess(
+                        person,
+                        { active: true },
+                        `${person.display_name} can sign in again.`,
+                      )
+                    }
                   >
                     Reactivate
                   </Button>
                 )}
                 {person.id !== me.id ? (
-                  <Button type="button" variant="ghost" size="sm" className="text-bad" onClick={() => setDeleting(person)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-bad"
+                    onClick={() => setDeleting(person)}
+                  >
                     Delete account
                   </Button>
                 ) : null}
@@ -250,7 +399,14 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
           reload();
         }}
         onDeactivate={async (person) => {
-          if (await setAccess(person, { active: false }, `${person.display_name} is deactivated.`)) setDialog(null);
+          if (
+            await setAccess(
+              person,
+              { active: false },
+              `${person.display_name} is deactivated.`,
+            )
+          )
+            setDialog(null);
         }}
       />
       <ConfirmDialog
@@ -260,7 +416,9 @@ function PeopleList({ me, people, reload }: { me: Profile; people: Loaded<Profil
         confirmLabel="Delete for good"
         destructive
         onCancel={() => setDeleting(null)}
-        onConfirm={() => (deleting ? deletePerson(deleting) : Promise.resolve(null))}
+        onConfirm={() =>
+          deleting ? deletePerson(deleting) : Promise.resolve(null)
+        }
       />
     </section>
   );
@@ -270,15 +428,26 @@ function TimeCards({ people }: { people: Profile[] }) {
   const [personId, setPersonId] = useState("all");
   const load = useCallback(() => {
     // A display window only: from midnight Darwin time 30 days ago.
-    const since = darwinAt(addDays(darwinDateKey(new Date()), -30), "00:00").toISOString();
-    return loadPunches({ userId: personId === "all" ? undefined : personId, since, limit: 400 });
+    const since = darwinAt(
+      addDays(darwinDateKey(new Date()), -30),
+      "00:00",
+    ).toISOString();
+    return loadPunches({
+      userId: personId === "all" ? undefined : personId,
+      since,
+      limit: 400,
+    });
   }, [personId]);
   const [punches, reload] = useLoad(load);
-  const names = useMemo(() => new Map(people.map((person) => [person.id, person.display_name])), [people]);
+  const names = useMemo(
+    () => new Map(people.map((person) => [person.id, person.display_name])),
+    [people],
+  );
   const byPerson = useMemo(() => {
     if (punches.status !== "ready") return [];
     const groups = new Map<string, PunchCard[]>();
-    for (const punch of punches.data) groups.set(punch.user_id, [...(groups.get(punch.user_id) ?? []), punch]);
+    for (const punch of punches.data)
+      groups.set(punch.user_id, [...(groups.get(punch.user_id) ?? []), punch]);
     return [...groups.entries()];
   }, [punches]);
 
@@ -287,7 +456,9 @@ function TimeCards({ people }: { people: Profile[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           <h2 id="time-cards-title">Clock-ins, last 30 days</h2>
-          <p className="text-sm text-muted-foreground">Tap a selfie to see it larger. Flags point to things worth a check.</p>
+          <p className="text-sm text-muted-foreground">
+            Tap a selfie to see it larger. Flags point to things worth a check.
+          </p>
         </div>
         <div className="flex flex-col gap-2 sm:w-64">
           <Label htmlFor="time-card-person">Intern</Label>
@@ -321,13 +492,26 @@ function TimeCards({ people }: { people: Profile[] }) {
           </Button>
         </div>
       ) : byPerson.length === 0 ? (
-        <EmptyState action={<Button type="button" variant="secondary" onClick={reload}>Refresh</Button>}>
-          No clock-ins in the last 30 days. They show here as soon as an intern clocks in.
+        <EmptyState
+          action={
+            <Button type="button" variant="secondary" onClick={reload}>
+              Refresh
+            </Button>
+          }
+        >
+          No clock-ins in the last 30 days. They show here as soon as an intern
+          clocks in.
         </EmptyState>
       ) : (
         byPerson.map(([userId, cards]) => (
-          <section key={userId} aria-label={names.get(userId) ?? "Intern"} className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold">{names.get(userId) ?? "Intern"}</h3>
+          <section
+            key={userId}
+            aria-label={names.get(userId) ?? "Intern"}
+            className="flex flex-col gap-3"
+          >
+            <h3 className="text-lg font-semibold">
+              {names.get(userId) ?? "Intern"}
+            </h3>
             <PunchDayTable punches={cards} detail />
           </section>
         ))

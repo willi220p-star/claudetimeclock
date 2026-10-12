@@ -256,6 +256,7 @@ export type Database = {
           id: string
           issued_at: string
           issued_real_at: string
+          kiosk_id: string | null
           person_id: string
           used_at: string | null
         }
@@ -266,6 +267,7 @@ export type Database = {
           id?: string
           issued_at: string
           issued_real_at?: string
+          kiosk_id?: string | null
           person_id: string
           used_at?: string | null
         }
@@ -276,10 +278,18 @@ export type Database = {
           id?: string
           issued_at?: string
           issued_real_at?: string
+          kiosk_id?: string | null
           person_id?: string
           used_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daymark_clock_challenges_kiosk_id_fkey"
+            columns: ["kiosk_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daymark_clock_challenges_person_id_fkey"
             columns: ["person_id"]
@@ -552,6 +562,58 @@ export type Database = {
             columns: ["placement_id"]
             isOneToOne: true
             referencedRelation: "daymark_placements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_kiosk_attempts: {
+        Row: {
+          failures: number
+          locked_until: string | null
+          person_id: string
+        }
+        Insert: {
+          failures?: number
+          locked_until?: string | null
+          person_id: string
+        }
+        Update: {
+          failures?: number
+          locked_until?: string | null
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_kiosk_attempts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_kiosk_pins: {
+        Row: {
+          person_id: string
+          pin_hash: string
+          updated_at: string
+        }
+        Insert: {
+          person_id: string
+          pin_hash: string
+          updated_at?: string
+        }
+        Update: {
+          person_id?: string
+          pin_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_kiosk_pins_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "daymark_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -829,7 +891,9 @@ export type Database = {
           id: string
           is_admin: boolean
           is_intern: boolean
+          is_kiosk: boolean
           is_supervisor: boolean
+          kiosk_site_id: string | null
           login_id: string
           must_change_password: boolean
         }
@@ -841,7 +905,9 @@ export type Database = {
           id: string
           is_admin?: boolean
           is_intern?: boolean
+          is_kiosk?: boolean
           is_supervisor?: boolean
+          kiosk_site_id?: string | null
           login_id: string
           must_change_password?: boolean
         }
@@ -853,11 +919,21 @@ export type Database = {
           id?: string
           is_admin?: boolean
           is_intern?: boolean
+          is_kiosk?: boolean
           is_supervisor?: boolean
+          kiosk_site_id?: string | null
           login_id?: string
           must_change_password?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daymark_profiles_kiosk_site_id_fkey"
+            columns: ["kiosk_site_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daymark_punches: {
         Row: {
@@ -872,6 +948,7 @@ export type Database = {
           flags: string[]
           id: string
           is_break: boolean
+          kiosk_id: string | null
           latitude: number | null
           longitude: number | null
           occurred_at: string
@@ -898,6 +975,7 @@ export type Database = {
           flags?: string[]
           id?: string
           is_break?: boolean
+          kiosk_id?: string | null
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
@@ -924,6 +1002,7 @@ export type Database = {
           flags?: string[]
           id?: string
           is_break?: boolean
+          kiosk_id?: string | null
           latitude?: number | null
           longitude?: number | null
           occurred_at?: string
@@ -949,6 +1028,13 @@ export type Database = {
           {
             foreignKeyName: "daymark_punches_confirmed_by_fkey"
             columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_punches_kiosk_id_fkey"
+            columns: ["kiosk_id"]
             isOneToOne: false
             referencedRelation: "daymark_profiles"
             referencedColumns: ["id"]
@@ -1761,6 +1847,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_kiosk: {
+        Args: {
+          display_name: string
+          email: string
+          password: string
+          site: string
+        }
+        Returns: Json
+      }
       create_person: {
         Args: {
           display_name: string
@@ -1842,6 +1937,24 @@ export type Database = {
       }
       import_placements: {
         Args: { dry_run?: boolean; rows: Json; temp_password: string }
+        Returns: Json
+      }
+      kiosk_people: {
+        Args: never
+        Returns: {
+          first_name: string
+          initials: string
+          person_id: string
+        }[]
+      }
+      kiosk_punch: { Args: { challenge_id: string }; Returns: Json }
+      kiosk_start: {
+        Args: {
+          day_kind?: string
+          event_type: string
+          person: string
+          pin: string
+        }
         Returns: Json
       }
       kpi_admin: { Args: never; Returns: Json }
@@ -1973,6 +2086,7 @@ export type Database = {
         Args: { at_time: string; event: string; note?: string }
         Returns: Json
       }
+      reset_kiosk_pin: { Args: { person: string }; Returns: undefined }
       retention_certificate_removed: {
         Args: { request_id: string }
         Returns: undefined
@@ -2039,6 +2153,7 @@ export type Database = {
         Args: { minutes: number; placement: string }
         Returns: undefined
       }
+      set_kiosk_pin: { Args: { pin: string }; Returns: undefined }
       set_pattern: {
         Args: {
           allow_extra?: boolean
