@@ -3,7 +3,8 @@ import { darwinAt, darwinDateKey, formatDay, formatTimeOfDay } from "@/lib/darwi
 import { addDays, mondayOf } from "@/lib/periods";
 
 type Fns = Database["public"]["Functions"];
-type Nullable = "description" | "due_date" | "due_time" | "link" | "done_at" | "done_note";
+type Nullable = "description" | "due_date" | "due_time" | "link" | "done_at" | "done_note" | "reviewer_id" | "reviewer_name"
+  | "estimate_minutes" | "blocked_reason" | "review_requested_at";
 type Loosen<T> = Omit<T, Nullable | "repeat_days"> & {
   description: string | null;
   due_date: string | null;
@@ -12,6 +13,11 @@ type Loosen<T> = Omit<T, Nullable | "repeat_days"> & {
   done_at: string | null;
   done_note: string | null;
   repeat_days: number[] | null;
+  reviewer_id: string | null;
+  reviewer_name: string | null;
+  estimate_minutes: number | null;
+  blocked_reason: string | null;
+  review_requested_at: string | null;
 };
 /** The generator marks every function column non-null; these can be null at runtime. */
 export type MyTask = Loosen<Fns["my_tasks"]["Returns"][number]>;

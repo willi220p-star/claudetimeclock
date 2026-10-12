@@ -42,6 +42,16 @@ const base: MyTask = {
   own: true,
   working_with: [],
   repeat_days: null,
+  reviewer_id: null,
+  reviewer_name: null,
+  estimate_minutes: null,
+  spent_minutes: 0,
+  blocked_reason: null,
+  subtasks_total: 0,
+  subtasks_done: 0,
+  comments: 0,
+  review_requested_at: null,
+  to_review: false,
 };
 const task = (patch: Partial<MyTask>): MyTask => ({ ...base, ...patch });
 
