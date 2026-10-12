@@ -144,8 +144,12 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 3. save_task: three new arguments at the end (reviewer, estimate, starting checklist)
 -- ---------------------------------------------------------------------------
-drop function public.save_task(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]);
-drop function private.save_task(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]);
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function public.save_task(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]) rename to save_task_d44;
+revoke all on function public.save_task_d44(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]) from public, anon, authenticated;
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function private.save_task(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]) rename to save_task_d44;
+revoke all on function private.save_task_d44(uuid, text, text, text, date, time, text, uuid[], int[], date, uuid[]) from public, anon, authenticated;
 
 create function private.save_task(id uuid, title text, description text, priority text, due_date date,
   due_time time, link text, assignees uuid[], repeat_days int[], repeat_until date, collaborators uuid[],
@@ -621,10 +625,18 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 7. Reads: the new columns, and copies waiting for the caller's review
 -- ---------------------------------------------------------------------------
-drop function public.my_tasks();
-drop function private.my_tasks();
-drop function public.staff_tasks(uuid);
-drop function private.staff_tasks(uuid);
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function public.my_tasks() rename to my_tasks_d44;
+revoke all on function public.my_tasks_d44() from public, anon, authenticated;
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function private.my_tasks() rename to my_tasks_d44;
+revoke all on function private.my_tasks_d44() from public, anon, authenticated;
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function public.staff_tasks(uuid) rename to staff_tasks_d44;
+revoke all on function public.staff_tasks_d44(uuid) from public, anon, authenticated;
+-- Renamed, not dropped (the remote apply tool won't run a drop); access is switched off.
+alter function private.staff_tasks(uuid) rename to staff_tasks_d44;
+revoke all on function private.staff_tasks_d44(uuid) from public, anon, authenticated;
 
 create function private.my_tasks()
 returns table (item_id uuid, task_id uuid, title text, description text, priority text, due_date date, due_time time,
