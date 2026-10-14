@@ -7,6 +7,7 @@ import { PrivacyCard } from "@/app/clock/privacy-card";
 import { AppearanceCard } from "@/components/appearance-card";
 import { KioskPinCard } from "@/components/kiosk-pin-card";
 import { InstallCard } from "@/components/install-card";
+import { EmailToggle } from "@/components/email-toggle";
 import { PushToggle } from "@/components/push-toggle";
 import { Avatar } from "@/components/avatar";
 import { InternShell } from "@/components/desk-shell";
@@ -76,6 +77,7 @@ function MeDesk({ profile }: { profile: Profile }) {
             <ProfileCard profile={profile} photo={photo} supervisor={supervisor} />
             <InstallCard />
             <PushToggle />
+            <EmailToggle />
             <AppearanceCard />
             <KioskPinCard />
             <PrivacyCard consent={consent} onChange={setConsent} />

@@ -1,4 +1,5 @@
 import { errorText, PROFILE_COLUMNS, PUNCH_COLUMNS, SHIFT_EVENTS, type Profile, type Punch } from "@/lib/daymark";
+import { readEmailSettings } from "@/lib/email";
 import { addDays } from "@/lib/periods";
 import { withPhotoUrls } from "@/lib/punches";
 import {
@@ -476,17 +477,23 @@ export async function loadReminderStatus() {
 /** Settings → Notifications (D37): what goes to phones, and each active intern's break. */
 export async function loadNotificationSettings() {
   const client = createClient();
-  const [settings, placements] = await Promise.all([
+  const [settings, placements, email, failures] = await Promise.all([
     client.from("daymark_settings").select("push_kinds").eq("id", 1).maybeSingle(),
     client
       .from("daymark_placements")
       .select("id, break_minutes, intern:daymark_profiles!daymark_placements_intern_id_fkey(display_name)")
       .in("status", ["active", "extended"]),
+    client.rpc("email_settings"),
+    client.rpc("email_failures", { max_rows: 50 }),
   ]);
   if (settings.error) throw settings.error;
   if (placements.error) throw placements.error;
+  if (email.error) throw email.error;
+  if (failures.error) throw failures.error;
   return {
     kinds: settings.data?.push_kinds ?? [],
+    email: readEmailSettings(email.data),
+    failures: failures.data ?? [],
     interns: (placements.data ?? [])
       .map((row) => ({ id: row.id, name: row.intern?.display_name ?? "Intern", breakMinutes: row.break_minutes }))
       .sort((a, b) => a.name.localeCompare(b.name)),
