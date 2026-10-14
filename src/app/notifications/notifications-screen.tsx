@@ -8,6 +8,7 @@ import { LoadBlock } from "@/components/load-block";
 import { Opening, useHydrated } from "@/components/desk-gate";
 import { useSelection } from "@/components/bulk-decide";
 import { AppearanceCard } from "@/components/appearance-card";
+import { EmailToggle } from "@/components/email-toggle";
 import { PushToggle } from "@/components/push-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { sessionProfile } from "@/lib/browser-session";
@@ -117,6 +118,7 @@ function NotificationsDesk({ profile, home }: { profile: Profile; home: string }
       </div>
       {/* Staff turn on phone reminders here; interns also have it on Me. */}
       <PushToggle />
+      <EmailToggle />
       <AppearanceCard />
       <LoadBlock
         state={state}

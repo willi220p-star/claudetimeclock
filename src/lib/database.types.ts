@@ -2568,6 +2568,23 @@ export type Database = {
         Returns: undefined
       }
       delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
+      email_failures: {
+        Args: { max_rows?: number }
+        Returns: {
+          attempts: number
+          completed_at: string
+          created_at: string
+          error_code: string
+          error_message: string
+          id: string
+          kind: string
+          person_name: string
+          recipient_category: string
+          status: string
+          template_id: string
+        }[]
+      }
+      email_settings: { Args: never; Returns: Json }
       end_banner: { Args: { id: string }; Returns: undefined }
       extend_placement: {
         Args: {
@@ -2671,6 +2688,7 @@ export type Database = {
         }[]
       }
       my_consent: { Args: never; Returns: Json }
+      my_email_setting: { Args: never; Returns: boolean }
       my_projects: {
         Args: never
         Returns: {
@@ -2907,6 +2925,7 @@ export type Database = {
           intern_id: string
         }[]
       }
+      retry_email: { Args: { id: string }; Returns: undefined }
       review_task: {
         Args: { approve: boolean; comment?: string; item: string }
         Returns: undefined
@@ -2940,6 +2959,15 @@ export type Database = {
       save_cohort: {
         Args: { id: string; name: string; notes?: string; starts_on?: string }
         Returns: string
+      }
+      save_email_settings: {
+        Args: {
+          daily_cap: number
+          enabled: boolean
+          kinds: string[]
+          test_recipients: string[]
+        }
+        Returns: undefined
       }
       save_label: {
         Args: { colour: string; id: string; name: string }
@@ -3043,6 +3071,7 @@ export type Database = {
         Returns: undefined
       }
       set_kiosk_pin: { Args: { pin: string }; Returns: undefined }
+      set_my_email: { Args: { enabled: boolean }; Returns: undefined }
       set_pattern: {
         Args: {
           allow_extra?: boolean
