@@ -615,6 +615,21 @@ export type Database = {
           },
         ]
       }
+      daymark_email_private: {
+        Row: {
+          id: number
+          test_recipients: string[]
+        }
+        Insert: {
+          id?: number
+          test_recipients?: string[]
+        }
+        Update: {
+          id?: number
+          test_recipients?: string[]
+        }
+        Relationships: []
+      }
       daymark_exit_feedback: {
         Row: {
           answers: Json
@@ -1723,7 +1738,6 @@ export type Database = {
           email_daily_cap: number
           email_enabled: boolean
           email_kinds: string[]
-          email_test_recipients: string[]
           escalation_hours: number
           fortnight_anchor: string
           grace_minutes: number
@@ -1748,7 +1762,6 @@ export type Database = {
           email_daily_cap?: number
           email_enabled?: boolean
           email_kinds?: string[]
-          email_test_recipients?: string[]
           escalation_hours?: number
           fortnight_anchor?: string
           grace_minutes?: number
@@ -1773,7 +1786,6 @@ export type Database = {
           email_daily_cap?: number
           email_enabled?: boolean
           email_kinds?: string[]
-          email_test_recipients?: string[]
           escalation_hours?: number
           fortnight_anchor?: string
           grace_minutes?: number

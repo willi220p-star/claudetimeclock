@@ -17,16 +17,23 @@ as $$
                'times', 'signoff', 'digest', 'escalated']::text[];
 $$;
 
--- ponytail: daymark_settings is readable by anyone signed in (select * in loadSettings), so the test
--- recipients are too. They are staff test addresses; move them to a closed table if that changes.
 alter table public.daymark_settings
   add column email_enabled boolean not null default false,
   add column email_kinds text[] not null
     default array['request', 'attendance', 'work_based', 'announcement', 'schedule', 'task']::text[],
-  add column email_test_recipients text[] not null default '{}',
   add column email_daily_cap integer not null default 80 check (email_daily_cap between 1 and 95);
 
 alter table public.daymark_profiles add column email_opt_out boolean not null default false;
+
+-- Test recipients live in a closed one-row table: daymark_settings is readable by everyone signed in.
+create table public.daymark_email_private (
+  id integer primary key default 1 check (id = 1),
+  test_recipients text[] not null default '{}'
+);
+insert into public.daymark_email_private (id) values (1);
+alter table public.daymark_email_private enable row level security;
+revoke all on table public.daymark_email_private from public, anon, authenticated;
+grant all on table public.daymark_email_private to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2. The outbox. id is the event_id Apps Script sees, the same on every retry.
@@ -174,7 +181,8 @@ security definer
 set search_path = ''
 as $$
   with st as (
-    select s.email_enabled, s.email_daily_cap, s.email_test_recipients from public.daymark_settings s where s.id = 1
+    select s.email_enabled, s.email_daily_cap, e.test_recipients as email_test_recipients
+    from public.daymark_settings s cross join public.daymark_email_private e where s.id = 1 and e.id = 1
   ), due as (
     select x.id from public.daymark_email_outbox x
     where (select email_enabled from st)
@@ -268,7 +276,7 @@ begin
     'enabled', st.email_enabled,
     'kinds', to_jsonb(st.email_kinds),
     'options', to_jsonb(private.email_kind_options()),
-    'test_recipients', to_jsonb(st.email_test_recipients),
+    'test_recipients', to_jsonb((select e.test_recipients from public.daymark_email_private e where e.id = 1)),
     'daily_cap', st.email_daily_cap,
     'sent_today', private.email_sent_today(),
     'queued', (select count(*) from public.daymark_email_outbox o where o.status in ('pending', 'retry_pending')),
@@ -287,6 +295,7 @@ set search_path = ''
 as $$
 declare
   st public.daymark_settings%rowtype;
+  old_to text[];
   clean_kinds text[] := array(select distinct k from unnest(coalesce(kinds, '{}')) k order by 1);
   clean_to text[] := array(select distinct lower(btrim(t)) from unnest(coalesce(test_recipients, '{}')) t
                            where nullif(btrim(t), '') is not null order by 1);
@@ -306,13 +315,15 @@ begin
     raise exception 'Set the daily limit between 1 and 95 emails.' using errcode = '22023';
   end if;
   select * into st from public.daymark_settings s where s.id = 1;
+  select e.test_recipients into old_to from public.daymark_email_private e where e.id = 1;
   update public.daymark_settings s
-  set email_enabled = save_email_settings.enabled, email_kinds = clean_kinds, email_test_recipients = clean_to,
+  set email_enabled = save_email_settings.enabled, email_kinds = clean_kinds,
       email_daily_cap = save_email_settings.daily_cap, updated_at = private.clock_now()
   where s.id = 1;
+  update public.daymark_email_private e set test_recipients = clean_to where e.id = 1;
   perform private.audit('save_email_settings', 'daymark_settings', '1',
     jsonb_build_object('email_enabled', st.email_enabled, 'email_kinds', st.email_kinds,
-                       'email_test_recipients', st.email_test_recipients, 'email_daily_cap', st.email_daily_cap),
+                       'email_test_recipients', old_to, 'email_daily_cap', st.email_daily_cap),
     jsonb_build_object('email_enabled', enabled, 'email_kinds', clean_kinds,
                        'email_test_recipients', clean_to, 'email_daily_cap', daily_cap));
 end;

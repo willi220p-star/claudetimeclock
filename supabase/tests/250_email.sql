@@ -1,5 +1,5 @@
 begin;
-select plan(74);
+select plan(75);
 
 -- Email notifications (Dilip, 14 Oct; D50). Tue 14 Oct, 9 am Darwin.
 create temp table ids as
@@ -43,7 +43,7 @@ select throws_ok($$select public.email_mark(gen_random_uuid(), 'sent', null, nul
 reset role;
 
 -- Defaults: off, the six kinds, 80 a day.
-select results_eq($$select email_enabled, email_kinds, email_test_recipients, email_daily_cap from public.daymark_settings$$,
+select results_eq($$select s.email_enabled, s.email_kinds, e.test_recipients, s.email_daily_cap from public.daymark_settings s cross join public.daymark_email_private e$$,
   $$values (false, array['request','attendance','work_based','announcement','schedule','task']::text[], '{}'::text[], 80)$$,
   'email starts off with the six default kinds and a cap of 80');
 select private.notify((select a from ids), 'request', 'Off', 'b', '/clock');
@@ -224,7 +224,7 @@ update public.daymark_settings set email_enabled = true;
 
 -- Test recipients: everyone else is not allowed.
 update public.daymark_settings set email_daily_cap = 95;
-update public.daymark_settings set email_test_recipients = array['em.admin@test.dev'];
+update public.daymark_email_private set test_recipients = array['em.admin@test.dev'];
 select private.notify((select a from ids), 'task', 'Test only A', 'b', null);
 select private.notify((select admin from ids), 'request', 'Test only admin', 'b', null);
 set local role service_role;
@@ -255,7 +255,7 @@ select throws_ok($$select public.save_email_settings(true, '{task}', '{}', 96)$$
 select lives_ok($$select public.save_email_settings(true, '{task,request,task}', array[' Me@Test.DEV ', '', 'me@test.dev'], 60)$$,
   'an admin saves email settings');
 reset role;
-select results_eq($$select email_enabled, email_kinds, email_test_recipients, email_daily_cap from public.daymark_settings$$,
+select results_eq($$select s.email_enabled, s.email_kinds, e.test_recipients, s.email_daily_cap from public.daymark_settings s cross join public.daymark_email_private e$$,
   $$values (true, '{request,task}'::text[], '{me@test.dev}'::text[], 60)$$, 'kinds and addresses are cleaned');
 select ok(exists (select 1 from public.daymark_audit_log where action = 'save_email_settings'
                   and actor_id = (select admin from ids) and after ->> 'email_daily_cap' = '60'), 'saving is audited');
@@ -285,6 +285,11 @@ select results_eq($$select status, attempts, next_attempt_at, completed_at from 
   'it goes back to retry_pending, due now, with attempts reset');
 select ok(exists (select 1 from public.daymark_audit_log where action = 'retry_email' and row_id = (select id::text from ob where name = 'News')
                   and before ->> 'status' = 'failed'), 'retries are audited');
+
+select ok(not has_table_privilege('authenticated', 'public.daymark_email_private', 'select')
+          and not exists (select 1 from information_schema.columns
+                          where table_name = 'daymark_settings' and column_name = 'email_test_recipients'),
+  'test recipients sit in a closed table, not in the settings everyone can read');
 
 select * from finish();
 rollback;
