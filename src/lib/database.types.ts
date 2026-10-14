@@ -537,6 +537,99 @@ export type Database = {
           },
         ]
       }
+      daymark_email_outbox: {
+        Row: {
+          attempts: number
+          body: string
+          completed_at: string | null
+          correlation_id: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          kind: string
+          link: string | null
+          next_attempt_at: string
+          notification_id: string | null
+          person_id: string
+          processing_at: string | null
+          recipient_category: string
+          status: string
+          template_id: string
+          title: string
+        }
+        Insert: {
+          attempts?: number
+          body?: string
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          kind: string
+          link?: string | null
+          next_attempt_at?: string
+          notification_id?: string | null
+          person_id: string
+          processing_at?: string | null
+          recipient_category: string
+          status?: string
+          template_id: string
+          title: string
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          next_attempt_at?: string
+          notification_id?: string | null
+          person_id?: string
+          processing_at?: string | null
+          recipient_category?: string
+          status?: string
+          template_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daymark_email_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: true
+            referencedRelation: "daymark_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daymark_email_outbox_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "daymark_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daymark_email_private: {
+        Row: {
+          id: number
+          test_recipients: string[]
+        }
+        Insert: {
+          id?: number
+          test_recipients?: string[]
+        }
+        Update: {
+          id?: number
+          test_recipients?: string[]
+        }
+        Relationships: []
+      }
       daymark_exit_feedback: {
         Row: {
           answers: Json
@@ -950,6 +1043,7 @@ export type Database = {
           contact_email: string | null
           created_at: string
           display_name: string
+          email_opt_out: boolean
           id: string
           is_admin: boolean
           is_intern: boolean
@@ -964,6 +1058,7 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           display_name: string
+          email_opt_out?: boolean
           id: string
           is_admin?: boolean
           is_intern?: boolean
@@ -978,6 +1073,7 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           display_name?: string
+          email_opt_out?: boolean
           id?: string
           is_admin?: boolean
           is_intern?: boolean
@@ -1639,6 +1735,9 @@ export type Database = {
           break_minutes: number
           break_threshold_minutes: number
           cert_retention_days: number
+          email_daily_cap: number
+          email_enabled: boolean
+          email_kinds: string[]
           escalation_hours: number
           fortnight_anchor: string
           grace_minutes: number
@@ -1660,6 +1759,9 @@ export type Database = {
           break_minutes?: number
           break_threshold_minutes?: number
           cert_retention_days?: number
+          email_daily_cap?: number
+          email_enabled?: boolean
+          email_kinds?: string[]
           escalation_hours?: number
           fortnight_anchor?: string
           grace_minutes?: number
@@ -1681,6 +1783,9 @@ export type Database = {
           break_minutes?: number
           break_threshold_minutes?: number
           cert_retention_days?: number
+          email_daily_cap?: number
+          email_enabled?: boolean
+          email_kinds?: string[]
           escalation_hours?: number
           fortnight_anchor?: string
           grace_minutes?: number
@@ -2568,6 +2673,51 @@ export type Database = {
         Returns: undefined
       }
       delete_record: { Args: { row_id: string; tbl: string }; Returns: Json }
+      email_claim: {
+        Args: { max_rows?: number }
+        Returns: {
+          allowed: boolean
+          attempts: number
+          body: string
+          correlation_id: string
+          created_at: string
+          id: string
+          kind: string
+          link: string
+          recipient_category: string
+          recipient_email: string
+          recipient_name: string
+          template_id: string
+          test_only: boolean
+          title: string
+        }[]
+      }
+      email_failures: {
+        Args: { max_rows?: number }
+        Returns: {
+          attempts: number
+          completed_at: string
+          created_at: string
+          error_code: string
+          error_message: string
+          id: string
+          kind: string
+          person_name: string
+          recipient_category: string
+          status: string
+          template_id: string
+        }[]
+      }
+      email_mark: {
+        Args: {
+          error_code?: string
+          error_message?: string
+          id: string
+          status: string
+        }
+        Returns: undefined
+      }
+      email_settings: { Args: never; Returns: Json }
       end_banner: { Args: { id: string }; Returns: undefined }
       extend_placement: {
         Args: {
@@ -2671,6 +2821,7 @@ export type Database = {
         }[]
       }
       my_consent: { Args: never; Returns: Json }
+      my_email_setting: { Args: never; Returns: boolean }
       my_projects: {
         Args: never
         Returns: {
@@ -2907,6 +3058,7 @@ export type Database = {
           intern_id: string
         }[]
       }
+      retry_email: { Args: { id: string }; Returns: undefined }
       review_task: {
         Args: { approve: boolean; comment?: string; item: string }
         Returns: undefined
@@ -2940,6 +3092,15 @@ export type Database = {
       save_cohort: {
         Args: { id: string; name: string; notes?: string; starts_on?: string }
         Returns: string
+      }
+      save_email_settings: {
+        Args: {
+          daily_cap: number
+          enabled: boolean
+          kinds: string[]
+          test_recipients: string[]
+        }
+        Returns: undefined
       }
       save_label: {
         Args: { colour: string; id: string; name: string }
@@ -3043,6 +3204,7 @@ export type Database = {
         Returns: undefined
       }
       set_kiosk_pin: { Args: { pin: string }; Returns: undefined }
+      set_my_email: { Args: { enabled: boolean }; Returns: undefined }
       set_pattern: {
         Args: {
           allow_extra?: boolean
